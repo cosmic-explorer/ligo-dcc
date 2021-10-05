@@ -3,6 +3,7 @@
 #dcc-lho.ligo.org installation by Phil Ehrens
 #
 #
+# FIXME: Outdated (2021-11-08 PGA)
 
 if [[ 0 -eq 1 ]]
 then
@@ -58,6 +59,8 @@ chown -R mysql:mysql /usr2/sql
 # from dcc.ligo.org to dcc-lho.ligo.org
 #
 
+#FIXME: url died several years ago tarball available in other places like
+# https://fossies.org/linux/www/old/glimpse-4.18.6.tar.gz
 wget http://webglimpse.net/trial/glimpse-4.18.6.tar.gz
 tar xvzf glimpse-4.18.6.tar.gz
 cd glimpse-4.18.6
