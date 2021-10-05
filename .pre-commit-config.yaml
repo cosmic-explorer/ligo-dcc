@@ -1,0 +1,19 @@
+---
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.0.1
+    hooks:
+      - id: check-merge-conflict
+      - id: check-xml
+#      - id: check-executables-have-shebangs
+      - id: detect-private-key
+      - id: check-added-large-files
+#- repo: https://github.com/henryykt/pre-commit-perl
+##  rev: v0.0.4
+##  hooks:
+##    - id: perlcritic
+##      types: [file]
+##      files: 'cgi\-bin/(private|public)/.*'
+##      exclude: '(README|\.(xml|sh|dcc.*\.org))$'
+#
+
