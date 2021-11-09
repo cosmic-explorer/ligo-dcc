@@ -8,5 +8,5 @@ cgi-bin/private/philstatus.sh
 deployment/pull_code_from_usr1
 .*sw?
 *.sav*
-
+shibboleth* 
 .DS_Store
