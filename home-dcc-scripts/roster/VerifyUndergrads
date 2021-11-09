@@ -1,0 +1,43 @@
+#! /usr/bin/env perl
+#
+
+use CGI;
+use DBI;
+use MIME::Lite;
+
+$query = new CGI;  # Global for subroutines
+
+
+$myligo_handle = DBI->connect('DBI:mysql:myligo:authcore.ligo.caltech.edu', "reader" , "readonly");
+$docdb_handle = DBI->connect('DBI:mysql:dcc_docdb:localhost', "docdbrw" , "*******");
+
+
+my ($my_pe_id);
+
+my $ug_list = $myligo_handle -> prepare ( "SELECT pe_id from positions WHERE pt_id = 7 ");
+$ug_list -> execute();
+$ug_list-> bind_columns(undef, \($my_pe_id));
+
+
+     print "Group#\tEmp#\tEmailID\tUsername\n";
+while ($ug_list -> fetch) {
+     my ($EmployeeNumber, $EmailUserID, $Username, $GroupID);
+     my $email_list = $docdb_handle -> prepare(
+               "SELECT EmployeeNumber, EmailUser.EmailUserID, EmailUser.Username, UsersGroup.GroupID  from EmailUser RIGHT JOIN UsersGroup ON EmailUser.EmailUserID= UsersGroup.EmailUserID WHERE EmailUser.EmployeeNumber = $my_pe_id"
+                ); 
+     $email_list-> execute();
+     $email_list-> bind_columns(undef, \($EmployeeNumber, $EmailUserID, $Username, $GroupID));
+     
+     #Search the EmailUser table using the AuthorID and EamilAddress
+     while ($email_list-> fetch) {
+          if ($GroupID == 2) {
+          print "$GroupID\t$EmployeeNumber\t$EmailUserID\t$Username\n";
+          }
+     }
+
+}
+
+$docdb_handle -> disconnect;
+$myligo_handle -> disconnect;
+
+

@@ -1,0 +1,95 @@
+#!/usr/bin/perl -w
+
+=pod
+     This is a simple Perl script for retrieving
+     values from an LDAP.
+     The REQUIRED arguments:
+       
+         ldap_server
+         ldap_base
+         search_attribute (for instance, isMemberOf)
+         search_string 
+         "list of attributes to retrieve
+         
+    
+     Where:
+            search_attribute is the attribute to search in
+            search_string is the substring to search for
+            "list of ..." is a list of attributes to return
+            for each match.
+    
+    Examples:
+            (isMemberOf and employeeNumber can only search on
+            an EXACT search_string)
+            
+              isMemberOf Communities:LVC:LIGOLab:LIGOLabGroupMembers mail
+            
+            (everything else globs, i.e. this searches for *phil*)
+            
+              mail phil nc
+=cut
+
+use Net::LDAP;
+
+#$ldap_server = 'ldap.ligo.org';
+#$ldap_base = 'ou=people, dc=ligo, dc=org';
+$ldap_server        = $ARGV[0];
+$ldap_base          = $ARGV[1];
+$ldap_attribute     = $ARGV[2];
+$ldap_attribute_val = $ARGV[3];
+
+
+#print $ldap_server; 
+#print $ldap_base;
+#print $ldap_attribute;
+#print $ldap_attribute_val;
+
+$ldap = Net::LDAP->new ( $ldap_server, timeout=>4 ) or die "$@";
+
+$mesg = $ldap->bind;
+
+if ( $mesg->code ) { LDAPerror ("bind", $mesg) }
+
+print LDAPquery();
+
+$ldap->unbind;
+
+exit 1;
+
+#
+# Function definitions follow
+#
+
+sub LDAPquery {
+   my $attr_arg = $ldap_attribute;
+   my $pat_arg  = $ldap_attribute_val;
+   my $query = "";
+   $ARGV[4] or $ARGV[4] = 'NULL';
+   my @fields_arg = split(" ",$ARGV[4]);
+
+   my @results = ();
+
+   $query = "($attr_arg=$pat_arg)";
+
+   my $mesg = $ldap->search(base => $ldap_base, filter => "(|$query)");
+   if ( $mesg->code ) { LDAPerror ("search", $mesg) }
+   foreach my $entry ($mesg->entries) {
+      foreach my $attr ( sort @fields_arg ) {
+         my @stuff = $entry->get_value( $attr );
+         foreach my $thing ( @stuff ) {
+            push (@results, " $attr: $thing\n");
+         }
+      }
+   }
+   return @results;
+}
+
+sub LDAPerror {
+   my ($from, $mesg) = @_;
+   print "Return code: ", $mesg->code;
+   print "\tMessage: "  , $mesg->error_name;
+   print " :"           , $mesg->error_text;
+   print "MessageID: "  , $mesg->mesg_id;
+   print "\tDN: "       , $mesg->dn;
+}
+

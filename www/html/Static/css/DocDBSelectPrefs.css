@@ -1,0 +1,175 @@
+#TopicScrollTable {
+  padding-left: 3px;
+  padding-right: 10px;
+}
+
+#AuthorTextError {
+   color: red;
+   padding: 1ex;
+   font-weight: 900;
+}
+
+/* Put the link to list users in a group as close to security scrolls as possible */
+
+.wListUsers td {
+  padding-bottom: 0px;
+}
+
+.ListUsers td {
+  padding-top: 0px;
+}
+
+ul.auto-list{
+  display:none;
+  position:absolute;
+  top:0px;left:0px;
+  border:1px solid green;
+  background-color:#dddddd;
+  padding:0;margin:0;
+  list-style:none;
+  max-height:400px;
+  overflow:auto;   /* %%%% */
+}
+ul.auto-list>
+li:hover,ul.auto-list>
+li[data-selected=true]{
+  background-color:#cc9999;
+}
+ul.auto-list>li{
+  border:1px solid gray;
+  cursor:default;padding:2px;
+}mark{font-weight:bold;}
+
+#authormanual {
+   font-size: 80%;
+}
+
+/* A little sugar for the author list auto-completion */
+#AuthorListAC li:hover {
+   background-color: #eef;
+}
+
+
+
+/* Everything below is REALLY Signatures.css */
+#signatures {
+   margin-top: 1em;
+}
+
+#sigbuttons {
+   margin-bottom: 1em;
+}
+
+input#commit {
+   margin-right: 1ex;
+}
+
+#final_signer {
+   margin-bottom: 1ex;
+}
+
+img:hover {
+   background-color: #dff;
+}
+
+input:hover {
+   /*background-color: #dff;*/  /* VK */
+}
+
+img[src="/images/checked.png"], img[src="/images/unchecked.png"] {
+   margin-right: 0.5ex;
+   vertical-align: middle;
+   cursor: pointer;
+}
+
+select {
+   background-color: #eed;
+}
+
+select:hover {
+   background-color: #ffe;
+}
+
+#signoffs {
+   margin-top: 2em;
+}
+
+span.top {
+   display: inline-block;
+   width: 7em;
+   font-weight: 900;
+   color: brown;
+   margin: 0;
+   padding: 0;
+}
+
+span.mid:before {
+   content:"\0251c";
+}
+span.mid {
+   display: inline-block;
+   width: 10em;
+   margin: 0;
+   padding: 0;
+}
+
+span.vbar {
+   display: inline-block;
+   margin: 0;
+   padding: 0;
+   font-size: 60%;
+}
+
+span.vbar:before {
+   content:"\02502";
+}
+
+span.bot:before {
+   content:"\02514";
+}
+
+span.bot {
+   display: inline-block;
+   width: 10em;
+   margin: 0;
+   padding: 0;
+}
+
+span.red {
+   font-size: 80%;
+   color: red;
+   vertical-align: middle;
+}
+
+span.grn {
+   font-size: 80%;
+   color: green;
+   vertical-align: middle;
+}
+
+span.gry {
+   font-size: 80%;
+   color: #999;
+   vertical-align: middle;
+}
+
+textarea {
+   background-color: #eed;
+}
+
+textarea.signercomment {
+   font-size: 80%;
+   width: 5em;
+   height: 2ex;
+   resize: both;
+}
+
+span.comm {
+   display: inline-block;
+   vertical-align: middle;
+   margin-left: 1em;
+}
+
+span.counter {
+   margin-left: 7em;
+}

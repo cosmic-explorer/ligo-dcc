@@ -1,0 +1,771 @@
+#! /usr/bin/env perl
+#
+#        Name: $RCSfile: ProcessDocumentAdd,v $
+# Description: Receives the output of DocumentAddForm and creates or updates the document
+#    Revision: $Revision: 1.72.4.16 $
+#    Modified: $Author: vondo $ on $Date: 2007/09/20 19:53:14 $
+#
+#      Author: Eric Vaandering (ewv@fnal.gov)
+
+# Copyright 2001-2007 Eric Vaandering, Lynn Garren, Adam Bryant
+
+#    This file is part of DocDB.
+
+#    DocDB is free software; you can redistribute it and/or modify
+#    it under the terms of version 2 of the GNU General Public License
+#    as published by the Free Software Foundation.
+
+#    DocDB is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+
+#    You should have received a copy of the GNU General Public License
+#    along with DocDB; if not, write to the Free Software
+#    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+
+
+use Benchmark;
+use CGI;
+use DBI;
+
+use warnings;
+no warnings qw(once);
+
+use CGI::Carp qw(carp croak fatalsToBrowser);
+
+require "DocDBGlobals.pm";
+
+if ($UseDeadlyWarning == 1) {
+   # promote run-time warnings into exceptions
+   # # *unless* we're in an try block, in which 
+   # # case just generate a log entry instead
+   local $SIG{__WARN__} = sub {
+      if ($^S) { carp  "Trapped warning: @_" }
+      else     { croak "Deadly warning: @_"  }
+   };
+}
+
+
+$StartTime = new Benchmark;
+
+require "ResponseElements.pm";
+require "AuthorSQL.pm";
+require "TopicSQL.pm";
+require "SecuritySQL.pm";
+require "DocumentSQL.pm";
+require "RevisionSQL.pm";
+require "SignoffSQL.pm";
+require "SignoffUtilities.pm";
+require "MiscSQL.pm";
+require "FSUtilities.pm";
+require "FileUtilities.pm";
+require "TopicUtilities.pm";
+require "WebUtilities.pm";
+require "HTMLUtilities.pm";
+
+require "Security.pm";
+require "Scripts.pm";
+
+require "TopicHTML.pm";
+require "SecurityHTML.pm";
+
+$myDEBUG = 0;
+if ($myDEBUG) {
+open (DEBUG, ">>/tmp/debug.mca");
+
+}
+
+if ($MailInstalled) {
+  require "MailNotification.pm";
+}
+
+
+
+$query = new CGI;  # Global for subroutines
+
+$dbh   = DBI->connect('DBI:mysql:'.$db_name.':'.$db_host,$db_rwuser,$db_rwpass);
+
+GetTopics();
+GetJournals();
+GetSecurityGroups();
+
+### Set up, give user initial information
+
+%params = $query -> Vars;
+$Mode = $params{mode} || 'Undefined';
+
+print $query -> header( -charset => $HTTP_ENCODING );
+if ($Mode eq "reserve" || $Mode eq "use") {
+  &DocDBHeader("$Project Document Reservation Results","Document Reservation Results",
+              -scripts => ["serverstatus", "PopUps"]);
+} elsif ($Mode eq "add") {
+  &DocDBHeader("$Project Document Addition Results","Document Addition Results",
+              -scripts => ["serverstatus", "PopUps"]);
+} elsif ($Mode eq "update" || $Mode eq "updatedb") {
+  &DocDBHeader("$Project Document Modification Results","Document Modification Results",
+              -scripts => ["serverstatus", "PopUps"]);
+} else {
+  &DocDBHeader("ERROR!!");
+  push @ErrorStack,"You accessed this page without  specifying a required
+        parameter.<br>Don't manipulate hidden fields or try to access this page
+        directly.<br>Mode is $Mode.";
+  EndPage();
+}
+
+### Pull info out of params into local variables
+### FIXME: Get all the params here, too confusing later on to be using $param
+### FIXME: Any reason all of these can't be "my"?
+
+### Actually, since $params{} is global already, this is entirely pointless!!
+
+my $Archive       = $params{archive} || '';
+my $DocTypeID     = $params{doctype};
+my $Title         = $params{title} || '';
+my $Abstract      = $params{abstract};
+my $PubInfo       = $params{pubinfo};
+my $AuthorMode    = "field";
+my $Alias         = $params{oldnumber};
+   $Overdate      = $params{overdate};
+   $Overday       = $params{overday};
+   $Overmonth     = $params{overmonth};
+   $Overyear      = $params{overyear};
+   $Overmin       = $params{overmin};
+   $Overhour      = $params{overhour};
+   @JournalIDs    = split /\0/,$params{journal} || '';
+   @Volumes       = split /\0/,$params{volume} || '';
+   @Pages         = split /\0/,$params{page} || '';
+   $Keywords      = $params{keywords};
+   $ResetState    = $params{reset};
+   $OldDocRevID   = $params{olddocrevid};
+   $Requester     = $params{requester}; #FIXME: Replace with RequesterID
+my $RequesterID   = $params{requester};
+my $SessionTalkID = $params{sessiontalkid};
+my $RevisionNote  = $params{revisionnote};
+my $SignoffList   = $params{signofflist};
+my $OldVersion    = $params{oldversion};
+my $SubmitAgree   = $params{submitagree};
+my $LessFiles     = $params{LessFiles};
+my $MaxFiles      = $params{maxfiles} || 0;
+my $UniqueID      = $params{uniqueid};
+my $NumberSigned  = $params{nsigned};
+my $QAState       = $params{qastat} || 0;
+my @XRefs         = split /,*\s+/,$params{xrefs} || ''; # Can be comma or space separated
+my @EventIDs          = $query -> param('events');
+my @RequestedTopicIDs = $query -> param('topics');
+my $SignoffState      = $params{signoffstate} || '';
+my $ParallelSignoff   = $params{parallelsignoff} || 0;
+my $SignoffModes      = $params{signoffmodes} || '';
+my $ClearInactive     = $params{clearinactive} || '';
+
+if ($Archive eq "multi") {$Archive = "single";} # No real difference
+
+if ($myDEBUG) { print DEBUG "ProcessDocumentAdd ParallelSignoff $ParallelSignoff \n"; }
+#
+# Fill in file hash
+
+my %Files = ();
+my $NeedURLs      = 0;
+my $AddNewFile    = 0;
+my $NumberOfFiles = 0;
+for (my $i = 1; $i<= $MaxFiles; ++$i) {
+  my $Key = $i; # Probably something better later
+  if ($params{"upload$i"}) {
+    $AddNewFile = 1;
+    ++$NumberOfFiles;
+    $Files{$Key}{File} = $query ->  param("upload$i");
+  } elsif ($params{"url$i"}) {
+    $NeedURLs = 1;
+    $AddNewFile = 1;
+    ++$NumberOfFiles;
+    $Files{$Key}{URL}         = $params{"url$i"};
+    $Files{$Key}{User}        = $params{http_user};
+    $Files{$Key}{Pass}        = $params{http_pass};
+    $Files{$Key}{NewFilename} = $params{"newname$i"};
+  } elsif ($params{"copyfile$i"}) {
+    ++$NumberOfFiles;
+    $Files{$Key}{CopyFileID} = $params{"fileid$i"};
+  } elsif ($Mode eq "updatedb") {
+    ++$NumberOfFiles;
+    $Files{$Key}{FileID} = $params{"fileid$i"};
+    push @DebugStack,"Duplicating in slot $i, $Files{$Key}{FileID}";
+  }
+
+  if ($params{"main$i"}) {
+    $Files{$Key}{Main} = 1;
+  } else {
+    $Files{$Key}{Main} = 0;
+  }
+
+  $Files{$Key}{Description} = $params{"filedesc$i"};
+}
+
+#
+# Sanitize input parameters - Bogus document type and title can be sent,
+# and passing "0" as the modify group id is forbidden.
+#
+# These conditions were detected using this URL:
+#
+# https://dcc-test.ligo.org/cgi-bin/private/DocDB/ProcessDocumentAdd?mode=updatedb&requester=1&title=%27%27&doctype=X&abstract=&authors=0&docid=123&authorgroups=0&modify=0
+#
+my $DocX0RevID = FetchRevisionByDocumentAndVersion($params{docid},0) || 0;
+my $DocTypeX0  = $DocRevisions{$DocX0RevID}{DocTypeID};
+
+if ($DocTypeX0 and $DocTypeID ne $DocTypeX0) {
+   push @ErrorStack, "You are attempting to update the document type, which is forbidden.";
+}
+
+if ($Title !~ m/([A-Za-z0-9])/) {
+   push @ErrorStack,"Document title has no alphanumeric characters! Please try again."; 
+}
+
+if ($params{modify} && $params{modify} eq "0") {
+   push @ErrorStack,"Invalid group i.d. for modify!"; 
+}
+
+my %Archive = ();
+if ($Archive eq "archive") { # They uploaded a tar/zip file
+  $AddNewFile = 1;
+  $Archive{File} = $query ->  param("single_upload");
+  $Archive{MainFile}    = $params{"mainfile"};
+  $Archive{Description} = $params{"filedesc"};
+}
+
+my $OrderAuthors = $FALSE;
+if ($AuthorMode eq "field") {
+   $OrderAuthors = $TRUE;
+   @authorIDs = ProcessManualAuthors($params{authormanual});
+} else {
+   @authorIDs = split /\0/,$params{authors};
+}
+
+# CGI behavior is that empty inputs do not get passed,
+# and authorgroups is not required.
+if ($params{authorgroups}) {
+   @authorgroupIDs = split /\0/,$params{authorgroups};
+}
+
+if ($Overdate && $Overyear && $Overmonth && $Overday) {
+   $SQL_NOW = "$Overyear-$ReverseAbrvMonth{$Overmonth}-$Overday $Overhour:$Overmin:00";
+} else {
+   my ($sec,$min,$hour,$day,$mon,$year) = localtime(time);
+   $year += 1900;
+   ++$mon;
+   $SQL_NOW = "$year-$mon-$day $hour:$min:$sec";
+}
+
+if ($Mode eq "add") {
+   print "<p><h3>Here are the results of your attempt to add a document
+          into the $Project document database:</h3><p>\n";
+} elsif ($Mode eq "reserve" || $Mode eq "use") {
+   print "<p><h3>Here are the results of your attempt to reserve a document
+          number in the $Project document database:</h3><p>\n";
+} elsif ($Mode eq "update" || $Mode eq "updatedb") {
+   print "<p><h3>Here are the results of your attempt to update a document
+          in the $Project document database:</h3><p>\n";
+}
+
+### Check parameters for errors
+
+unless (&CanCreate()) {
+  push @ErrorStack,"You are not allowed to modify or create documents.";
+}
+unless ($params{requester}) {
+  push @ErrorStack,"You must supply a requester for this document.";
+}
+unless ($params{title}) {
+  push @ErrorStack,"You must supply a title for this document.";
+}
+
+if (@JournalIDs || @Volumes || @Pages) {
+   my @TestJournalIDs = @JournalIDs;
+   my @TestVolumes    = @Volumes;
+   my @TestPages      = @Pages;
+   foreach my $JournalID (@TestJournalIDs) {
+      my $Volume = shift @TestVolumes;
+      my $Page   = shift @TestPages;
+      if (($JournalID || $Volume || $Page) && !($JournalID && ($Volume || $Page))) {
+         push @ErrorStack,"Your reference $Journals{$JournalID}{Acronym}, vol. $Volume,
+                          pg. $Page must consist of a journal plus a volume, page number,
+                          or both.";
+      }
+   }
+}
+
+unless ($DocTypeID) {
+   push @ErrorStack,"You must supply a document type for this document.";
+}
+
+if ($Mode eq "add" || $Mode eq "update") {
+   unless ($params{abstract}) {
+      push @ErrorStack,"You must supply an abstract for this document.";
+   }
+   unless ($AddNewFile || $LessFiles) {
+      push @ErrorStack,"You must supply a new or changed file for this document.
+                        If you just want to change information about the
+                        document, choose `Change Metadata' instead.";
+  }
+ 
+  if ($params{single_upload} && $params{single_http}) {
+     push @ErrorStack,"You may not specify both URL and file upload.";
+  }
+  if (!$params{mainfile} && $Archive eq "archive") {
+     push @ErrorStack,"You must specify a main file in the archive.";
+  }
+
+  if ($NeedURLs) {
+     my $TmpDir = &MakeTmpSubDir();
+     %Files = &DownloadURLs(-tmpdir => $TmpDir, -files => \%Files);
+  }
+}
+
+if ($Mode eq "update" && !$LessFiles) {
+   FetchDocument($params{docid});
+   my $Version = $Documents{$params{docid}}{NVersions};
+   my $DocRevID = FetchRevisionByDocumentAndVersion($params{docid},$Version);
+   my @FileIDs = FetchDocFiles($DocRevID);
+   if (scalar(@FileIDs) > $NumberOfFiles) {
+      push @ErrorStack,"You are attempting to create a new version with fewer
+                        files than the original. Either upload or copy the correct number
+                        of files or check the box confirming that you want to upload fewer
+                        files.";
+  }
+}
+
+if ($Mode eq "update" || $Mode eq "updatedb") {
+   unless ($params{docid}) {
+      push @ErrorStack,"You must supply a document number to modify a document.";
+   }
+   unless (&CanModify($params{docid})) {
+      push @ErrorStack,"You are not allowed to modify this document.";
+   }
+}
+
+if ($Preferences{Options}{SubmitAgree} && !$SubmitAgree) {
+   push @ErrorStack,'You must check the box near with this statement: <br/>'.
+                    $Preferences{Options}{SubmitAgree}.
+                    '<br/>to submit the document.';
+}
+
+### Final checks
+
+if ($UseSignoffs && $SignoffList) {
+   my @SignoffIDs = ProcessSignoffList($SignoffList);
+}
+
+my @TopicIDs = ();
+
+foreach my $TopicID (@RequestedTopicIDs) {
+  if (scalar(@{$TopicProvenance{$TopicID}}) < $Preferences{Topics}{MinLevel}{Document}) {
+    push @WarnStack,"Topic ".TopicLink({-topicid => $TopicID})." not added to this document. Topic is too high-level.";
+  } else {
+    push @TopicIDs,$TopicID;
+  }
+}
+
+#MCA: if ($Mode eq "add" || $Mode eq "update") {
+if ($Mode eq "use" || $Mode eq "reserve" || $Mode eq "add" || $Mode eq "update") {
+  unless (@TopicIDs) {
+    push @ErrorStack,"You must supply at least one valid topic for this document.";
+  }
+}
+
+if (@ErrorStack) { &EndPage(); }
+
+if ($params{security}) {
+   @securities = split ("\0",$params{security});
+} else {
+   @securities = ();
+}
+if ($Mode eq "add"      || $Mode eq "reserve" || $Mode eq "use" ||
+   ($Mode eq "update"   && $ResetState != 0)  ||
+   ($Mode eq "updatedb" && $ResetState != 0)) {
+   if (scalar(@securities) == 0) {
+      push @securities, 1;
+      push @WarnStack,"The public status of this document has been revoked."
+   }
+}
+@securities = Unique(@securities);
+
+if (scalar(@securities) > 1) {
+  foreach my $GroupID (@securities) {
+    if ($GroupID == 1) {
+       push @ErrorStack,
+          "You selected \"Public\" and another form of security. ".
+          "You may only select \"Public\" by itself.";
+    }
+  }
+}
+
+if ($EnhancedSecurity) {
+  if ($params{modify}) {
+     @ModifyGroups = split ("\0",$params{modify});
+  } else {
+     @ModifyGroups = ();
+  }
+} 
+
+if ($Mode eq "use" || $Mode eq "reserve" ||
+    $Mode eq "add" || $Mode eq "update" || $Mode eq "updatedb") {
+  if ((scalar(@authorIDs) == 0) && (scalar(@authorgroupIDs) == 0)) { 
+     push @ErrorStack,"You must supply at least one author or an author group for this document.";
+  }
+}
+
+my $ViewCheck = "create"; # Create/view are the same, check for more restrictive
+if ($EnhancedSecurity) {
+  $ViewCheck = "view";
+  unless (defined $params{public}) {
+    push @ErrorStack,"You must select at least one group which is allowed to
+                      view the document.";
+  }
+  unless (@ModifyGroups) {
+    push @ErrorStack,"You must select at least one group which is allowed to
+                      modify the document.";
+  }
+}
+
+foreach my $GroupID (@securities) {
+  unless ($GroupID) {next;} # Don't check for public
+  unless (GroupCan({ -groupid => $GroupID, -action => $ViewCheck }) ) {
+    push @WarnStack,"The group ".SecurityLink({ -groupid => $GroupID, }).
+         " is not currently allowed to view documents. If this changes,".
+         " this document will be viewable by that group.";
+  }
+}
+
+foreach my $GroupID (@ModifyGroups) {
+  unless ($GroupID) {next;} # Don't check for public
+  unless (GroupCan({ -groupid => $GroupID, -action => "create" }) ) {
+    push @WarnStack,"The group ".SecurityLink({ -groupid => $GroupID, }).
+         " is not currently allowed to create or modify documents. If this changes,".
+         " this document will be modifiable by that group.";
+  }
+}
+
+my $UniqueSelect = $dbh -> prepare("select DocumentID from Document where DocHash=?");
+$UniqueSelect -> execute($UniqueID);
+my ($ExistingDocID) = $UniqueSelect -> fetchrow_array;
+if ($ExistingDocID) {
+  push @ErrorStack,"You seem to be attempting to upload a duplicate of
+        document $ExistingDocID. If this is not correct, please reload the
+        previous page or <a href=\"$DocumentAddForm\">try again</a>. If you
+        were really trying to enter two similar documents hitting the \"Back\"
+        button and  then \"Reload\" and \"Submit\" may save the parameters you
+        entered but create a new unique key for DocDB.";
+}
+
+# Fixes presentation associated with view and modify errors.
+if (@ErrorStack && $DocumentID) {
+   &DontPrintRevisionInfo($Mode,$documentID);
+   EndPage();
+} elsif (@ErrorStack) {
+   EndPage();
+}
+
+### Make entry in DocumentDatabase or get document ID
+### FIXME: Should be able to move all this into an enhanced AddDocument
+
+my $DocNumber = ();
+
+if ($Mode eq "use") {
+   unless ($Alias) {
+        push @ErrorStack, "You must supply a DCC Number for this document.";
+        EndPage();
+   }
+
+   # Change lower case to upper.
+   $Alias =~ tr/a-z/A-Z/;          
+  
+   $ExistingDocID = GetDocumentIDByAlias($Alias);
+   if ($ExistingDocID) {
+        push @ErrorStack, "You seem to be attempting to create a duplicate of
+            document <a href=\"ShowDocument?docid=$ExistingDocID\"> $Alias</a>.
+            Please make sure that you have the correct document number.</a>";
+   } elsif ($Alias =~ m/^\d/) {
+        push @ErrorStack, "A valid document number starts with a letter.
+             Please make sure that you have the correct document number.";
+   } else {
+        # Make sure that the document type matches the document number.
+        my $DocTypeShort = &FetchDocType($DocTypeID);
+        my ($DocTypeAbbr) = ($DocTypeShort =~ /(\w{1})/);
+
+        my ($AliasFirstLetter) = ($Alias =~ /(\w{1})/);
+        if ($DocTypeAbbr ne $AliasFirstLetter) {
+           push @ErrorStack, "The document number does not match the document type.
+                Please make sure that you have the correct document number.";
+        }
+        $DocNumber = $Alias;
+   }
+   if (@ErrorStack) { &EndPage(); }
+}
+
+my $documentID = $params{docid};
+
+if ($Mode eq "reserve" || $Mode eq "add" || $Mode eq "use") {
+   $documentID = &InsertDocument(
+                 -requesterid => $RequesterID, 
+                 -datetime    => $SQL_NOW,  
+                 -doctypeid   => $DocTypeID,
+                 -docnumber   => $DocNumber,
+                 -dochash     => $UniqueID,
+                 -mode        => 'update');
+}
+
+### Set version number. For reservations, it is "0", for new documents "1". For
+### updates, increment by one, and for DB info updates, either the latest
+### version or the one being updated
+
+my $version;
+if      ($Mode eq "reserve" || $Mode eq "use") {
+  $version   = 0;
+} elsif ($Mode eq "add") {
+  $version   = 1;
+} elsif ($Mode eq "update") {
+  &FetchDocument($documentID);
+  $version   = $Documents{$documentID}{NVersions} + 1;
+} elsif ($Mode eq "updatedb") {
+  &FetchDocument($documentID);
+  if  (defined $params{version}) {
+    $version = $params{version};
+  } else {
+    $version = $Documents{$documentID}{NVersions};
+  }
+  if ($version != $Documents{$documentID}{NVersions}) {
+    push @WarnStack,"You have updated an old version of a document. Hope this
+    is what you wanted to do.";
+  }
+}
+
+if ($Mode eq "updatedb") { # New Document revision replaces old. Fetch
+                           # old DocumentRevision and mark it obsolete
+  my $OldRevID = &FetchRevisionByDocumentAndVersion($documentID,$version);
+  my $ObsoleteRevision = $dbh -> prepare("update DocumentRevision set Obsolete=1 where DocRevID=?");
+  $ObsoleteRevision -> execute($OldRevID);
+}
+
+### Add entry to Document Revision
+
+my $DocRevID = &InsertRevision(
+                 -docid        => $documentID,  -doctypeid => $DocTypeID,
+                 -submitterid  => $RequesterID, -title     => $Title,
+                 -pubinfo      => $PubInfo,     -abstract  => $Abstract,
+                 -version      => $version,     -datetime  => $SQL_NOW,
+                 -keywords     => $Keywords,    -note      => $RevisionNote,
+                 -signoffstate => $SignoffState, -parallelsignoff => $ParallelSignoff);
+
+#
+# Preserve the old qastat if only minor changes were made
+#
+if ($Mode eq "updatedb" && $ResetState == 0) {
+   my $FixQAState = $dbh -> prepare("update DocumentRevision set QAcheck=$QAState where DocRevID=?");
+   $FixQAState -> execute($DocRevID);
+}
+
+### Add reference information if it exists
+
+if (@JournalIDs || @Volumes || @Pages) {
+  my $ReferenceInsert  = $dbh -> prepare(
+    "insert into RevisionReference (ReferenceID,DocRevID,JournalID,Volume,Page) ".
+    "values (0,?,?,?,?)");
+  foreach my $JournalID (@JournalIDs) {
+    my $Volume = shift @Volumes;
+    my $Page   = shift @Pages;
+    if ($JournalID) { # Can delete references too.
+      $ReferenceInsert -> execute($DocRevID,$JournalID,$Volume,$Page);
+    }
+  }
+}
+
+# Add Cross-References - AKA "Related Documents"
+# -
+# The new, cleaner code, which should be wedged into the
+# execrable InsertXRefs in XRefSQL.pm as well.
+# -
+# Note that using a regex also validates, avoiding
+# SQL injection. - Phil
+if (@XRefs) {
+   require "XRefSQL.pm";
+   my @xrefs = ();
+   # InsertXRefs wants things like 1234-v2 - Yeech.
+   # Where in heck did THAT come from?!
+   my $xrefdoc_rx = qr/^\d+(-[vx]\d+)?$/;
+   # Will put the alias inot $2, the version number into $4
+   my $alias_rx=qr/(LIGO-)?([A-Z]\d{5,8})(-[vx](\d+))?/i;
+
+   foreach my $Document (@XRefs) {
+     if ($Document !~ $xrefdoc_rx) {
+        if ($Document =~ $alias_rx) {
+           if (defined $4 && $4 != 0) {
+              $Document = &GetDocumentIDByAlias($2).'-v'.$4;
+           } else {
+              $Document = &GetDocumentIDByAlias($2);
+           }
+        }
+     }
+     push @xrefs, $Document;
+  }
+  #
+  # People DO NOT WANT THIS!
+  #
+  #@xrefs = Unique(@xrefs); 
+  &InsertXRefs(-docrevid => $DocRevID,
+               -documents => \@xrefs);
+}
+
+### Add to authors, topics and securities
+
+
+my $Count;
+$Count = InsertAuthors(     -docrevid  => $DocRevID,
+                            -authorids => \@authorIDs,
+                            -order     => $OrderAuthors);
+
+$Count = InsertAuthorGroups(-docrevid  => $DocRevID,
+                            -authorgroupids => \@authorgroupIDs );
+
+$Count = InsertTopics(      -docrevid  => $DocRevID,
+                            -topicids  => \@TopicIDs);
+
+$Count = InsertSecurity(    -docrevid     => $DocRevID,
+                            -viewids   => \@securities,
+                            -modifyids => \@ModifyGroups);
+
+if ($QAState == 1 && $ResetState == 1) {
+  push @WarnStack,"The document must be recertified.";
+}
+
+### Add events
+if (@EventIDs) {
+  require "MeetingSQL.pm";
+  $Count = &InsertRevisionEvents(-docrevid => $DocRevID,
+                                 -eventids => \@EventIDs);
+}
+
+### Add link to SessionTalk
+if ($SessionTalkID) {
+  my $SessionTalkUpdate = $dbh -> prepare("update SessionTalk set DocumentID=?,Confirmed=1 where SessionTalkID=?");
+  $SessionTalkUpdate -> execute($documentID,$SessionTalkID);
+}
+
+### Add Signoffs
+if ($myDEBUG) { print DEBUG "ProcessDocumentAdd Before inserting Signofflist : ParallelSignoff $ParallelSignoff\n"; }
+
+if ($myDEBUG) { print DEBUG "ProcessDocumentAdd : ClearInactive $ClearInactive\n"; }
+
+if ($UseSignoffs && $SignoffList) {
+  my @EmailUserIDs = ProcessSignoffList($SignoffList); 
+  if (@EmailUserIDs) {
+    InsertSignoffList($DocRevID, $ParallelSignoff, @EmailUserIDs);
+  }
+}
+
+my @FileIDs = ();
+
+if ($Mode eq "use" || $Mode eq "reserve") {
+   &UpdateRevisionPublicSecurity($documentID, $version, 0);
+   &ProtectDirectory($documentID,$version,$DocRevID,@securities);
+   @FileIDs      = ();
+   %DocRevIDs    = ();
+   %DocRevisions = ();
+   %Documents    = ();
+   @DocumentIDs  = ();
+}
+
+if ($Mode eq "updatedb") { # Copy DocumentFile entries
+  if ($ResetState == 0) {
+      $QAcheck = $QAState;
+  } else {
+      $QAcheck = 0;
+  }
+  &UpdateRevisionPublicSecurity($documentID, $version, $QAcheck);
+  &ProtectDirectory($documentID,$version,$DocRevID,@securities);
+  @FileIDs = &AddFiles(-docrevid   => $DocRevID,
+                       -files      => \%Files,
+                       -oldversion => $OldVersion);
+  %DocRevIDs    = ();
+  %DocRevisions = ();
+  %Documents    = ();
+  @DocumentIDs  = ();
+}
+
+if ($Mode eq "add" || $Mode eq "update") { # We're adding new files
+  my $NewDir = &MakeDirectory($documentID,$version);
+  &UpdateRevisionPublicSecurity($documentID, $version, 0);
+  &ProtectDirectory($documentID,$version,$DocRevID,@securities);
+  if ($Archive eq "single") { # They uploaded individual files
+     @FileIDs = &AddFiles(-docrevid   => $DocRevID,
+                          -files      => \%Files,
+                          -oldversion => $OldVersion);
+  } elsif ($Archive eq "archive") { # They uploaded a tar/zip file
+     @FileIDs = &AddArchive(-docrevid => $DocRevID,
+                            -archive  => \%Archive);
+  }
+}
+
+### If we have anything to report to the user, do it now.
+WarnPage();
+
+$full_docid = FullDocumentID($documentID);
+
+$DocRevID   = FetchRevisionByDocumentAndVersion($documentID,$version);
+unless ($DocRevID) {
+  print "This document does not exist.<p>\n";
+  exit;
+  print $query->end_html;
+}
+
+if ($version == 0) {
+     print 'You were successful. Your Document ID is <b>'.$full_docid.'</b>.<br>
+            When you upload the initial file, it will be version 1
+            (i.e. <b>'.$full_docid.'-v1</b>).';
+} else {
+     print 'You were successful. Your Document ID is
+            <b>'.$full_docid.', version '.$version.'</b>.';
+}
+print "<p/><hr/><p/>\n";
+
+&DontPrintRevisionInfo($Mode,$documentID);
+
+# 2013-03-13 - Things associated with clearing signoffs
+# based on ValidateForms.js heuristics.
+#
+#  Phil Ehrens <phil.ehrens@ligo.org>
+#
+
+if ($UseSignoffs) {
+
+   if ($NumberSigned) {
+      if ($ResetState == 1 || $Mode eq "add" || $Mode eq "update") {
+          &ClearSignatures;
+          print "<p>All signoffs have been reset on this version of the document.<br>";
+          print "Note that signoffs have <b>not</b> been reset on other versions.<br>";
+       } else {
+          if ($ClearInactive){
+              &CopyRevisionSignoffs($OldDocRevID,$DocRevID,1);
+          }
+       }
+       # Added condition "updatedb" to try and coerce email to top signer
+       # Didn't work. Somwthing else above needs to be tweaked - Phil Ehrens 02/06/2015
+   }
+
+
+   if ($MailInstalled == 1 &&
+      ($ResetState == 1 || $Mode eq "add" || $Mode eq "update" || $Mode eq "reserve" ||
+      ($NumberSigned == 0 && $Mode eq "updatedb"))) { 
+      &NotifySignees($DocRevID);
+   }
+}
+
+# Send out e-mail to people watching this document and people who have to sign
+if ($MailInstalled) {
+      MailNotices(-docrevid => $DocRevID, -type => $Mode);
+}
+
+$EndTime  = new Benchmark;
+
+if ($myDEBUG) { close (DEBUG); }
+
+DocDBNavBar();
+DocDBFooter($DBWebMasterEmail,$DBWebMasterName);
+

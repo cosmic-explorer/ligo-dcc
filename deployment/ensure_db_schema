@@ -1,0 +1,13 @@
+#!/bin/bash
+mysql dcc_docdb -e "explain DocumentRevision;" |  grep ParallelSignoff -q
+if [ "$?" == "1" ]
+then
+    echo "ParallelSignoff not in DocumentRevision"
+    MIGRATION='ALTER TABLE `DocumentRevision` ADD COLUMN IF NOT EXISTS `ParallelSignoff` INT(11) UNSIGNED NULL DEFAULT NULL; '
+   mysql dcc_docdb -e "$MIGRATION"
+
+else
+    echo "ParallelSignoff found !"
+fi
+
+

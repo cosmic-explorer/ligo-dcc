@@ -1,0 +1,16 @@
+# leveraged from https://www.stevenrombauts.be/2019/01/run-multiple-instances-of-the-same-systemd-unit/
+
+[Unit]
+Description="glimpse incremental indexer"
+PartOf=workers.target
+
+[Install]
+WantedBy=multi-user.target
+
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/glimpse-incr.sh
+User=apache 
+Group=apache
+

@@ -1,0 +1,725 @@
+#! /usr/bin/env perl
+#
+#        Name: $RCSfile: XMLUpdate
+# Description: Allows the user to modify the metadata of a batch of documents by updating to new version
+#              or changing existing version.
+#              curl -F outformat=xml -F XMLFile=@file.xml -u user:pass http://host.com/cgi-bin/DocDB/XMLUpload
+#
+#    Revision: $Revision: 1.1.4.5 $
+#    Modified: $Author: alveera.khan $ on $Date: 2019/10/05
+#
+# Copyright 2001-2007 Eric Vaandering, Lynn Garren, Adam Bryant
+
+#    This file is part of DocDB.
+
+#    DocDB is free software; you can redistribute it and/or modify
+#    it under the terms of version 2 of the GNU General Public License
+#    as published by the Free Software Foundation.
+
+#    DocDB is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+
+#    You should have received a copy of the GNU General Public License
+#    along with DocDB; if not, write to the Free Software
+#    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+
+use CGI qw(-nosticky);
+use DBI;
+use XML::Twig;
+use File::Basename;
+use CGI::Carp qw(fatalsToBrowser);
+use POSIX;
+require "DocDBGlobals.pm";
+require "HTMLUtilities.pm";
+require "ResponseElements.pm";
+require "DBUtilities.pm";
+require "DocumentUtilities.pm";
+require "FSUtilities.pm";
+require "AuthorSQL.pm";
+require "MiscSQL.pm";
+require "Security.pm";
+require "SecuritySQL.pm";
+require "XMLOutput.pm";
+require "DocumentHTML.pm";
+require "Defaults.pm";
+require "Scripts.pm";
+require "RevisionSQL.pm";
+require "SignoffSQL.pm";
+require "FormElements.pm";
+require "Scripts.pm";
+require "Sorts.pm";
+require "Messages.pm";
+require "DocumentSQL.pm";
+require "MeetingSQL.pm";
+require "TopicSQL.pm";
+require "Utilities.pm";
+require "XRefUtilities.pm";
+require "AuthorUtilities.pm";
+require "FileHTML.pm";
+require "JournalHTML.pm";
+require "KeywordHTML.pm";
+require "MeetingHTML.pm";
+require "RevisionHTML.pm";
+require "SecurityHTML.pm";
+require "SignoffHTML.pm";
+require "AuthorHTML.pm";
+require "TalkHTML.pm";
+require "Cookies.pm";
+require "XMLOutput.pm";
+use IO::String;
+use DateTime;
+
+
+$query = new CGI;  # Global for subroutines
+
+# safeguard read only replica against undue modifications:
+if ($ReadOnly) {
+  CreateConnection(-type => "rw");
+  print $query -> header( -charset => $HTTP_ENCODING );
+  my @Scripts = ("prototype","jQuery/jquery-1.8","serverstatus", "PopUps","InsertRevisionNote","AuthorMethodDisplay","ScrollListSelector", "auto", "Autocompleters","Throttle","SearchForm","Utilities", "Signatures", "ValidateForm");
+  DocDBHeader("Bulk Document Update","$Project Bulk Document Update",-scripts => \@Scripts);
+     
+  push @ErrorStack,"The server is in Read Only mode; this function is disabled";
+  &EndPage(); 
+
+  exit 1;
+}
+
+
+my $Twig = XML::Twig -> new();
+$dbh   = DBI->connect('DBI:mysql:'.$db_name.':'.$db_host,$db_rwuser,$db_rwpass);
+%CGIParams = $query -> Vars;
+&GetAuthors;
+&SetAuthorMode();
+CreateConnection(-type => "rw");
+&GetSecurityGroups;
+
+my @Scripts = ("prototype","jQuery/jquery-1.8","serverstatus", "PopUps","InsertRevisionNote","AuthorMethodDisplay","ScrollListSelector", "auto", "Autocompleters","Throttle","SearchForm","Utilities", "Signatures", "ValidateForm");
+
+my $DocumentsText = $query -> param('DocumentsField');
+my $ChangeDocument = 0;
+if ($query->param('DocumentChange') eq "Make New Version") {
+    $ChangeDocument = 1;
+}
+
+my $TitleText = $query -> param('TitleField');
+my $ChangeTitle = 0;
+if ($query->param('TitleChange') eq "Replace") {
+    $ChangeTitle = 1;
+}
+my $AbstractText = $query -> param('AbstractField');
+my $ChangeAbstract = 0;
+if ($query->param('AbstractChange') eq "Replace") {
+    $ChangeAbstract = 1;
+}
+my $KeywordsText = $query -> param('KeywordsField');
+my $ChangeKeywords = 0;
+if ($query->param('KeywordsChange') eq "Replace") {
+    $ChangeKeywords = 1;
+}
+my $NotesText = $query -> param('NotesField');
+my $ChangeNotes = 0;
+if ($query->param('NotesChange') eq "Replace") {
+    $ChangeNotes = 1;
+}
+my $RelatedDocumentsText = $query -> param('RelatedDocumentsField');
+my $ChangeRelatedDocuments = 0;
+if ($query->param('RelatedDocumentsChange') eq "Replace") {
+    $ChangeRelatedDocuments = 1;
+}
+my $AuthorsText = $query -> param('authormanual');
+my $ChangeAuthors = 0;
+if ($query->param('AuthorsChange') eq "Replace") {
+    $ChangeAuthors = 1;
+}
+
+my @OldAliases = split(" ", $DocumentsText);
+my @OldDocumentIDs = ();
+my $InvalidOccured = 0;
+foreach $Alias (@OldAliases){
+    my $DocID = GetDocumentIDByAlias($Alias);
+    unless ($DocID) {
+      push @ErrorStack,"One of the Aliases provided for Documents to Change, $Alias, is invalid.";
+      $InvalidOccured = 1;
+    }
+
+    &FetchDocument($DocID);
+    unless(&CanModify($DocID,$Documents{$DocID}{NVersions})) {
+      push @ErrorStack,"One of the Aliases provided for Documents to Change, $Alias, is not modifiable by user.";
+      $InvalidOccured = 1;
+    }
+    push @OldDocumentIDs, $DocID;
+}
+if ($InvalidOccured) {
+    &EndPage(-startpage => $TRUE);
+}
+foreach $Alias (@XRefChanges){
+   my $DocID = GetDocumentIDByAlias($Alias);
+   unless ($DocID) {
+      push @ErrorStack,"One of the Aliases provided for Related Documents, $Alias, is invalid.";
+      &EndPage(-startpage => $TRUE);
+   }
+   push @NewXRefIDs, $DocID;
+}
+my @TryAuthorIDs = ProcessManualAuthors($AuthorsText);
+
+print $query -> header( -charset => $HTTP_ENCODING );
+DocDBHeader("Bulk Document Update","$Project Bulk Document Update",-scripts => \@Scripts);
+
+my @NewDocumentIDs = ();
+#Start of for loop to iterate through documents
+foreach $OldDocumentID (@OldDocumentIDs) {
+    &FetchDocument($OldDocumentID);
+    my $OldVersion = $Documents{$OldDocumentID}{NVersions};
+    my $OldDocRevID = FetchRevisionByDocumentAndVersion($OldDocumentID, $OldVersion);
+
+    my $NewVersion = $OldVersion;
+    if ($ChangeDocument) {
+         $NewVersion = $NewVersion + 1;
+    }
+    # This is where the submitted document's XML file is copied into a string.
+    unless ($NoXMLHead) {
+      #print XMLHeader();
+    }
+    NewXMLOutput();
+
+    my %XMLFields = ("All" => 1);
+    my $XMLText = DocumentXMLOut( {-docid   => $OldDocumentID,
+                                   -version => $OldVersion,
+                                   -display => \%XMLFields,
+                                  } );
+    if ($XMLText) {
+      $XMLText -> paste(last_child => $DocDBXML);
+    }
+
+    my $ReportXML = XMLReport();
+    $ReportXML -> paste(last_child => $DocDBXML);
+    my $XMLTextString = GetXMLOutput();
+
+
+    # This is where the XMLStringOutput gets the control block etc. added
+    # Little ugly and hardcoded indices (sorry!) but works.
+    my $insert = "<control><mode>new</mode></control>\n";
+    substr($XMLTextString, index($XMLTextString, 'version') + 17, 0, $insert);
+    substr($XMLTextString, index($XMLTextString, '<report/>'), 10) = "";
+    #         my $header = "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n";
+    my $header = "<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>\n";
+    substr($XMLTextString, 0, 0, $header);
+    substr($XMLTextString, index($XMLTextString, 'amp;'), 4) = "";
+
+    # Quick check of permisisons just in case
+    unless (CanCreate()) {
+      push @ErrorStack,"You are not allowed to modify or create documents.";
+      &EndPage(-startpage => $TRUE);
+    }
+
+    # Safe Parse the XML file of the original so that we can fetch children from tree
+    my ($NewDocumentID,$NewDocRevID);
+    my $fh = IO::String->new($XMLTextString);
+
+    if (@ErrorStack) { &EndPage(-startpage => $TRUE); }
+    if (!$XMLTextString) {
+      die "XMLUpdate Error: XMLTextString is null for some reason.";
+    }
+    $Twig -> safe_parse($fh) or die "XMLUpdate Error: XML Parsing (XML::Twig method safe_parse) Failed!";
+
+    my $XML = $Twig -> root();
+    # Get control block
+    my $Control = $XML     -> first_child("control");
+    my $XMLMode = $Control -> first_child("mode") -> text();
+    my $UseDate = $Control -> first_child("usedate");
+    push @DebugStack,"XMLMode: \'$XMLMode\'";
+
+    if ($ChangeDocument) {
+        $XMLMode = "updatedb";
+    } else {
+        $XMLMode = "updatedb";
+    }
+
+    my $NeedURLs = $TRUE; # Default, now can reset
+    my $OldXMLMode = $XMLMode;
+    my $CheckSecurity = $TRUE;
+    if ($XMLMode eq "updatedb") {
+        $NeedURLs = $FALSE;
+        push @DebugStack,"Update DB mode";
+        push @DebugStack,"XMLMode is now: \'$XMLMode\'";
+    }
+    $OldXMLMode = $XMLMode;
+    # Get Authentication if needed
+    my $Authentication =  $XML -> first_child("authentication");
+    my ($User,$Password);
+    if ($Authentication) {
+      $User     = $Authentication -> first_child("username") -> text();
+      $Password = $Authentication -> first_child("password") -> text();
+    }
+
+    # Get document basic info
+    my $Document = $XML      -> first_child("document");
+    my $Revision = $Document -> first_child("docrevision");
+    push @DebugStack,"Document: \'$Document\'";
+
+    # Extract text information from XML
+    my ($PubInfo,$Note,$Abstract);
+    my $Title = $DocRevisions{$OldDocRevID}{Title};
+    if ($ChangeTitle) {
+        $Title = $TitleText;
+    } elsif ($TitleText) {
+        $Title .= " ";
+        $Title .= $TitleText;
+    }
+
+    $PubInfo = $DocRevisions{$OldDocRevID}{PUBINFO};
+    # get old document alias and current signed in user (will be new author)
+    $OldAlias = FetchDocumentAlias($DocumentID);
+    $SubmitterID = FetchAuthorIDFromEmailUserID(&FetchEmailUserIDFromRemoteUser(&remote_user));
+    $SubmitterName = $Authors{$SubmitterID}{FULLNAME};
+
+    # Extract keywords from XML
+    my @OriginalKeywordsText = $DocRevisions{$OldDocRevID}{Keywords};
+
+    my $OriginalKeywords = join ' ',@OriginalKeywordsText;
+    my $Keywords = $OriginalKeywords;
+    if ($ChangeKeywords) {
+        $Keywords = $KeywordsText;
+    } elsif ($KeywordsText) {
+        $Keywords .= " ";
+        $Keywords .= $KeywordsText;
+    }
+
+    # Extract Document Type
+    my $DocType = $Revision -> first_child("doctype");
+    my $DocTypeID= $DocType  -> {'att'} -> {'id'};
+
+    # Extract author list from XML
+    my @AuthorIDs = ();
+    my @Authors = $Revision -> children("author");
+    foreach $Author (@Authors) {
+        my $AuthorID = $Author -> {'att'} -> {'id'};
+        unless ($AuthorID) {
+            my $FirstName = $Author -> first_child("firstname") -> text();
+            my $LastName  = $Author -> first_child("lastname")  -> text();
+            ($AuthorID) = ProcessManualAuthors("$FirstName $LastName");
+         }
+         push @AuthorIDs, $AuthorID;
+    }
+
+    my @NewAuthors = split("\n", $AuthorsText);
+    my %unique = ();
+    foreach my $item (@NewAuthors)
+    {
+        $unique{$item} ++;
+    }
+    @NewAuthors = keys %unique;
+    my @NewAuthorIDs = ();
+    if ($ChangeAuthors) {
+         @NewAuthorIDs = ();
+    } else {
+         @NewAuthorIDs = @AuthorIDs;
+    }
+    foreach $AuthorID (@TryAuthorIDs){
+        push @NewAuthorIDs, $AuthorID;
+    }
+
+    # Extract Journal References from XML
+    @ReferenceIDs = FetchReferencesByRevision($OldDocRevID);
+
+    # Extract view and modify groups
+    my @ViewIDs = ();
+    my @ModifyIDs = ();
+    my @ViewGroups = $Revision -> children("viewgroup");
+    foreach $Group (@ViewGroups) {
+        my $ID = $Group -> {'att'} -> {'id'};
+        push @ViewIDs, $ID;
+    }
+    my @ModifyGroups = $Revision -> children("modifygroup");
+    foreach $Group (@ModifyGroups) {
+        my $ID = $Group -> {'att'} -> {'id'};
+        push @ModifyIDs, $ID;
+    }
+
+    # Extract topic list from XML
+    my @TopicIDs = ();
+    my @Topics = $Revision -> children("topic");
+    foreach $Topic (@Topics) {
+        my $TopicID = $Topic -> {'att'} -> {'id'};
+        if ($TopicID) {
+            push @TopicIDs, $TopicID;
+        } else {
+            #extract name and lookup
+            #bail if more than one match
+        }
+    }
+
+    # Extract event list from XML (not used currently)
+    my @EventIDs = ();
+    my @Events = $Revision -> children("event");
+    foreach $Event (@Events) {
+        my $EventID = $Event -> {'att'} -> {'id'};
+        if ($EventID) {
+            push @EventIDs, $EventID;
+        }
+    }
+
+    # Extract the Related Documents from XML
+    my @XRefIDs = ();
+    my @XRefs = $Revision -> children("xrefto");
+
+    foreach $XRef (@XRefs) {
+        my $XRefID = $XRef -> {'att'} -> {'docid'};
+        if ($XRefID) {
+            push @XRefIDs,  $XRefID;
+        }
+    }
+    my @XRefChanges = split(" ", $RelatedDocumentsText);
+    my @NewXRefIDs = ();
+    foreach $Alias (@XRefChanges){
+        my $DocID = GetDocumentIDByAlias($Alias);
+        unless ($DocID) {
+            push @ErrorStack,"One of the Aliases provided for Related Documents, $Alias, is invalid.";
+            &EndPage(-startpage => $TRUE);
+        }
+        push @NewXRefIDs, $DocID;
+    }
+    if ($ChangeRelatedDocuments) {
+        @XRefIDs = @NewXRefIDs;
+    } elsif (@NewXRefIDs) {
+        foreach $DocID (@NewXRefIDs) {
+           push @XRefIDs, $DocID;
+        }
+    }
+    my %unique = ();
+    foreach my $item (@XRefIDs)
+    {
+        $unique{$item} ++;
+    }
+    @XRefIDs = keys %unique;
+
+    ### Files
+    # Create file hash for file upload (fetch from URL only)
+    my %Files = ();
+    my @Files = $Revision -> children("file");
+    foreach $File (@Files) {
+        my $Name = $File -> first_child("name") -> text();
+        my $ID   = $File -> {'att'} -> {'id'};
+        push @DebugStack,"Checking ID: \'$ID\' and XMLMode: \'$OldXMLMode\'";
+        if ($ID){# && $XMLMode eq "updatedb") {
+            $Name = $ID;
+            $Files{$Name}{CopyFileID} = $ID;
+        }
+        $Files{$Name}{NewFilename} = $Name;
+        if ($File -> first_child("description")) {
+            $Files{$Name}{Description} = $File -> first_child("description") -> text();
+        }
+        my $URL  = $File -> {'att'} -> {'href'};
+        my $Main = $File -> {'att'} -> {'main'};
+        $Files{$Name}{URL} = $URL;
+        if ($Main eq "yes") {
+            $Files{$Name}{Main} = $TRUE;
+        } else {
+            $Files{$Name}{Main} = $FALSE;
+        }
+        if ($User || $Password) {
+            $Files{$Name}{User} = $User;
+            $Files{$Name}{Pass} = $Password;
+            push @DebugStack,"Getting set to download $Name with URL $URL";
+        }
+        push @DebugStack,"File $Name added to Files hash";
+        # Magic to make things like the E-Traveler work
+        # without breaking anything else, I think.
+        # Phil Ehrens - very late on 06/02/2011
+        if ( -e $URL ) {
+           unless (@LocalUploadDirectories) {
+               push @ErrorStack,'You need to define @LocalUploadDirectories in SiteConfig.pm.';
+               &EndPage(-startpage => $TRUE);
+           }
+           $NeedURLs = 0;
+           if (grep {$_ eq dirname($URL)} @LocalUploadDirectories) {
+               &FileNameSanityCheck(basename($URL));
+               # We got a local filename in!
+               $Files{$Name}{Filename} = $Files{$Name}{URL};
+           } else {
+               push @ErrorStack,"File not in allowed directory: $URL";
+           }
+           # This was the 'missing link' for preserving 'other files'
+        } elsif ($URL =~ m/^$cgi_root/i) {
+            $NeedURLs = 0;
+            $URL =~ m/version=(\d+).+filename=(.+)$/i;
+            &FileNameSanityCheck($2);
+            my $OldDirectory = &GetDirectory($DocID,$1);
+            $Files{$Name}{URL} = "$OldDirectory$2";
+            $Files{$Name}{Filename} = $Files{$Name}{URL};
+        } elsif ($URL !~ m/^http:/i) {
+            push @ErrorStack,"File not found: $URL";
+        }
+    } # End of foreach begun on line 160
+
+    if (@ErrorStack) { &EndPage(-startpage => $TRUE); }
+    push @DebugStack,"NeedURLS: $NeedURLs";
+    if ($NeedURLs) {
+        my $TmpDir = MakeTmpSubDir();
+        %Files = &DownloadURLs(-tmpdir => $TmpDir, -files => \%Files);
+        push @DebugStack,"Downloaded files";
+    }
+
+    # Initialize Abstract and get local time
+    $Abstract = $DocRevisions{$OldDocRevID}{Abstract};
+    if ($ChangeAbstract) {
+        $Abstract = $AbstractText;
+    } elsif ($AbstractText) {
+        $Abstract .= " ";
+        $Abstract .= $AbstractText;
+    }
+
+    my ($sec, $min, $hour, $mday, $mon, $year, $wday, $yday, $isdst) = localtime(time);
+    my $DateTime = DateTime -> new(year => ($year+1900), month  => ($mon+1),  day => $mday,
+    hour => $hour, minute => $min, second => $sec,
+    time_zone => 'local');
+
+    # set note text
+    $Note = $DocRevisions{$OldDocRevID}{Note};
+    if ($ChangeNotes) {
+        $Note = $NotesText;
+    } elsif ($NotesText) {
+        $Note .= "\n";
+        $Note .= $NotesText;
+    }
+
+    if ($ChangeDocument) {
+        $XMLMode = $NewVersion;
+    } else {
+        $XMLMode = $OldVersion;#"updatedb";
+    }
+    if (@ErrorStack) { &EndPage(-startpage => $TRUE); }
+    # This is where the actual duplicate document is created
+    # Must pass in docid 0 and version new for it to work
+    if ($ChangeDocument) {
+        ($NewDocumentID,$NewDocRevID) = AddDocument({
+            -docid    => $OldDocumentID,     -version     => $XMLMode,#$NewVersion,
+            -title    =>  $Title,
+            -requesterid => $SubmitterID,
+            -abstract    => $Abstract,     -keywords    => $Keywords,
+            -pubinfo     => $PubInfo,      -note        => $Note,
+            -typeid    => $DocTypeID,    -datetime    => $DateTime,
+            -authorids   => \@NewAuthorIDs,   -topicids    => \@TopicIDs,
+            -viewids     => \@ViewIDs,     -modifyids   => \@ModifyIDs,
+            -referenceids  => \@ReferenceIDs,
+            -eventids    =>  \@EventIDs#,   -files         =>  \%Files
+        });
+        @FileIDs = &AddFiles(-docrevid   => $NewDocRevID,
+                             -files       => \%Files,
+                             -oldversion => $OldVersion);
+    } else {
+        ($NewDocumentID,$NewDocRevID) = AddDocument({
+            -docid    => $OldDocumentID,     -version     => $XMLMode,
+            -title    =>  $Title,
+            -requesterid => $SubmitterID,
+            -abstract    => $Abstract,     -keywords    => $Keywords,
+            -pubinfo     => $PubInfo,      -note        => $Note,
+            -typeid    => $DocTypeID,    -datetime    => $DateTime,
+            -authorids   => \@NewAuthorIDs,   -topicids    => \@TopicIDs,
+            -viewids     => \@ViewIDs,     -modifyids   => \@ModifyIDs,
+            -referenceids  => \@ReferenceIDs,
+            -eventids    =>  \@EventIDs,   -files         =>  \%Files
+        });
+    }
+    # If document was public, duplicate should be public pending
+    # Insert References to other documents
+    if (@XRefIDs) {
+        require "XRefSQL.pm";
+        &InsertXRefs(-docrevid => $NewDocRevID, -documents => \@XRefIDs);
+    }
+    push @NewDocumentIDs, $NewDocumentID;
+
+}# Closing bracket for for loop on documents
+
+#Print page
+if ($OutFormat eq 'XML') {
+  require "XMLOutput.pm";
+  unless ($NoXMLHead) {
+    print XMLHeader();
+  }
+  NewXMLOutput();
+
+  my %XMLFields = ("All" => 1);
+  my $DocumentXML = DocumentXMLOut( {-docid   => $NewDocumentID,
+                                     -version => $DocRevisions{$NewDocRevID}{Version},
+                                     -display => \%XMLFields,
+                                    } );
+  if ($DocumentXML) {
+    $DocumentXML -> paste(last_child => $DocDBXML);
+  }
+
+  my $ReportXML = XMLReport();
+     $ReportXML -> paste(last_child => $DocDBXML);
+
+  print GetXMLOutput();
+} elsif (!@NewDocumentIDs) {
+    #EndPage(-startpage => $TRUE);
+    my %Labels = {'xml'=>'XML', 'html' => 'HTML (This page)'};
+
+    # MCA:
+    if ($UserValidation eq "kerberos") {
+       my $EmailUser     =  FetchEmailUserIDFromRemoteUser();
+       $RequesterDefault =  FetchAuthorIDFromEmailUserID($EmailUser);
+
+       print "<h5>Updater: ";
+       PrintAuthorInfo($RequesterDefault);
+       print "</h5><br>";
+    }
+    print FormElementTitle(-helplink => "bulkupdate",
+                            -nobreak => $TRUE,
+                            -helptext => "<h4>Click here",
+                            -extratext => "for more info on how to use this bulk update feature.</h4>",
+                            -nocolon => $TRUE);
+    print "<h4>Click on any of the <span class=\"Help\">highlighted headings</span> for help.</h4>\n";
+
+    print $query -> start_multipart_form('POST',$XMLUpdate,'id="xmlupdate" name="xmlupdate"');
+    print '<table class="LeftHeader LeftTable MedPaddedTable">'."\n";
+    print '<tr><td>   </td></tr>';
+    print '<tr><th>';
+    print FormElementTitle(-helplink => "bulkupdatedocuments",
+                            -helptext => "Documents to Change:",
+                            -nocolon => $TRUE,
+                            -nobreak => $TRUE);
+    print '</th><td>';
+    print "(space separated)";
+    print "<br>";
+    print $query -> textfield(-name => 'DocumentsField', -size => 50, -maxlength => 50);
+    print '</td></tr>'."\n";
+    print '<tr><td></td><td>';
+    print $query -> radio_group(
+                     -name=>'DocumentChange',
+                     -values=>['Change Latest Version', 'Make New Version'],
+                     -default=>'Change Latest Version');
+    print '<td></tr>';
+    print '<tr><td>   </td></tr>';
+    print '<tr><th>';
+    print FormElementTitle(-helplink => "bulkupdatetitle",
+                            -helptext => "Title:",
+                            -nocolon => $TRUE,
+                            -nobreak => $TRUE);
+    print '</th><td>';
+    print $query -> textfield(-name => 'TitleField', -size => 50, -maxlength => 50);
+    print "<br>";
+    print $query -> radio_group(
+                     -name=>'TitleChange',
+                     -values=>[Replace, Append],
+                     -default=>'Append');
+    print '</td></tr>'."\n";
+    print '<tr><td>   </td></tr>';
+    print '<tr><th>';
+    print FormElementTitle(-helplink => "bulkupdateabstract",
+                            -helptext => "Abstract:",
+                            -nocolon => $TRUE,
+                            -nobreak => $TRUE);
+    print '</th><td>';
+    print $query -> textarea(-name => 'AbstractField', -rows => 5, -columns => 40);
+    print "<br>";
+    print $query -> radio_group(
+                     -name=>'AbstractChange',
+                     -values=>[Replace, Append],
+                     -default=>'Append');
+    print '</td></tr>'."\n";
+    print '<tr><td>   </td></tr>';
+    print '<tr><th>';
+    print FormElementTitle(-helplink => "bulkupdatekeywords",
+                            -helptext => "Keywords:",
+                            -nocolon => $TRUE,
+                            -nobreak => $TRUE);
+    print '</th><td>';
+    print "(space separated)";
+    print "<br>";
+    print $query -> textarea(-name => 'KeywordsField', -rows => 3, -columns => 40);
+    print "<br>";
+    print $query -> radio_group(
+                     -name=>'KeywordsChange',
+                     -values=>[Replace, Append],
+                     -default=>'Append');
+    print '</td></tr>'."\n";
+    print '<tr><td>   </td></tr>';
+    print '<tr><th>';
+    print FormElementTitle(-helplink => "bulkupdatenotes",
+                            -helptext => "Notes and Changes:",
+                            -nocolon => $TRUE,
+                            -nobreak => $TRUE);
+    print '</th><td>';
+    print $query -> textarea(-name => 'NotesField', -rows => 5, -columns => 40);
+    print "<br>";
+    print $query -> radio_group(
+                     -name=>'NotesChange',
+                     -values=>[Replace, Append],
+                     -default=>'Append');
+    print '</td></tr>'."\n";
+    print '<tr><td>   </td></tr>';
+    print '<tr><th>';
+    print FormElementTitle(-helplink => "bulkupdaterelateddocuments",
+                            -helptext => "Related Documents:",
+                            -nocolon => $TRUE,
+                            -nobreak => $TRUE);
+    print '</th><td>';
+    print "(space separated)";
+    print "<br>";
+    print $query -> textarea(-name => 'RelatedDocumentsField', -rows => 3, -columns => 40);
+    print "<br>";
+    print $query -> radio_group(
+                     -name=>'RelatedDocumentsChange',
+                     -values=>[Replace, Append],
+                     -default=>'Append');
+    print '</td></tr>'."\n";
+    print '<tr><td>   </td></tr>';
+    print '<tr><th>';
+    print FormElementTitle(-helplink => "bulkupdateauthors",
+                            -helptext => "Authors:",
+                            -nocolon => $TRUE,
+                            -nobreak => $TRUE);
+    print '</th>';
+    my $showall = 0; if($UserPreferences{AuthorMode2} eq 'all'){$showall = 1;}
+
+    # Author names as a list
+    print "<td id=\"AuthorScroll\">\n";
+
+    my @AuthorDefaults = ();
+    AuthorScroll(-showall  => $showall,
+                 -required => $RequiredEntries{Author},
+                 -helptext => "Select authors here ...",
+                 -helplink => "authors",
+                 -multiple => $TRUE,
+                 -onchange => "packValues(event, 'authors','authormanual');",
+                 -onblur   => "unfocus();",
+                 -default  => \@AuthorDefaults);
+
+    print "</td>\n";
+    AuthorJSList(2);
+    print "<td id=\"AuthorText\"><div id=\"authormanualdiv\">\n";
+    AuthorTextEntry({ -required => $RequiredEntries{Author},
+                      -default   => \@AuthorDefaults,
+                      -helptext  => " ...or type here"});
+    print "</div></td>\n";
+    print "<td><div id=\"AuthorTextError\"></div></td></tr>";
+    print "</tr>";
+    print "<tr><th></th>";
+    print "<td>";
+    print $query -> radio_group(
+                     -name=>'AuthorsChange',
+                     -values=>[Replace, Append],
+                     -default=>'Append');
+    print "</td>";
+    print '</tr>'."\n";
+    print '<tr><td>   </td></tr>';
+    print '<tr><td colspan="3" align="center" class="SubmitCell">';
+    print $query -> submit (-value => "Update Documents");
+    print "</td></tr></table>\n";
+    print $query -> end_multipart_form;
+} else {
+    print "<p>You were successful. Here are your <strong>$NumTimes</strong> DCC document numbers.<br/>";
+    foreach my $DocID (@NewDocumentIDs) {
+        my $Alias =  FetchDocumentAlias($DocID);
+        print "$Alias<br/>\n";
+    }
+}
+#  EndPage();
+DocDBNavBar();
+DocDBFooter($DBWebMasterEmail,$DBWebMasterName);
+

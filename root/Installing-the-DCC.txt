@@ -1,0 +1,147 @@
+#!/bin/ksh
+#
+#dcc-lho.ligo.org installation by Phil Ehrens
+#
+#
+
+if [[ 0 -eq 1 ]]
+then
+
+# Note that it is only important that this agree
+# with /usr1/www/cgi-bin/private/DocDB/SiteConfig.pm
+/bin/hostname dcc-lho
+
+yum -y install ksh
+yum -y install httpd-devel
+yum -y install php
+yum -y install mysql mysql-server
+yum -y install php-mysql
+yum -y install svn
+yum -y install gcc
+yum -y install perl-Digest-SHA1
+yum -y install catdoc
+yum -y install hdf5
+yum -y install perl-Font-TTF
+yum -y install perl-Text-PDF
+yum -y install perl-DateTime
+yum -y install perl-Archive-Zip
+yum -y install perl-Crypt-RC4
+yum -y install flex
+yum -y install stow
+mkdir /usr/local/stow
+
+wget http://search.cpan.org/CPAN/authors/id/C/CD/CDOLAN/CAM-PDF-1.60.tar.gz
+tar xvzf CAM-PDF-1.60.tar.gz
+cd CAM-PDF-1.60
+perl Makefile.PL
+make
+make test
+make install
+
+cd ~
+mkdir mod-authnz-external
+cd mod-authnz-external
+wget http://mod-auth-external.googlecode.com/files/mod_authnz_external-3.2.6.tar.gz
+tar xvzf mod_authnz_external-3.2.6.tar.gz
+cd mod_authnz_external-3.2.6
+apxs -c mod_authnz_external.c
+apxs -i -a mod_authnz_external.la
+
+mkdir -p /usr2/GLIMPSE 
+mkdir -p /usr2/sql
+chown -R root:apache /usr2/GLIMPSE
+chown -R mysql:mysql /usr2/sql
+
+#
+# After mySQL dump has been copied over, it is necessary to do a global
+# text replacement on the file /home/dcc/dcc_docdb/wikidb_YYYY-MM-DD.sql
+# from dcc.ligo.org to dcc-lho.ligo.org
+#
+
+wget http://webglimpse.net/trial/glimpse-4.18.6.tar.gz
+tar xvzf glimpse-4.18.6.tar.gz
+cd glimpse-4.18.6
+./configure --prefix=/usr/local/stow/glimpse-4.18.6
+make all
+make install
+cd /usr/local/stow
+stow glimpse-4.18.6
+cd ~
+
+mkdir -p /usr1/BACKUPS
+chown -R root:root /usr1/BACKUPS
+chmod 0700 /usr1/BACKUPS
+
+mkdir -p /usr1/www
+chown -R root:root /usr1/www
+chmod 0755 /usr1/www
+
+mkdir -p /root/svn-checkout
+cd /root/svn-checkout
+
+svn co https://svn.ligo.caltech.edu/svn/docdb
+
+svn export /root/svn-checkout/docdb/trunk/E-Traveler /usr1/www/E-Traveler
+
+chown -R apache:apache /usr1/www/E-Traveler/logs /usr1/www/E-Traveler/html/data
+
+svn export /root/svn-checkout/docdb/trunk/cgi-bin /usr1/www/cgi-bin
+svn export /root/svn-checkout/docdb/trunk/html /usr1/www/html
+chown -R root:apache /usr1/www/cgi-bin
+chown -R root:apache /usr1/www/html
+
+svn export /root/svn-checkout/docdb/trunk/dcc-glimpse-files /usr/local/stow/dcc-glimpse-files
+pushd /usr/local/stow
+stow dcc-glimpse-files
+popd
+
+ln -s /usr1/www/cgi-bin/public /usr1/www/cgi-bin/DocDB
+
+mv /usr1/www/cgi-bin/private /usr1/www/cgi-bin/tmp
+mkdir -p /usr1/www/cgi-bin/private
+chown -R root:apache /usr1/www/cgi-bin/private
+mv /usr1/www/cgi-bin/tmp /usr1/www/cgi-bin/private/DocDB
+
+for file in /usr1/www/cgi-bin/private/DocDB/*
+do
+   filename=${file##*/}
+   if [[ ! -f "/usr1/www/cgi-bin/public/$filename" ]]
+   then
+      ln -s $file "/usr1/www/cgi-bin/public/$filename"
+   fi
+ done
+
+#
+# Save the /etc/my.cnf in SVN.
+# Copy the my.cnf from SVN to /etc
+#
+
+chown -R mysql:mysql /usr/share/mysql
+chmod -R 755 /usr/share/mysql
+ln -s /usr2/sql/lib/mysql/mysql.sock /var/lib/mysql/mysql.sock
+
+/etc/init.d/mysqld start
+mysqladmin -u root password ll_mysql_G
+
+mkdir /home/dcc/dcc_docdb
+
+#
+# Install MediaWiki
+#
+cd /usr1/www/html
+wget http://releases.wikimedia.org/mediawiki/1.22/mediawiki-1.22.2.tar.gz
+tar xvzf mediawiki-1.22.2.tar.gz
+rm -f mediawiki-1.22.2.tar.gz
+svn export /root/svn-checkout/docdb/trunk/html/MediaWiki-dcc-lho_LocalSettings.php /usr1/www/html/mediawiki-1.22.2/LocalSettings.php
+echo "\n\nYou must edit /usr1/www/html/LocalSettings.php to point to THIS SITE!\n\n"
+sleep 4
+
+#
+# To remove the 'Edit' tab from MediaWiki pages.
+#
+print -- '#ca-edit { display:none!important; }' >>/usr1/www/html/mediawiki-1.22.2/skins/common/commonContent.css
+
+service mysqld start
+service ntpd start
+
+fi # End of 'if 0 = 1'

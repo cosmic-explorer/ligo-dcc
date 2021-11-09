@@ -1,0 +1,498 @@
+#! /usr/bin/env perl
+#
+# Description: The Document Database homepage. Give the user various ways to
+#              view documents, a link to ways to change documents, and a list
+#              of the most recently updated documents.
+#
+#      Author: Eric Vaandering (ewv@fnal.gov)
+#    Modified:
+
+# Copyright 2001-2007 Eric Vaandering, Lynn Garren, Adam Bryant
+
+#    This file is part of DocDB.
+
+#    DocDB is free software; you can redistribute it and/or modify
+#    it under the terms of version 2 of the GNU General Public License
+#    as published by the Free Software Foundation.
+
+#    DocDB is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+
+#    You should have received a copy of the GNU General Public License
+#    along with DocDB; if not, write to the Free Software
+#    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+
+use Benchmark;
+use CGI;
+use DBI;
+
+$StartTime = new Benchmark;
+
+require "DocDBGlobals.pm";
+require "HTMLUtilities.pm";
+require "ResponseElements.pm";
+require "SecuritySQL.pm";
+require "SecurityHTML.pm";
+require "Security.pm";
+require "Scripts.pm";
+require "FormElements.pm";
+require "XRefSQL.pm";
+require "EmailSecurity.pm";
+
+require "Messages.pm";
+require "SignoffSQL.pm";
+require "RevisionUtilities.pm";
+require "SignoffUtilities.pm";
+
+$query = new CGI;  # Global for subroutines
+$dbh   = DBI->connect('DBI:mysql:'.$db_name.':'.$db_host,$db_rouser,$db_ropass);
+GetSecurityGroups();
+
+my $CertificateStatus;
+if ($UserValidation eq "certificate") {
+  require "CertificateUtilities.pm";
+  $CertificateStatus = CertificateStatus();
+}
+
+
+print $query->header( -charset => $HTTP_ENCODING );
+
+if ($UserValidation eq "certificate" && $CertificateStatus ne "verified") {
+  DocDBHeader("$Project Document Database","Document Database", -scripts => ["serverstatus", "PopUps", "Throttle", "jQuery/jquery-1.8", "jQuery/jquery-ui"], -refresh => "5;url=$CertificateApplyForm");
+} else {
+  DocDBHeader("$Project Document Control Center","Document Control Center", -scripts => ["serverstatus", "PopUps", "Throttle", "jQuery/jquery-1.8", "jQuery/jquery-ui"]);
+}
+print "<link rel=\"stylesheet\" href=\"/Static/css/jquery-ui.css\" type=\"text/css\">\n";
+
+my $PersonalAccountLink = PersonalAccountLink();
+
+print "<div id=\"DocDBHomeBody\">\n";
+
+### Header info
+
+print "<div id=\"Header3Col\">\n";
+
+if ($UserValidation eq "certificate" && $CertificateStatus ne "verified") {
+  print "<h3 class=\"Warning\">\n";
+  print "You have presented a valid certificate, but are not yet authorized to access the DocDB.</h3>\n";
+  print "<h2 class=\"AccessApplyLink\">\n";
+  print "<a href=\"$CertificateApplyForm\">Apply for access or get more information.</a></h2>\n";
+  print "<h3>You will be redirected here in 5 seconds.</h3>\n";
+  print "\n";
+}
+
+#if ($WelcomeMessage) {
+#  print "<h4>\n";
+#  print "$WelcomeMessage\n";
+#  print "</h4>\n";
+#}
+
+print "</div>\n";  # Header3Col
+
+### Left Column
+
+if (!$Public) {
+   print "<div id=\"LeftColumn3ColFront\">\n";
+   print "<ul class=\"nav\">";  # Navigation links list
+
+   #if ($Public) {
+   #    #print "<p><a href=\"$DocDBInstructions\">Instructions</a></p>\n";
+   #    print "<li><a href=\"$DocDBInstructions\">Instructions</a>\n";
+   #}
+
+   #print "<p><a href=\"$WikiInstructions\">Instructions</a></p>\n";
+   print "<li><a href=\"$WikiInstructions\">Instructions</a>\n";
+   if ($PersonalAccountLink) {
+      #print "<p>$PersonalAccountLink</p>\n";
+      print "<li>$PersonalAccountLink\n";
+   }
+   #print "<p><a href=\"$SelectPrefs\">Preferences</a></p>\n";
+   print "<li><a href=\"$SelectPrefs\">Preferences</a>\n";
+   if ($UserValidation eq "certificate") {
+      #print "<p>",&GroupLimitLink(),"</p>\n";
+      print "<li>",&GroupLimitLink(),"\n";
+   }
+}
+
+foreach my $Text (@{ $ProjectMessages{Homepage}{LeftColumn} }) {
+  #print "<p>$Text</p>\n";
+  print "<li>$Text\n";
+}
+
+if (!$Public) {
+   #print "<p><a href=\"$DocDBHome\">Using the DCC</a></p>\n";
+   print "<li><a href=\"$DocDBHome\">Using the DCC</a></li>\n";
+
+
+   # print  "<br>\n";
+   if (!$ReadOnly) {
+     print  "<br>\n";
+     print  "<li><a href=\"$XMLUpdate\">Bulk Modify</a></li>\n";
+   }
+   # Other DCC Projects
+
+   # print  "<br>\n";
+   print  "<br>\n";
+   print  "<li><b>Other DCC</b></li>\n";
+   print  "<li><a href=\"$KAGRAHome\">KAGRA</a></li>\n";
+   print  "<li><a href=\"$VirgoHome\">Virgo TDS</a></li>\n";
+
+
+
+   # DCC Stats link to be moved to footer or elsewhere:
+   #print "<p><a href=\"$Statistics\">DCC Statistics</a></p>\n";
+   #print "<br><a href=\"$Statistics\">DCC Statistics</a></p>\n";
+
+   print "</ul>";
+   print "</div>\n";  # LeftColumn3Col
+}
+
+### Main Column
+
+print "<div id=\"MainColumn3ColFront\">\n";
+
+# MCA:
+#if (CanCreate()) {
+# print "<div class=\"HomepageMainChoice\"><a href=\"$ModifyHome\">Create or change documents or other information</a></div>\n";
+#}
+
+require "AuthorSQL.pm";
+require "AuthorHTML.pm";
+
+my $EmailUserID = (&FetchEmailUserIDFromRemoteUser());
+my $AuthorID = FetchAuthorIDFromEmailUserID($EmailUserID);
+FetchAuthor($AuthorID);
+my $AuthorName = '';
+if(!$Public){
+    $AuthorName =  $Authors{$AuthorID}{LastName};
+    $AuthorName .= ", ";
+    $AuthorName .= $Authors{$AuthorID}{FirstName};
+}
+#unless ($AuthorName) {
+#    $AuthorName = $remote_user;
+#}
+
+print "<div id=\"searchlist\">";
+
+# Throttle - not implemented until we can create a submit handler.
+#print "\n<div id='throttle' style='margin-left: 1em'>\n";
+#print "    <script>makeThrottleWidget('throttle')</script>\n</div>\n";
+
+# print '<table cellspacing="10" width=100%>';
+print "<table cellspacing=0 cellpadding=0 width=auto>";
+print "<tr><td class=hdr>";
+#print FormElementTitle(-helplink => "frequentsearches", -nobreak => $TRUE,
+#                       -helptext => "Search for Documents", );
+print "&nbsp;<strong>Search for Documents by</strong>";
+print "</td><td class=hdr>";
+if(!$Public){
+    print "<strong>Search from List of</strong>";
+}
+print "</td></tr>";
+
+# Author error:
+print "<tr><td colspan=2 class=main><div id=AuthorTextError style='min-height: 1em;'></div></td></tr>";
+
+print "<tr><td class=main>";
+
+my $authorSearchAction = "/cgi-bin/private/DocDB/ListBy";
+if ($Public) {
+    $authorSearchAction = "/cgi-bin/DocDB/ListBy";
+}
+
+#if (!$Public)
+AuthorJSList(1);
+print '
+<script language="javascript" type="text/javascript">
+$(function() {
+    $( "#autocompleter" ).autocomplete({
+        source: AuthorFormal
+    });
+});
+
+function learit(){
+//    e = document.getElementById("autocompleter");
+//    e.value = "";
+    document.getElementById("AuthorTextError").innerHTML = "";
+}
+
+function getId(){
+    var form = document.forms["author"];
+    var name = form["autocompleter"].value.toLowerCase();
+    if(name == ""){
+        return 0;
+    }
+    for(var i=0; i<AuthorFormal.length; i++){
+        if(AuthorFormal[i].toLowerCase() == name){
+            return AuthorID[i];
+        }
+    }
+    return -1;
+}
+
+function checkit(){
+    if(getId() == -1){
+//        alert("The name in the Author search is not a valid author");
+        m = "<span class=warn>Author name invalid.  Please enter a valid author name.</span>";
+        document.getElementById("AuthorTextError").innerHTML = m;
+//        clearit();
+        $( "#autocompleter" ).autocomplete( "option", "disabled", false );
+    }
+}
+
+function submitter(){
+    var form = document.forms["author"];
+    var idplace = form["authorid"];
+    id = getId();
+    if(id == 0){
+        window.location.replace("'.$authorSearchAction.'");
+        return false;
+    } else {
+        idplace.value = getId();
+        return true;
+    }
+}
+</script>
+
+<form name="author" method="get" action="'.$authorSearchAction.'" enctype="application/x-www-form-urlencoded">
+<input type="hidden" name="simple" value="1"  />
+<input type="hidden" name="authorid" value="'.$AuthorID.'"  />
+<input type="hidden" name="maxdocs" value="500"  />
+<div class="ui-widget">
+<input type="submit" name=".submit" onclick="return submitter();" value="Author" />
+<input name="autocompleter" id="autocompleter" onfocus="clearit();" onblur="checkit();" value="'.$AuthorName.'" size="30"/>
+<!--<span id="AuthorTextError"></span>-->
+</div>
+<!--<div id="AuthorTextError" style="min-height: 1em;"></div> -->
+</form>
+';
+
+
+#}
+print "</td><td class=main>";
+
+if(!$Public){
+    print $query -> startform('GET', "$ListAuthors");
+    print $query -> submit (-value => "Authors");
+    print $query -> endform;
+}
+
+print "</td></tr>";
+
+if (!$Public) {
+   print "<tr><td class=main>";
+   print $query -> startform('GET',$Search);
+   print $query -> submit (-value => "Title");
+   print $query -> textfield(-name => "titlesearch", -size => 37, -maxlength => 300);
+   print $query -> hidden(-name => "titlesearchmode", -default => "allsub");
+   print $query -> endform;
+
+   print "</td><td class=main>";
+   print $query -> startform('GET', "$ListTopics");
+   print $query -> submit (-value => "Topics");
+   print $query -> endform;
+}
+
+print "</td></tr>";
+
+
+print "<tr><td class=main>";
+my $ShowForm  = $query -> startform('GET',$ShowDocument);
+   $ShowForm .= $query -> submit (-value => "Identifier");
+   #$ShowForm .= " <strong>$ShortProject-</strong> ";
+   $ShowForm .= " <small>$ShortProject-</small>";
+   $ShowForm .= $query -> textfield(-name => "docid", -size =>  8, -maxlength => 8);
+   #$ShowForm .= " <strong>-v</strong> ";
+   $ShowForm .= " <small>-v</small> ";
+   $ShowForm .= $query -> textfield(-name => "version", -size => 3, -maxlength => 3);
+   $ShowForm .= $query -> endform;
+print "$ShowForm\n";
+print "</td><td class=main>";
+if(!$Public){
+    print $query -> startform('GET', "$ListGroups");
+    print $query -> submit (-value => "Access groups");
+    print $query -> endform;
+}
+print "</td></tr>";
+
+
+
+print "<tr><td class=main>";
+print $query -> startform('GET',$ListBy);
+print $query -> submit (-value => "Changes");
+print $query -> hidden(-name => "maxdocs", -default => $HomeMaxDocs);
+print " <small>in the last</small> ";
+DaysPulldown($LastDays);
+print " <small>days</small>";
+print $query -> endform;
+print "</td><td class=main>";
+if(!$Public){
+    print $query -> startform('GET', "$ListAllMeetings");
+    print $query -> submit (-value => "Events by type");
+    #print $query -> submit (-value => "Events");
+    print $query -> endform;
+}
+print "</td></tr>";
+
+
+
+print "<tr><td class=main>";
+my $SearchDiv  = $query -> startform('GET',$Search);
+   if ($Public) {
+      $SearchDiv .= $query -> submit (-value => "Google Search ");
+   } else {
+      $SearchDiv .= $query -> submit (-value => "These Words ");
+   }
+   #$SearchDiv .= "<strong> </strong> ";
+   $SearchDiv .= $query -> textfield(-name => "simpletext", -size => 30, -maxlength => 300);
+   $SearchDiv .= $query -> hidden(-name => "simple", -default => '1');
+   $SearchDiv .= $query -> hidden(-name => "maxdocs", -default => $HomeMaxDocs);
+   #$SearchDiv .= "</strong>";
+   $SearchDiv .= $query -> endform;
+print "$SearchDiv\n";
+if ($Public) {
+   print "<span class=hint>(Hit <b>Enter</b> or click search button on google page)</span>";
+}
+print "</td><td class=main>";
+if(!$Public){
+    print $query -> startform('GET', "$ShowCalendar");
+    print $query -> submit (-value => "Events by date");
+    #print $query -> submit (-value => "Calendar of Events");
+    print " <span class=hint>(view or create events)</span>";
+    #print " <br/><small>(display and create new events)</small>";
+    print $query -> endform;
+}
+print "</td></tr>";
+
+if (!$Public) {
+   print "<tr><td class=main>";
+   print $query -> startform('GET',$SearchForm);
+   print $query -> submit (-value => "Advanced search");
+   print " <span class=hint>(specify detailed search criteria)</span>";
+   #print " <small>specify detailed search criteria</small>";
+   print $query -> endform;
+}
+
+print "</td><td class=main>";
+if (!$Public && CanSign($EmailUserID)) {
+    print $query -> startform('GET',$SignatureReport);
+    print $query -> submit (-value => "Signature Report");
+    print $query -> hidden(-name => "emailuserid", -default => $EmailUserID);
+    print " <small>for $AuthorName</small>";
+    print $query -> endform;
+
+    ##########
+    # "Docs to sign" notice - VK 06-2013
+    my @DocumentIDs = &GetSignoffDocumentIDs(-emailuserid => $EmailUserID);
+    my @SignoffIDs = &GetSignoffIDs(-emailuserid => $EmailUserID);
+    my @ReadyDocumentIDs = ();
+    foreach my $SignoffID (@SignoffIDs) {
+      $SignoffID = &FetchSignoff($SignoffID);
+      if ($SignoffID) {
+        my $DocRevID = $Signoffs{$SignoffID}{DocRevID};
+        #print "SignoffID: $SignoffID  DocRevID: $DocRevID\n";
+        if (&RevisionIsLatest($DocRevID)) {
+          &FetchDocRevisionByID($DocRevID);
+          my $DocumentID = $DocRevisions{$DocRevID}{DOCID};
+          #print "DocID: $DocumentID\n";
+          my $Status = &SignoffStatus($SignoffID);
+          if ($Status eq "Ready") {
+            push @ReadyDocumentIDs,$DocumentID;
+          }
+        }
+      }
+    }
+    if (@ReadyDocumentIDs) {
+      my $DocsToSignNote = "<img src\=\"".$ImgURLPath."/attention.png\" alt\=\"\"> You have ";
+      if (scalar(@ReadyDocumentIDs) eq 1) {
+        $DocsToSignNote .= "1 document ";
+      } else {
+        $DocsToSignNote .= scalar(@ReadyDocumentIDs)." documents ";
+      }
+      $DocsToSignNote .= "to sign.";
+      #print "<span class\=\"hint\">$DocsToSignNote</span>\n";
+      print "<font size=-1 color=\"red\"><strong>$DocsToSignNote</strong></font>\n";
+    } else {
+      print "<br>\n";
+    }
+    ##########
+}
+print "</td></table>";
+print "</div>\n";
+
+
+# if (CanAdminister()) {
+#   print "<div class=\"HomepageMainChoice\">\n";
+#   print "<strong><a href=\"$ModifyHome\">Create or change documents or other information</a></strong>\n";
+#   print "</div>\n";
+#}
+
+
+
+
+
+### Right column (wrapped around by middle column)
+
+#print "<div id=\"RightColumn3Col\">\n";
+#print "</div>\n";  # RightColumn3Col
+
+print "</div>\n";  # MainColumn3Col
+
+#print "<div id=\"Footer3Col\">\n"; # Must have to keep NavBar on true bottom
+#print "</div>\n";  # Footer3Col
+print "</div>\n";  # DocDBHomeBody
+
+
+
+# MCA: Removed table in the bottom of the page so that the initial screen
+# is viewable in a page
+## Fill arrays with stuff that goes in main, bold table
+#
+## Modified in last few days
+#
+#{
+#  require "DocumentHTML.pm";
+#  require "DocumentUtilities.pm";
+#
+#### Get list of documents
+#
+#  my $SortBy  = "date";
+#  my $Reverse = 1;
+#
+#  my $List = $dbh -> prepare("select DISTINCT(DocumentID) from DocumentRevision where Obsolete=0 and TO_DAYS(NOW())-TO_DAYS(TimeStamp)<=?");
+#     $List -> execute($HomeLastDays);
+#
+#  my @DocumentIDs = ();
+#  my $DocumentID;
+#  $List -> bind_columns(undef, \($DocumentID));
+#  while ($List -> fetch) {
+#    push @DocumentIDs,$DocumentID;
+#  }
+#
+#### Print table
+#
+#  if (@DocumentIDs) { ### FIXME: Move both kinds of titles into DocumentTable
+#    print "<hr/><h4>\n";
+#    if ($#DocumentIDs >= $HomeMaxDocs) {
+#      print "Last $HomeMaxDocs documents modified\n";
+#    } else {
+#      print "Documents modified in the last $HomeLastDays days\n";
+#    }
+#    print "</h4>\n";
+#  }
+#
+#  my %FieldList = PrepareFieldList(-default => "Default");
+#  my ($NumberOfDocuments, $allN) = DocumentTable(-fieldlist => \%FieldList, -docids  => \@DocumentIDs,
+#                                        -sortby    => $SortBy,     -reverse => $Reverse,
+#                                        -maxdocs   => $HomeMaxDocs);
+#}
+
+$EndTime  = new Benchmark;
+
+# Remove footer bar
+#DocDBNavBar();
+print "<br>";
+DocDBFooter($DBWebMasterEmail,$DBWebMasterName);
+

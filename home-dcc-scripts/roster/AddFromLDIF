@@ -1,0 +1,39 @@
+#! /usr/bin/env perl
+#
+
+use CGI;
+use DBI;
+
+
+$query = new CGI;  # Global for subroutines
+
+my ($Sec,$Min,$Hour,$Day,$Mon,$Year) = localtime(time);
+++$Mon;
+$Year += 1900;
+$Mon = sprintf '%02d', $Mon;
+$Day = sprintf '%02d', $Day;
+my $TimeString = "$Year-$Mon-$Day";
+
+open (ROSTER_LOG, ">>./logs/ldif_$TimeString.log");
+
+
+require "Source_MembersLDIF.pm";
+require "DocDB_UsersSQL.pm";
+require "DocDB_HTDBM.pm";
+
+$VERIFY_USERS = 0;
+
+$docdb_handle = DBI->connect('DBI:mysql:dcc_docdb:localhost', "docdbrw" , "*******");
+
+&GetMembersFromLDIF;
+
+&DocDB_UpdateAuthorTable();
+&DocDB_UpdateEmailUserTable();
+&DocDB_UpdateUsersGroup();
+&DocDB_GenerateHTDBMFiles();
+
+$docdb_handle -> disconnect;
+
+close(ROSTER_LOG);
+
+#system("/home/dcc/roster/dist_files");

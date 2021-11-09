@@ -1,0 +1,22 @@
+The file prefilter.tcl and the files with names beginning
+with "glimpse" are the workhorse scripts of the shadowing
+and indexing system.
+
+The incremental indexer now leverages the full power of
+prefilter.tcl to index many types of binary file.
+
+Packages required by prefilter.tcl:
+
+ xpdf
+ catdoc (and catppt and xls2csv from the catdoc package)
+ hdf5 (specifically, h5dump)
+ readpdf (a script is provided to install it from source) 
+ ghostscript (ps2ascii)
+ unzip
+
+Deprecated November 2012:
+
+The other files are utilities mostly used by the incremental
+"safety net" indexer. They are called directly by glimpse
+using the rules in the files in the glimpse_filters
+directory.

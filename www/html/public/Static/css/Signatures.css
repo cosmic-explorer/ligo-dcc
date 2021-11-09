@@ -1,0 +1,113 @@
+#signatures {
+   margin-top: 1em;
+}
+
+#sigbuttons {
+   margin-bottom: 1em;
+}
+
+input#commit {
+   margin-right: 1ex;
+}
+
+#final_signer {
+   margin-bottom: 1ex;
+}
+
+img:hover {
+   background-color: #dff;
+}
+
+img[src="checked.png"], img[src="unchecked.png"] {
+   margin-right: 0.5ex;
+   vertical-align: middle;
+   cursor: pointer;
+}
+
+select {
+   background-color: #eed;
+}
+
+select:hover {
+   background-color: #ffe;
+}
+
+#signoffs {
+   margin-top: 0.25em;
+}
+
+span.top {
+   display: inline-block;
+   width: 7em;
+   font-weight: 900;
+   color: brown;
+   margin: 0;
+   padding: 0;
+}
+
+span.mid:before {
+   content:"\0251c";
+}
+span.mid {
+   display: inline-block;
+   width: 9em;
+   margin: 0;
+   padding: 0;
+}
+
+span.vbar {
+   display: inline-block;
+   margin: 0;
+   padding: 0;
+   font-size: 60%;
+}
+
+span.vbar:before {
+   content:"\02502";
+}
+
+span.bot:before {
+   content:"\02514";
+}
+
+span.bot {
+   display: inline-block;
+   width: 9em;
+   margin: 0;
+   padding: 0;
+}
+
+span.red {
+   font-size: 80%;
+   color: red;
+   vertical-align: middle;
+}
+
+span.grn {
+   font-size: 80%;
+   color: green;
+   vertical-align: middle;
+}
+
+span.gry {
+   font-size: 80%;
+   color: #999;
+   vertical-align: middle;
+}
+
+textarea.signercomment {
+   font-size: 80%;
+   width: 4.5em;
+   height: 1.2em;
+   resize: both;
+}
+
+span.comm {
+   display: inline-block;
+   vertical-align: middle;
+   margin-left: 1em;
+}
+
+span.counter {
+   margin-left: 7em;
+}

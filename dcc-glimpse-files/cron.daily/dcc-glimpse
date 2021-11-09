@@ -1,0 +1,29 @@
+#!/bin/ksh
+#
+# Name: dcc-glimpse (a cron.daily script)
+#
+# This is the big rebuild script for the dcc glimpse database.
+
+# If there is an existing database, only a very fast sync of
+# incrementally added files will occur.
+#
+#
+# Philippe Grassia <philippe.grassia@ligo.org>
+
+
+dayofweek=$(date +%w)
+## if [ $dayofweek -lt "6" ] 
+## then
+##     echo "I only work on weekends" 
+##     exit 
+## fi 
+# timestamp seconds
+ts=`date +%Y.%m.%d`
+
+LOGGER="cat -"
+tty -s || LOGGER="/usr/bin/logger -t glimpse-init"
+
+sudo -u apache /usr/local/bin/glimpse-init.sh | $LOGGER
+
+# sanity check
+#sudo -u apache /usr/local/bin/glimpse -H /usr2/GLIMPSE/dcc.glimpse -w metallicities | grep document

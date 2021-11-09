@@ -1,0 +1,70 @@
+#! /usr/bin/env perl
+#
+#        Name: $RCSfile: SignoffChooser,v $
+# Description: Lists the people who can sign a document and helps the user
+#              build a list of signatures needed for a document.
+#              Links insert the name into the form on the calling page
+#
+#    Revision: $Revision: 1.1.12.6 $
+#    Modified: $Author: vondo $ on $Date: 2007/09/20 19:53:14 $
+#
+#      Author: Eric Vaandering (ewv@fnal.gov)
+
+# Copyright 2001-2007 Eric Vaandering, Lynn Garren, Adam Bryant
+
+#    This file is part of DocDB.
+
+#    DocDB is free software; you can redistribute it and/or modify
+#    it under the terms of version 2 of the GNU General Public License
+#    as published by the Free Software Foundation.
+
+#    DocDB is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+
+#    You should have received a copy of the GNU General Public License
+#    along with DocDB; if not, write to the Free Software
+#    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+
+use CGI;
+use DBI;
+
+require "DocDBGlobals.pm";
+
+require "Messages.pm";
+
+require "HTMLUtilities.pm";
+require "NotificationSQL.pm";
+require "EmailSecurity.pm";
+
+require "Scripts.pm";
+
+$query = new CGI;  # Global for subroutines
+%params = $query -> Vars;
+
+$dbh   = DBI->connect('DBI:mysql:'.$db_name.':'.$db_host,$db_rouser,$db_ropass);
+
+print $query -> header( -charset => $HTTP_ENCODING );
+DocDBHeader("List of Signees","", -scripts => ["InsertSignature"]);
+
+my @EmailUserIDs = &GetEmailUserIDs();
+my $EmailUserID;
+
+print "Click on names to insert them into keyword box on the document form.<p>\n";
+
+print "<a name=\"list\">\n";
+foreach $EmailUserID (@EmailUserIDs) {
+  FetchEmailUser($EmailUserID);
+  unless (CanSign($EmailUserID)) {next;}
+  my $Name = $EmailUser{$EmailUserID}{Name};
+  print "<a href=\"#list\" onclick=\"InsertSignature('$Name');\">$Name</a><br>";
+}
+
+print "<center><form>\n";
+
+print " <input type=\"button\" value=\"Close Window\" onclick=\"window.close()\">\n";
+print "</form></center>";
+
+&DocDBNavBar();
+&DocDBFooter($DBWebMasterEmail,$DBWebMasterName);

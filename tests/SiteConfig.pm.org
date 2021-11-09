@@ -1,0 +1,88 @@
+# Ad Hoc SiteConfig.pm
+# uses env variables set in the CI pipeline to connect to mariadb container
+# defaults to dcc-dev like settings if $MYSQL_* env variables are not set.
+# DB settings
+$Project = $Project ? $Project : "LIGO";
+
+# env variables defines in .envrc (direnv)
+$db_name       = $ENV{'MYSQL_DATABASE'} ;    # Database name
+$db_host       = $ENV{'MYSQL_HOST'} ? $ENV{'MYSQL_HOST'}  : "localhost";
+$db_rwuser     = $ENV{'MYSQL_USER'} ;        # You can change the names of the accounts if you are
+$db_rwpass     = $ENV{'MYSQL_PASSWORD'};     # hosting more than one DocDB on the same SQL server
+$db_rouser     = $ENV{'MYSQL_USER'};         # (for two different projects). Otherwise its probably
+$db_ropass     = $ENV{'MYSQL_PASSWORD'};     # best just to leave the names as-is.
+
+# optionally pre-create the $dbh connection object
+use DBI;
+# check if test DB exists, if not bootstrap it
+
+$dbh = DBI->connect('dbi:mysql:host='.$db_host,$db_rouser,$db_ropass);
+my $sth = $dbh->prepare('show databases like ?;') ;
+$sth->execute($db_name);
+unless ($sth->fetchrow_hashref()) {
+   print "\n$db_name not found : bootstrapping\n\n";
+}
+$sth->finish();
+$dbh->disconnect() or die $DBI::errstr;
+
+$dbh = DBI->connect('DBI:mysql:database='.$db_name.';host='.$db_host,$db_rouser,$db_ropass) or die("Could not connect to ".$db_name." on ".$db_host."\n");
+
+
+# Root directories and URLs
+
+$file_root   = "/usr1/www/html/DocDB/";
+$script_root = "/usr1/www/cgi-bin/DocDB/";
+$public_root = "/usr1/www/html/public/";
+
+# Places in local filesystem where XMLUpload can get files
+@LocalUploadDirectories = ( "/usr1/www/E-Traveler/html/data", "/tmp" );
+
+# Gives us "hostname" from $HOSTNAME
+use Sys::Hostname;
+#
+$host_name = 'https://'.hostname.'.ligo.org/';
+#
+$web_root        = $host_name."public";
+$wiki_root       = $host_name."wiki/index.php";
+$cgi_root        = $host_name."cgi-bin/private/DocDB/";
+$Public_cgi_root = $host_name."cgi-bin/DocDB/";
+$secure_root     = $host_name."private/DocDB";
+#
+$DocDBHome = $host_name."/wiki/index.php/Main_Page";
+
+$pnp_host_name = 'pnp-dev.ligo.org';
+
+$WelcomeMessage = "This is the repository of $Project talks, publications, and other documents.";
+
+# Location of the script called for server status updates
+#$ServerStatusUrl  = "/cgi-bin/private/DocDB/serverstatus.sh";
+$ServerStatusUrl  = "/cgi-bin/private/DocDB/serverstatus.sh";
+# Server status polling interval in milliseconds
+$ServerStatusPollInterval  = "60000";
+
+$ReadOnly       = 0;            # Can be used in conjunction with individual
+                                # authorization methods to set up a group-like
+                                # area with group passwords which can view
+                                # but not change any info
+#$ReadOnlyAdmin  = 0;           # Allows administration from the read-only
+                                # area. Only suggested for boot-strapping until
+                                # you have an individual selected as admin
+
+$UseDeadlyWarning     = 0;
+$UseSignoffs          = 0;     # Sign-off system for document approval
+$MailInstalled        = 0;     # Is the Mailer::Mail module installed?
+#$MailServer           = "";
+
+# These settings are for public version of DB. Uncomment these five lines
+# # for the version of this file you place in the public area. While only the
+# # first is probably necessary, as a precaution its wise to do the other 4 as
+# # well.
+#
+# #$Public           = 1;
+# #$remote_user      = ""; # Just to be safe
+# #$RemoteUsername   = ""; # Just to be safe
+# #$db_rwuser        = ""; # Just to be safe
+# #$db_rwpass        = ""; # Just to be safe
+
+1;
+

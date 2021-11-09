@@ -1,0 +1,476 @@
+#! /usr/bin/env perl
+#
+# Author Eric Vaandering (ewv@fnal.gov)
+
+# Copyright 2001-2007 Eric Vaandering, Lynn Garren, Adam Bryant
+
+#    This file is part of DocDB.
+
+#    DocDB is free software; you can redistribute it and/or modify
+#    it under the terms of version 2 of the GNU General Public License 
+#    as published by the Free Software Foundation.
+
+#    DocDB is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+
+#    You should have received a copy of the GNU General Public License
+#    along with DocDB; if not, write to the Free Software
+#    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+
+use Benchmark;
+use CGI;
+use DBI;
+use CGI::Log;
+
+$StartTime = new Benchmark;
+
+require "DocDBGlobals.pm";
+require "DocumentHTML.pm";
+require "SecuritySQL.pm";
+require "HTMLUtilities.pm";
+require "Utilities.pm";
+require "DocumentUtilities.pm";
+require "ResponseElements.pm";
+require "Messages.pm";
+require "Utilities.pm";
+
+$query = new CGI;  # Global for subroutines
+
+%params = $query -> Vars;
+
+my $Days         = $params{days}         || 0;
+my $TypeID       = $params{typeid}       || 0;
+my $AuthorID     = $params{authorid}     || 0;
+my $AuthorName   = SafeHTML($params{autocompleter})     || 0;
+my $AuthorGroupID= $params{authorgroupid}|| 0;
+
+my $TopicID      = $params{topicid}      || 0;
+my $Topic        = $params{topic}        || 0;
+
+my $EventID      = $params{eventid}      || 0;
+my $EventGroupID = $params{eventgroupid} || 0;
+my $EventGroup   = $params{eventgroup}   || "";
+
+my $GroupID      = $params{groupid}      || 0;
+my $Group        = $params{group}        || "";
+
+my $Uncertified  = $params{uncertified}  || 0;
+
+my $AllPubs      = $params{allpubs}      || "";
+my $AllDocs      = $params{alldocs}      || "";
+my $MaxDocs      = $params{maxdocs}      || $HomeMaxDocs;
+
+my $ListMode         = $params{mode}         || "";
+
+my $X0Filter     = $params{x0filter}     || 0;
+my $Latest       = $params{latest}       || 0;
+$dbh   = DBI->connect('DBI:mysql:'.$db_name.':'.$db_host,$db_rouser,$db_ropass);
+
+GetSecurityGroups();
+
+$ENV{TZ} = ':/usr/share/zoneinfo/America/Los_Angeles';
+
+### Set defaults
+
+my ($Title,  $Message, $List);
+# Defaults, later can surround these in "unless"
+my %FieldListOptions = (-default => "Default");
+my $SortBy           = "date";
+my $Reverse          = 1;
+
+my @DocumentIDs = ();
+my $ListCriterion = ' <!-- dynamically generated hidden fields --> ';
+
+if ($Days) { 
+  Log->debug("ListBy ``Days: $Days``"); 
+  if ($Uncertified)  {
+      require "Security.pm";
+
+      $Title   = "Uncertified documents from Last $Days Days";
+      $Message = "These documents have been modified in the last <span class=\"Highlight\">$Days days</span>.";
+      my $Query =  "select DISTINCT(DocumentID) from DocumentRevision where Obsolete=0 and QAcheck = 0 and TO_DAYS(NOW())-TO_DAYS(TimeStamp)<=?";            
+      if ($X0Filter) {
+          $Query .= " AND VersionNumber!=0";
+      }
+      $List = $dbh -> prepare($Query);
+      $List -> execute($Days);
+  } elsif ($Public) {
+      ### Public documents Days since last modification
+
+      $Title   = "Documents from Last $Days Days";
+      $Message = "These documents have been modified in the last <span class=\"Highlight\">$Days days</span>.";
+#      $List = $dbh -> prepare("select DocRevID AS rev_record from DocumentRevision where Obsolete=0 and TO_DAYS(NOW())-TO_DAYS(TimeStamp)<=? AND NOT EXISTS( select DocRevID from RevisionSecurity where DocRevID=rev_record)");            
+      $List = $dbh -> prepare("select DocRevID from DocumentRevision where Obsolete=0 and TO_DAYS(NOW())-TO_DAYS(TimeStamp)<= ?");
+      $List -> execute($Days);
+      my $i = 0;
+      while (my ($DocRevID) = $List -> fetchrow_array) {
+          #
+          # Temporary abort-on-panic type limit to prevent accidental
+          # denial of service. - Phil Ehrens
+          #
+          if ($i > $LOOP_LIMIT) {
+             $i = 0;
+             last;
+          }
+          my $doc_list = $dbh -> prepare ("select DocumentID from DocumentRevision where DocRevID= ?");
+          $doc_list -> execute($DocRevID);
+          $doc_list -> bind_columns(undef, \($DocumentID));
+          if ($doc_list -> fetch) {
+             push @DocumentIDs,$DocumentID;
+          }
+          $i++;
+      }
+      @DocumentIDs = Unique(@DocumentIDs);
+     
+  } else {
+      ### Days since last modification
+
+      $Title   = "Documents from Last $Days Days";
+      $Message = "These documents have been modified in the last <span class=\"Highlight\">$Days days</span>.";
+      $List = $dbh -> prepare("select DISTINCT(DocumentID) from DocumentRevision where Obsolete=0 and TO_DAYS(NOW())-TO_DAYS(TimeStamp)<=?");            
+       $List -> execute($Days);
+  }
+
+} elsif ($TopicID) {
+  Log->debug("ListBy ``TopicID $TopicID``"); 
+
+
+### Topic
+### FIXME: Add Topic lookup
+
+  require "TopicSQL.pm";
+  require "MeetingSQL.pm";
+  require "TopicUtilities.pm";
+  require "TopicHTML.pm";
+  require "Security.pm";
+
+  
+  my @ChildTopicIDs  = TopicAndSubTopics({-topicid => $TopicID}); 
+  my @ParentTopicIDs = FetchTopicParents({-topicid => $TopicID}); 
+  
+  my $HasSubTopics = (scalar(@ChildTopicIDs) > 1);
+  $FieldListOptions{-topicid} = $TopicID;
+  $Title   = "Document List by Topic";
+  $List = $dbh -> prepare("select DocumentRevision.DocumentID, DocumentRevision.DocRevID from ".
+           "DocumentRevision,RevisionTopic where DocumentRevision.DocRevID=RevisionTopic.DocRevID ".
+           "and DocumentRevision.Obsolete=0 and RevisionTopic.TopicID=?"); 
+  $i = 0;
+  foreach my $ChildTopicID (@ChildTopicIDs) {
+    FetchTopic($ChildTopicID);
+    $List -> execute($ChildTopicID);
+    while (my ($DocumentID, $DocRevID) = $List -> fetchrow_array) {
+       #
+       # Temporary abort-on-panic type limit to prevent accidental
+       # denial of service. - Phil Ehrens
+       #
+       if ($i > $LOOP_LIMIT) {
+         $i = 0;
+         last;
+       };
+      if (CanAccessRevision($DocRevID)) {
+        push @DocumentIDs,$DocumentID;
+        @DocumentIDs = Unique(@DocumentIDs);
+      }
+      $i++;
+    }  
+  }
+  my $SubTopicMessage = "";
+  if (@ParentTopicIDs) {
+    my ($ParentTopicID) = @ParentTopicIDs;
+    $SubTopicMessage = "(subtopic of ".TopicLink({-topicid => $ParentTopicID}).")";
+  }
+  
+  $Message = "These documents on <span class=\"Highlight\">$Topics{$TopicID}{Long} 
+              </span> $SubTopicMessage ";
+  if ($HasSubTopics) {
+    $Message .= "and sub-topics ";
+  }
+  $Message .= "are available:"; 
+  my %Hash = GetEventsByTopic($TopicID);
+  if (%Hash) {
+    $Message .= '<br/>(List <a href="'.$ListEventsBy.'?topicid='.$TopicID.'">events</a> on '.$Topics{$TopicID}{Long}.')';
+  }
+} elsif ($AuthorID) {
+  Log->debug("ListBy : ``AuthorID : $AuthorID``");
+
+### Author
+  require "AuthorSQL.pm";
+  require "AuthorHTML.pm";
+  require "MeetingSQL.pm";
+
+  if ($AuthorID == 0) {
+    push @ErrorStack,$Msg_AuthorInvalid;
+
+  } else {
+
+    GetInstitutions();
+    FetchAuthor($AuthorID);
+    unless ($Authors{$AuthorID}{LastName}) {
+      push @ErrorStack, ($Msg_AuthorInvalid.": ".$AuthorName);
+    }
+  }
+
+  $FieldListOptions{-authorid} = $AuthorID; # (Does nothing right now)
+  $Title   = "Document List by Author";  
+    
+  my $Link = AuthorLink($AuthorID);
+  
+  $Message = "<span class=\"Highlight\">$Link of $Institutions{$Authors{$AuthorID}{InstitutionID}}{LONG}</span>
+                is listed as an author on the following documents:";
+  my %Hash = GetEventsByModerator($AuthorID);
+  if (%Hash) {
+    $Message .= '<br/>(List <a href="'.$ListEventsBy.'?authorid='.$AuthorID.'">events</a> moderated by '.$Authors{$AuthorID}{FULLNAME}.')';
+  }
+  @DocumentIDs = GetAuthorDocuments_NoGroups($AuthorID);  
+} elsif ($AuthorGroupID) {
+  Log->debug("ListBy : ``AuthorGroupID : $AuthorGroupID``");
+  $ListCriterion = "<input type=\"hidden\" name=\"authorgroupid\" value=\"$AuthorGroupID\" />";
+
+
+### Author
+  require "AuthorSQL.pm";
+  require "AuthorHTML.pm";
+  require "MeetingSQL.pm";
+
+  FetchAuthorGroup($AuthorGroupID);
+  unless ($AuthorGroups{$AuthorGroupID}{AuthorGroupName}) {
+    push @ErrorStack,$Msg_AuthorInvalid;
+  }
+
+  $FieldListOptions{-authorgroupid} = $AuthorGroupID; # (Does nothing right now)
+  $Title   = "Document List by Author Group";  
+  
+  my $Link = AuthorGroupLink($AuthorGroupID);
+  
+  $Message = "<span class=\"Highlight\">$Link </span>
+              is listed as an author group on the following documents:";
+  @DocumentIDs = GetAuthorGroupDocuments($AuthorGroupID);  
+} elsif ($EventID) {
+  Log->debug("ListBy : ``EventID : $EventID``");
+  $ListCriterion = "<input type=\"hidden\" name=\"eventid\" value=\"$EventID\" />";
+
+
+### Event
+
+  require "MeetingSQL.pm";
+  &FetchConferenceByConferenceID($EventID);
+
+  $FieldListOptions{-eventid}      = $EventID;
+  $FieldListOptions{-eventgroupid} = $Conferences{$EventID}{EventGroupID};
+  $Title   = "Document List by Event";
+  $Message = "These documents from <span class=\"Highlight\">$Conferences{$EventID}{LongDescription}</span> are available:";
+  $List = $dbh -> prepare("select DISTINCT(DocumentRevision.DocumentID) from ".
+           "DocumentRevision,RevisionEvent where DocumentRevision.DocRevID=RevisionEvent.DocRevID ".
+           "and DocumentRevision.Obsolete=0 and RevisionEvent.ConferenceID=?");            
+  $List -> execute($EventID);
+} elsif ($EventGroupID || $EventGroup) {
+  Log->debug("ListBy : ``EventGroupID : $EventGroupID``");
+  $ListCriterion = "<input type=\"hidden\" name=\"eventgroup\" value=\"$EventGroup\" />\n";
+
+
+### Event Group (name or number)
+
+  require "MeetingSQL.pm";
+  $SortBy = "confdate";
+  
+  unless ($EventGroupID) {
+    $EventGroupID = LookupEventGroup($EventGroup);
+  }  
+  FetchEventGroup($EventGroupID);
+  
+  $FieldListOptions{-eventgroupid} = $EventGroupID;
+  $FieldListOptions{-default}      = "Event Group Default";
+  $Title   = "Document List by Event Group";
+  $Message = "These documents from <span class=\"Highlight\">$EventGroups{$EventGroupID}{LongDescription}</span> are available:";
+  $List = $dbh -> prepare("select DISTINCT(DocumentRevision.DocumentID) from ".
+           "DocumentRevision,RevisionEvent,Conference where DocumentRevision.DocRevID=RevisionEvent.DocRevID ".
+           "and DocumentRevision.Obsolete=0 and RevisionEvent.ConferenceID=Conference.ConferenceID and Conference.EventGroupID=?");            
+  $List -> execute($EventGroupID);
+} elsif ($TypeID) {
+  Log->debug("ListBy : ``TypeID : $TypeID``");
+  $ListCriterion = "<input type=\"hidden\" name=\"typeid\" value=\"$TypeID\" />\n";
+
+
+  require "MiscSQL.pm";
+  FetchDocType ($TypeID);
+  $FieldListOptions{-doctypeid} = $TypeID;
+  $Title   = "Document List by Type";
+  $Message = "These documents of type <span class=\"Highlight\">
+             $DocumentTypes{$TypeID}{SHORT}</span> are available:";
+  
+  $List = $dbh -> prepare("select DISTINCT(DocumentRevision.DocumentID) from ".
+           "DocumentRevision where DocumentRevision.DocTypeID=?");            
+  $List -> execute($TypeID);
+} elsif ($GroupID || $Group) {
+  Log->debug("ListBy : ``GroupID or Group : $GroupID / $Group``");
+  $ListCriterion = qq( <input type="hidden" name="groupid" value="$GroupID" />
+  <input type="hidden" name="group" value="$Group" />
+  );
+  if ($Group) {
+    $GroupID = FetchSecurityGroupByName($Group);
+  }
+  $Title   = "Document List by Group";
+  $Message = "These documents for <span class=\"Highlight\">
+             $SecurityGroups{$GroupID}{NAME}</span> are available:";
+  
+  my $Query;
+
+  if ($Latest) {
+       $Query = "select DISTINCT(DocumentRevision.DocumentID) from DocumentRevision LEFT JOIN RevisionSecurity";
+       $Query .= " ON  DocumentRevision.DocRevID=RevisionSecurity.DocRevID WHERE  RevisionSecurity.GroupID=? AND DocumentRevision.DocRevID IN (SELECT DocRevID from DocumentRevision where DocumentRevision.Obsolete=0 AND VersionNumber IN (SELECT MAX(VersionNumber) from DocumentRevision Group by VersionNumber))  ";
+  } else {
+       $Query = "select DISTINCT(DocumentRevision.DocumentID) from DocumentRevision,RevisionSecurity where DocumentRevision.DocRevID=RevisionSecurity.DocRevID and RevisionSecurity.GroupID=? AND DocumentRevision.Obsolete=0";
+  }
+ 
+  if ($X0Filter) {
+       $Query .= " AND DocumentRevision.VersionNumber!=0";
+  }
+
+  $List = $dbh -> prepare($Query);
+  $List -> execute($GroupID);
+} elsif ($AllPubs) {
+  Log->debug("ListBy : ``AllPubs : $AllPubs``");
+  $ListCriterion = qq( <input type="hidden" name="allpubs" value="$AllPubs" />
+  );
+  $Title   = "$Project Publications";
+  $Message = "These publications are available:\n";
+  $List = $dbh -> prepare("select DISTINCT(DocumentRevision.DocumentID) from ".
+           "DocumentRevision,RevisionReference ".
+           "where DocumentRevision.DocRevID=RevisionReference.DocRevID and RevisionReference.JournalID>0"); 
+  $List -> execute();
+} elsif ($AllDocs) {
+  Log->debug("ListBy : ``AllDocs: $AllDocs``");
+  $ListCriterion = qq( <input type="hidden" name="alldocs" value="$AllDocs" />
+  );
+  $Title   = "All $Project Documents";
+  $Message = "";
+  $List = $dbh -> prepare("select DISTINCT(DocumentRevision.DocumentID) from ".
+           "DocumentRevision"); 
+  $List -> execute();
+} else {
+  Log->debug("No query was run because no actionable criteria was provided");
+}
+
+if ($ListMode eq "conference") {
+  $FieldListOptions{-default} = "Conference Mode";
+  $SortBy  = "confdate";
+} elsif ($ListMode eq "meeting") {
+  $FieldListOptions{-default} = "Meeting Mode";
+  $SortBy  = "requester";
+  $Reverse = 0;
+} elsif ($ListMode eq "pubs") {
+  $FieldListOptions{-default} = "Publications";
+}
+
+# Do the fetch on the $List.
+# "unless (@DocumentIDs)" here to do complex fetches, user specify.
+unless (@DocumentIDs) { # Some do their own
+  require "Security.pm";
+  if ($List) {
+    unless ($Public) {
+        my $DocumentID;
+        $List -> bind_columns(undef, \($DocumentID));
+        my $i = 0;
+        while ($List -> fetch) {
+            #
+            # Temporary abort-on-panic type limit to prevent accidental
+            # denial of service.
+            # This should be properly fixed by reducing the loop by
+            # making the database queries smarter. - Phil Ehrens
+            #
+            if ($i > $LOOP_LIMIT) {
+               $i = 0;
+               last;
+            }
+            push @DocumentIDs,$DocumentID;
+            $i++;
+        }
+    }
+  }
+}
+
+### Start HTML
+
+print $query -> header( -charset => $HTTP_ENCODING );
+# Phil Ehrens - August 19 2010
+DocDBHeader($Title,"",-scripts=>["serverstatus", "PopUps", "Throttle", "prototype", "prototype_sorttable"]);
+
+# Log-> print;
+
+# The following stuff relies on Throttle.js
+# Phil Ehrens August 19 2010
+unless ($Public) {
+   require "FormElements.pm";
+   print $query -> startform('GET',"ListBy");
+   if ($EventGroupID) {
+      print "<input type=hidden name=eventgroupid value=$EventGroupID>\n";
+   }
+   if ($TopicID) {
+      print "<input type=hidden name=topicid value=$TopicID>\n";
+   }
+   if ($AuthorID) {
+      print "<input type=hidden name=authorid value=$AuthorID>\n";
+   }
+   print "<center>\n"; 
+   print "<div id='throttle'>\n";
+   print "<script>makeThrottleWidget('throttle')</script>\n</div>\n";
+   unless ($Days) {
+      print "$ListCriterion \n";
+      print "</center>\n";
+      print $query -> endform;
+   }
+}
+
+EndPage(@ErrorStack); # Roy Williams Oct 2012
+
+print "<h4>$Message</h4><p/>\n";
+
+# Special HTML for special situations
+
+if ($Days) { # Print out modified by form
+  if ($Public) {
+     require "FormElements.pm";
+     print $query -> startform('GET',"ListBy");
+     print "<center>\n";
+  }
+  if ($Uncertified) {
+       print $query -> submit (-value => "Show Uncertified Documents");
+  } else {
+       print $query -> submit (-value => "Show Documents");
+  }
+  print " modified in the last ";
+  DaysPulldown($Days);
+  print " days.\n<p>\n";
+  print $query -> endform;
+  print "\n";
+}
+
+### Table and Statistics
+my %FieldList = PrepareFieldList(%FieldListOptions);
+@DocumentIDs = Unique(@DocumentIDs);
+
+my $NumberOfDocuments = 0;
+
+($NumberOfDocuments, $AllN) = DocumentTable(
+  -fieldlist => \%FieldList,
+  -docids    => \@DocumentIDs, 
+  -sortby    => $SortBy,
+  -reverse   => $Reverse, 
+  -maxdocs   => int($MaxDocs));
+
+if ($Public || int($MaxDocs) >= int($NumberOfDocuments)) {  
+   print "<p>\n<b> Number of documents found: ";
+   print int($NumberOfDocuments);
+   print "</b>\n</p>\n";
+} else {
+   print "<p>\n<b>First ";
+   print int($NumberOfDocuments)-1," of ",$AllN;
+   print " documents listed.</b>\n";
+}
+
+$EndTime  = new Benchmark;
+
+DocDBNavBar();
+DocDBFooter($DBWebMasterEmail,$DBWebMasterName);

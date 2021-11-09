@@ -1,0 +1,267 @@
+#! /usr/bin/env perl
+#
+# Author: Melody C. Araya
+#
+# This script will loop over all documents and revisions and will re-write 
+# the .htaccess file for those revisions. You may need to do this if you 
+# change the group hierarchy, move your .htpasswd file, or for other reasons.
+
+# Use --force to update all the documents or 
+# use --days or --hours to update those modified recently
+# 
+# Usage:  sudo -u apache ./Resecure   --recertify --test
+
+use Benchmark;
+use DBI;
+use Getopt::Long;
+
+require "SiteConfig.pm";
+require "DocDBGlobals.pm";
+require "SecuritySQL.pm";
+require "RevisionSQL.pm";
+require "FSUtilities.pm";
+require "Sorts.pm";
+
+my ($Sec,$Min,$Hour,$Day,$Mon,$Year) = localtime(time);
+++$Mon;
+$Year += 1900;
+$Mon = sprintf '%02d', $Mon;
+$Day = sprintf '%02d', $Day;
+my $TimeString = "$Year-$Mon-$Day";
+ 
+open (RESECURE_LOG, ">>./resecure_$TimeString.log");
+
+
+
+sub CopyToPublic ($$$$) {
+  my ($DocumentID, $Version, $DocRevID, $Alias) = @_;
+  my $success = 1;
+
+  #Copy DocumentRevision
+  #
+  my $CopyRevision = $public_dbh->prepare (
+     "INSERT INTO $public_db_name.DocumentRevision SELECT * FROM $db_name.DocumentRevision WHERE DocRevID=?");
+  $CopyRevision -> execute($DocRevID) or $success = 0;
+
+
+  print RESECURE_LOG "Copying $Alias-v$Version\n";
+
+  if ($success == 0) {
+      print RESECURE_LOG "ERROR: Unable to add $Alias-v$Version DocRevID $DocRevID Revision\n";
+  }
+  else {
+       my $doc_id;
+       #  Check if the Document exists
+       my $doc_id_select = $public_dbh -> prepare ("SELECT DocumentID FROM Document WHERE DocumentID = ?");
+       $doc_id_select -> execute ($DocumentID);
+       $doc_id_select -> bind_columns (undef, \($doc_id));
+
+       unless ($doc_id_select -> fetch) {
+           my $CopyDocument =  $public_dbh->prepare (
+              "INSERT INTO $public_db_name.Document SELECT * FROM $db_name.Document WHERE DocumentID=?");
+           $CopyDocument -> execute ($DocumentID) or print RESECURE_LOG "ERROR: Unable to add $Alias-v$Version DocRevID $DocRevID\n";
+       }
+
+       my $file_id;
+       my $file_id_select = $dbh->prepare ("SELECT DocFileID FROM DocumentFile WHERE DocRevID = ?");
+       $file_id_select -> execute ($DocRevID);
+       $file_id_select -> bind_columns (undef, \($file_id));
+
+       if ($file_id_select -> fetch) {
+           my $CopyFile =  $public_dbh->prepare (
+              "INSERT INTO $public_db_name.DocumentFile SELECT * FROM $db_name.DocumentFile WHERE DocRevID=?");
+           $CopyFile -> execute ($DocRevID) or print RESECURE_LOG "ERROR: Unable to add $Alias-v$Version files\n";
+       }
+ 
+  }
+
+}
+
+
+&GetOptions("days=i"    =>  \$Days,
+            "hours=i"   => \$Hours,
+            "topics=i"  => \$Topics,
+            "recertify" => \$Recertify,
+            "testmode"  => \$Testmode,
+            "force!"    => \$Force);
+
+$StartTime = new Benchmark;
+
+$public_db_name = "dcc_docdb";
+
+$dbh   = DBI->connect('DBI:mysql:'.$db_name.':'.$db_host,$db_rwuser,$db_rwpass);
+$public_dbh = DBI->connect('DBI:mysql:'.$public_db_name.':'.$db_host,$db_rwuser,$db_rwpass);
+
+&GetSecurityGroups;
+
+if ($Topics) {
+  print "Updating Based on Topics\n";
+  my $revision_list = $dbh -> prepare(
+    "select DocRevID,DocumentID,VersionNumber ".
+    "FROM RevisionTopic NATURAL JOIN DocumentRevision where Obsolete=0 AND TopicID=?");
+    
+  $revision_list -> execute($Topics);
+  $revision_list -> bind_columns(undef, \($DocRevID,$DocumentID,$VersionNumber));
+  while ($revision_list -> fetch) {
+    $Revision{$DocRevID}{DocRevID}      = $DocRevID;
+    $Revision{$DocRevID}{DocumentID}    = $DocumentID;
+    $Revision{$DocRevID}{VersionNumber} = $VersionNumber;
+  }
+}
+
+
+
+if ($Force) {
+  print "Forcing\n";
+  my $revision_list = $dbh -> prepare(
+    "select DocRevID,DocumentID,VersionNumber ".
+    "from DocumentRevision where Obsolete=0");
+    
+  $revision_list -> execute();
+  $revision_list -> bind_columns(undef, \($DocRevID,$DocumentID,$VersionNumber));
+  while ($revision_list -> fetch) {
+    $Revision{$DocRevID}{DocRevID}      = $DocRevID;
+    $Revision{$DocRevID}{DocumentID}    = $DocumentID;
+    $Revision{$DocRevID}{VersionNumber} = $VersionNumber;
+  }
+}
+
+my $testcount = 0;
+
+if ($Recertify) {
+  print "Recertifying\n";
+
+  my ($DocRevID, $DocumentID, $VersionNumber, $Alias, $TimeStamp);
+  my $revision_list = $dbh -> prepare(
+    "SELECT DocRevID, DocumentRevision.DocumentID, VersionNumber, Alias, DocumentRevision.TimeStamp From DocumentRevision ".
+    "RIGHT JOIN Document ON Document.DocumentID = DocumentRevision.DocumentID ".
+    "WHERE DocumentRevision.DocRevID NOT IN ".
+        "(SELECT DocRevID From RevisionSecurity WHERE 1) AND ".
+        "DocumentRevision.DocRevID IN ".
+        "(SELECT DocRevID From DocumentFile WHERE 1) AND ".
+        "DocumentRevision.DocRevID IN ".  
+        "(SELECT DocRevID from DocumentRevision WHERE Obsolete = 0)" );
+    
+  $revision_list -> execute();
+  $revision_list -> bind_columns(undef, \($DocRevID,$DocumentID,$VersionNumber,$Alias,$TimeStamp));
+  my @GroupIDs = ();
+  push @GroupIDs, 1;
+
+#  TruncatePublicTables();
+  while ($revision_list -> fetch) {
+    $Revision{$DocRevID}{DocRevID}      = $DocRevID;
+    $Revision{$DocRevID}{DocumentID}    = $DocumentID;
+    $Revision{$DocRevID}{VersionNumber} = $VersionNumber;
+    print "Found $DocumentID: $VersionNumber :";
+    if ($Testmode) {
+        if ($testcount == 0) {
+            print "Test mode\n";
+            &UpdateRevisionPublicSecurity($DocumentID, $VersionNumber, 1);
+            &UpdateRevisionQAState($DocRevID, 1);
+
+            #Turn back the TimeStamp
+            my $CopyTimestamp = $dbh->prepare (
+              "UPDATE DocumentRevision SET TimeStamp=\"".$TimeStamp."\" WHERE DocRevID=?");
+            $CopyTimestamp -> execute($DocRevID);
+
+            MakeLinkDirectory($DocumentID, $VersionNumber);
+            #CopyToPublic($DocumentID, $VersionNumber, $DocRevID, $Alias);
+            $testcount = 1;
+        } 
+        else {
+            print "....\n";
+            exit 0;
+        }
+    }
+    else {
+        print " Recertified\n";
+        &UpdateRevisionPublicSecurity($DocumentID, $VersionNumber, 1);
+        &UpdateRevisionQAState($DocRevID, 1);
+
+        #Turn back the TimeStamp
+        my $CopyTimestamp = $dbh->prepare (
+           "UPDATE DocumentRevision SET TimeStamp=\"".$TimeStamp."\" WHERE DocRevID=?");
+        $CopyTimestamp -> execute($DocRevID);
+
+        MakeLinkDirectory($DocumentID, $VersionNumber);
+        #CopyToPublic($DocumentID, $VersionNumber, $DocRevID, $Alias);
+    }
+  }
+  $EndTime  = new Benchmark;
+  $TimeDiff = timediff($EndTime,$StartTime);
+  print "Execution time: ",timestr($TimeDiff),"\n";
+  exit 0;
+}
+
+
+if ($Days || $Hours) {
+  my $TD; 
+  if ($Days)  {$TD = $Days*1000000;}
+  if ($Hours) {$TD = $Hours*10000;}
+   
+  my   @Queries = ();
+  push @Queries,"select DocRevID from DocumentRevision where Obsolete=0 and NOW()-TimeStamp<$TD";
+  push @Queries,"select DocRevID from RevisionSecurity where NOW()-Timestamp<$TD";
+  push @Queries,"select DocRevID from DocumentFile     where NOW()-TimeStamp<$TD";
+
+  foreach $Query (@Queries) {
+    my $revision_list = $dbh -> prepare($Query);
+    $revision_list -> execute();
+    $revision_list -> bind_columns(undef, \($DocRevID));
+    while ($revision_list -> fetch) {
+      $AllRevision{$DocRevID}{DocRevID}      = $DocRevID;
+    }
+  } 
+  my $revision_list = $dbh -> prepare(
+    "select DocRevID,DocumentID,VersionNumber ".
+    "from DocumentRevision where Obsolete=0 and DocRevID=?");
+  my @AllRevisions = sort numerically keys %AllRevision;
+  foreach $RevID (@AllRevisions) {
+    unless ($RevID) {next;}
+    $revision_list -> execute($RevID);
+    ($DocRevID,$DocumentID,$VersionNumber) = $revision_list -> fetchrow_array;
+    $Revision{$DocRevID}{DocRevID}      = $DocRevID;
+    $Revision{$DocRevID}{DocumentID}    = $DocumentID;
+    $Revision{$DocRevID}{VersionNumber} = $VersionNumber;
+  }   
+}
+
+my @Revisions = sort numerically keys %Revision;
+
+if ($TestMode) {
+   exit 0;
+}
+
+foreach $RevisionID (@Revisions) {
+#  unless ($Revision{$RevisionID}{VersionNumber}) {next;} # No directories for v0 documents
+  my $security_list = $dbh -> prepare(
+    "select GroupID ".
+    "from RevisionSecurity where DocRevID=?");
+  my ($GroupID);
+  $security_list -> execute($RevisionID);
+  $security_list -> bind_columns(undef, \($GroupID));
+  my @GroupIDs = ();
+  while ($security_list -> fetch) {
+    push @GroupIDs,$GroupID;
+  }  
+  unless (@GroupIDs) {
+    push @GroupIDs, 1;
+  }
+  
+  print "$RevisionID: $Revision{$RevisionID}{DocumentID}-$Revision{$RevisionID}{VersionNumber} ";
+  foreach $GroupID (@GroupIDs) {
+    print " $GroupID";
+  }
+  &ProtectDirectory($Revision{$RevisionID}{DocumentID},
+                    $Revision{$RevisionID}{VersionNumber},
+                    $RevisionID,
+                    @GroupIDs);
+  print "\n"; 
+}
+ 
+$EndTime  = new Benchmark;
+$TimeDiff = timediff($EndTime,$StartTime);
+print "Execution time: ",timestr($TimeDiff),"\n";
+
+close (RESECURE_LOG);
+exit;

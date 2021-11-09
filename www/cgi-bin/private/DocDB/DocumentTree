@@ -1,0 +1,326 @@
+#! /usr/bin/env perl
+use Class::Struct;
+use CGI qw(-nosticky);
+use DBI;
+use XML::Twig;
+use File::Basename;
+use CGI::Carp qw(fatalsToBrowser);
+require "FormElements.pm";
+require "DocDBGlobals.pm";
+require "HTMLUtilities.pm";
+require "DBUtilities.pm";
+require "RevisionSQL.pm";
+require "Security.pm";
+require "ResponseElements.pm";
+require "XRefSQL.pm";
+require "DocumentHTML.pm";
+require "DocumentSQL.pm";
+
+struct Node => {
+    xrefid => '$',
+    revid => '$',
+    docid => '$',
+    version => '$',
+    latestversion => '$',
+    extproject => '$',
+    canaccess => '$',
+    alias => '$',
+    publicurl => '$',
+};
+
+sub PrintDocTree ($) {
+  my $DocRevID = $_[0];
+  my $num_levels = $_[1];
+  my $a = $_[2];
+  my @Exclude = map { substr(our $_, 0, 1)} split(/\|/, $a);
+  my $DocumentLink    = ();
+  my $CanAccess       = ();
+  my $LastVersion     = ();
+  my @Visited         = ();
+  my @Unvisited       = ();
+  my $CurrXRefID      = 0;
+  my @NewXRefs        = ();
+  my $CurrDocID       = 0;
+  my $CurrVersion     = -1;
+  my $CurrRevID       = 0;
+  my @RevIDs          = ();
+  my $counter         = 1;
+  my $Type            = "";
+
+  open (DEBUG, ">/tmp/debug");
+  use IO::Handle; DEBUG->autoflush(1);
+  ### Find and print documents this revision links to
+
+  my $root = Node->new();
+  $root->revid($DocRevID);
+  FetchDocRevisionByID ($DocRevID);
+  $root->docid($DocRevisions{$DocRevID}{DOCID});
+  $root->version($DocRevisions{$DocRevID}{Version});
+  my %tree = ('0' => $root);
+  @Unvisited = FetchXRefs(-docrevid => $DocRevID, -sorted => 1);
+  unless (@Unvisited){
+     return;
+  }
+  while (@Unvisited){
+    $CurrXRefID = shift @Unvisited;
+    if ($CurrXRefID ~~ @Visited) {
+       next;
+    }
+    push @Visited, $CurrXRefID;
+    $new_node = Node->new();
+    $new_node->xrefid($CurrXRefID);
+    FetchInfoFromXRefID($CurrXRefID);
+    $CurrDocID = $DocXRefs{$CurrXRefID}{DocumentID};
+    $Type = FetchDocumentType($CurrDocID);
+    if ($Type ~~ @Exclude) {
+        next;
+    }
+    $new_node->docid($DocXRefs{$CurrXRefID}{DocumentID});
+    $new_node->extproject($DocXRefs{$CurrXRefID}{Project});
+    $CurrVersion = $DocXRefs{$CurrXRefID}{Version};
+    $new_node->version($CurrVersion);
+    if ($CurrVersion){
+       $CanAccess = CanAccess($CurrDocID,$CurrVersion);
+       $new_node->canaccess($CanAccess);
+       FetchDocument($CurrDocID);
+       $CurrRevID  = FetchRevisionByDocumentAndVersion($CurrDocID,$CurrVersion);
+       $new_node->revid($CurrRevID);
+    } else {
+       FetchDocument($CurrDocID);
+       $LastVersion = $Documents{$CurrDocID}{NVersions};
+       $new_node->latestversion($LastVersion);
+       $CanAccess = CanAccess($CurrDocID,$LastVersion);
+       $new_node->canaccess($CanAccess);
+       FetchDocument($CurrDocID);
+       $CurrRevID  = FetchRevisionByDocumentAndVersion($CurrDocID,$LastVersion);
+       $new_node->revid($CurrRevID);
+    }
+
+    $tree{"0" . "|" . $counter} = $new_node;
+    $counter = $counter + 1;
+  }
+
+  my $curr_level = 1;
+  while ($curr_level < $num_levels) {
+      foreach $key (keys %tree)
+      {
+          $counter = 0;
+          if ($key =~ tr/\|// == $curr_level) {
+              $curr_node = $tree{$key};
+              $rid = $curr_node->revid;
+              FetchDocRevisionByID($rid);
+              @NewXRefs = FetchXRefs(-docrevid => $rid, -sorted => 1);
+              $len = scalar @NewXRefs;
+              foreach $xrefid (@NewXRefs) {
+                  if ($xrefid ~~ @Visited) {
+                     next;
+                  }
+
+                  push @Visited, $xrefid;
+                  $child = Node->new();
+                  $child->xrefid($xrefid);
+                  FetchInfoFromXRefID($xrefid);
+                  $CurrDocID = $DocXRefs{$xrefid}{DocumentID};
+                  $Type = FetchDocumentType($CurrDocID);
+                  if ($Type ~~ @Exclude) {
+                      next;
+                  }
+                  $child->docid($DocXRefs{$xrefid}{DocumentID});
+                  $CurrVersion = $DocXRefs{$xrefid}{Version};
+                  $child->version($CurrVersion);
+                  if ($CurrVersion){
+                     $CanAccess = CanAccess($CurrDocID,$CurrVersion);
+                     $child->canaccess($CanAccess);
+                     FetchDocument($CurrDocID);
+                     $CurrRevID  = FetchRevisionByDocumentAndVersion($CurrDocID,$CurrVersion);
+                     $child->revid($CurrRevID);
+                  } else {
+                     FetchDocument($CurrDocID);
+                     $LastVersion = $Documents{$CurrDocID}{NVersions};
+                     $child->latestversion($LastVersion);
+                     $CanAccess = CanAccess($CurrDocID,$LastVersion);
+                     $child->canaccess($CanAccess);
+                     FetchDocument($CurrDocID);
+                     $CurrRevID  = FetchRevisionByDocumentAndVersion($CurrDocID,$LastVersion);
+                     $child->revid($CurrRevID);
+                  }
+                  $tree{$key . "|" . $counter} = $child;
+                  $counter = $counter + 1;
+              }
+          }
+      }
+      $curr_level += 1;
+  }
+  print "<div id=\"XRefs\">\n";
+  print "<dl>\n";
+  print "<ul>\n";
+  sub min ($$) { $_[$_[0] > $_[1]] }
+  sub mycmpr {
+      my @a_split = split(/\|/, our $a);
+      my @b_split = split(/\|/, our $b);
+      my $a_len = @a_split;
+      my $b_len = @b_split;
+      my $less = $a_len <= $b_len ? $a_len : $b_len;
+      for(my $i = 0; $i < $less; $i++) {
+          my $a = int($a_split[$i]);
+          my $b = int($b_split[$i]);
+          if (int($a_split[$i]) > int($b_split[$i])){
+              return 1;
+          }
+          elsif (int($a_split[$i]) < int($b_split[$i])){
+              return -1;
+          }
+      }
+      $c = $b_len cmp $a_len;
+      return $a_len cmp $b_len;
+  }
+  my @keys_sort = sort mycmpr keys %tree;
+  $DocumentLink = FetchLinkFromNode($tree{"0"});
+  print "&nbsp&nbsp$DocumentLink (This document)";
+  $printCheck = 0;
+  foreach $k (@keys_sort) {
+      print"<style>
+        ul.a {list-style-type: none;}
+        li.b {margin:0 0 5px 0;   }
+        </style>
+        <ul class=\"a\">";
+      $v = $tree{$k};
+      if ($v->canaccess) {
+          $printCheck = 1;
+          $DocumentLink = FetchLinkFromNode($v);
+          $space = ' .' x (2*($k =~ tr/\|//-1)+2);
+          # print "<li class=\"b\">$space $k: $DocumentLink</li>\n";
+          print "<li class=\"b\">$space $DocumentLink</li>\n";
+      }
+      print "</ul>";
+  }
+  unless ($printCheck) {
+      print "<br><h4> No related documents were found.</h4>";
+  }
+
+  # reset the internal iterator so a prior each() doesn't affect the loop
+  keys %tree;
+  print "</ul>\n";
+  print "</dl></div>\n"; ####
+
+  close (DEBUG);
+}
+
+sub FetchLinkFromNode($) {
+    my $Node = $_[0];
+    my $DocumentLink = "";
+    FetchInfoFromXRefID($DocXRefID);
+    my $DocumentID = $Node->docid;
+    my $Version    = $Node->version;
+    my $ExtProject = $Node->extproject;
+    my $LastVersion = 0;
+    my $ExternalDocDBID = ();
+    my $PublicURL       = ();
+    my $PrivateURL      = ();
+    my $CanAccess = $Node->canaccess;
+    my $RevID = $Node->revid;
+    if ($Version){
+       $CanAccess = CanAccess($DocumentID,$Version);
+       FetchDocument($DocumentID);
+       $RevID  = FetchRevisionByDocumentAndVersion($DocumentID,$Version);
+    } else {
+       FetchDocument($DocumentID);
+       $LastVersion = $Documents{$DocumentID}{NVersions};
+       $CanAccess = CanAccess($DocumentID,$LastVersion);
+       FetchDocument($DocumentID);
+       $RevID  = FetchRevisionByDocumentAndVersion($DocumentID,$LastVersion);
+    }
+
+    if ($ExtProject && $ExtProject ne $ShortProject) {
+       $ExternalDocDBID = FetchExternalDocDBByName($ExtProject);
+       $PublicURL  = $ExternalDocDBs{$ExternalDocDBID}{PublicURL};
+       $PrivateURL = $ExternalDocDBs{$ExternalDocDBID}{PrivateURL};
+       $DocumentLink  = "External document ";
+       $DocumentLink .= "<a href=\"".$PublicURL."/ShowDocument?docid=$DocumentID";
+       if ($Version =~ /\d+/) {
+          $DocumentLink .= "&amp;version=$Version";
+       }
+       $DocumentLink .= "\">".$ExtProject."-doc-".$DocumentID;
+
+       $DocumentLink .= "</a> (";
+       $DocumentLink .= "<a href=\"".$PrivateURL."/ShowDocument?docid=$DocumentID";
+       if ($Version =~ /\d+/) {
+          $DocumentLink .= "&amp;version=$Version";
+       }
+       $DocumentLink .= "\">"."private link</a>)";
+    } else {
+       if ($Version =~ /\d+/) {
+          $DocumentLink  = FullDocumentID($DocumentID,$Version).": ";
+          $DocumentLink .= DocumentLink(-docid => $DocumentID, -version => $Version, -titlelink => $TRUE);
+       } else {
+          $DocumentLink  = FullDocumentID($DocumentID).": ";
+          $DocumentLink .= DocumentLink(-docid => $DocumentID, -titlelink => $TRUE);
+       }
+    }
+    return $DocumentLink;
+}
+
+sub PrintInfoForm($){
+    my $depth = $_[0];
+    my $temp = $_[1];
+    my @exclude = map { substr($_, 0, 1)} split(/\|/, $temp);
+    my %Labels = {'xml'=>'XML', 'html' => 'HTML (This page)'};
+    print FormElementTitle(-helplink => "relateddocumenttree",
+                            -nobreak => $FALSE,
+                            -helptext => "<h4>Click here",
+                            -extratext => "for more info on Related Document Tree.</h4>",
+                            -nocolon => $TRUE,
+                            -nobreak => $TRUE);
+
+    print "<h4>Click on any of the <span class=\"Help\">highlighted headings</span> for help.</h4>";
+
+    # print $query -> start_multipart_form('POST',$CallDocumentTree,'id="documenttree" name="documenttree"');
+    print $query -> start_multipart_form(-name   => "documenttree",
+               -method => 'POST',
+               -action => "$CallDocumentTree",
+               -enctype=> "multipart/form-data");
+
+    print '<table class="LeftHeader LeftTable MedPaddedTable">';#."\n";
+    print '<tr><th>';
+    print FormElementTitle(-helplink => "relateddocumenttreedepth",
+                            -helptext => "Tree Depth",
+                            -nocolon => $False,
+                            -nobreak => $TRUE);
+    print '</th><td>';
+    print $query -> textfield(-name => 'DepthField', -default => $depth, -size => 5, -maxlength => 5);
+    print '</td></tr>';#."\n";
+    print '<tr><th>';
+    print FormElementTitle(-helplink => "relateddocumenttreeexclude",
+                            -helptext => "Document Type to Exclude",
+                            -nocolon => $FALSE,
+                            -nobreak => $TRUE);
+    print '</th><td>';
+    print $query->checkbox_group(-name=>'ExcludeType',
+                             -values=>['A - Acquisitions',
+                                        'C - Contractual or procurement',
+                                        'D - Drawings',
+                                        'E - Engineering documents',
+                                        'F - Forms and Templates',
+                                        'G - Presentations (eg Graphics)',
+                                        'L - Letters and Memos',
+                                        'M - Management or Policy',
+                                        'P - Publications',
+                                        'Q - Quality Assurance documents',
+                                        'S - Serial numbers',
+                                        'T - Technical notes'
+                                    ],
+                             -default=>\@exclude,
+                             -linebreak=>'true',
+                             -rows=>6,
+                             -columns=>2);
+
+    print '</td></tr>'."\n";
+    print "<br>";
+    print '<tr><td colspan="3" align="center" class="SubmitCell">';
+    print $query -> hidden(-name => 'docid',   -default => $DocumentID);
+    print $query -> hidden(-name => 'version', -default => $Version);
+    print $query -> submit (-value => "View Related Document Tree");
+    print "</td></tr></table>\n";
+    print $query -> end_multipart_form;
+}
+1;

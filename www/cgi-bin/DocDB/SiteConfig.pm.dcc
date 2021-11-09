@@ -1,0 +1,89 @@
+#
+# Description: Configuration file for site specifi settings. 
+#              This file is included in every DocDB program.
+#
+#      Author: Melody C. Araya (maraya@ligo.caltech.edu)
+#    Modified: 
+#
+# Copyright 2011 Melody C. Araya
+
+#    This file is part of DocDB.
+
+#    DocDB is free software; you can redistribute it and/or modify
+#    it under the terms of version 2 of the GNU General Public License 
+#    as published by the Free Software Foundation.
+
+#    DocDB is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+
+#    You should have received a copy of the GNU General Public License
+#    along with DocDB; if not, write to the Free Software
+#    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+
+
+# DB settings
+
+$db_name       = "dcc_docdb";               # Database name
+$db_host       = "localhost";
+$db_rwuser     = "";             # You can change the names of the accounts if you are
+$db_rwpass     = "";             # hosting more than one DocDB on the same SQL server
+$db_rouser     = "docdbro";      # (for two different projects). Otherwise its probably
+$db_ropass     = "*******"; # best just to leave the names as-is.
+
+# Root directories and URLs
+
+$file_root   = "/usr1/www/html/public/";    
+$script_root = "/usr1/www/cgi-bin/DocDB/"; 
+$public_root = "/usr1/www/html/public/";
+
+# PRODUCTION SITE
+
+# Gives us "hostname" from $HOSTNAME
+use Sys::Hostname;
+
+$host_name = 'https://'.hostname.'.ligo.org/';
+
+$web_root        = $host_name."public/";
+$wiki_root       = "";
+$cgi_root        = $host_name."cgi-bin/DocDB/";
+$Public_cgi_root = $host_name."cgi-bin/DocDB/";
+$secure_root     = $host_name."cgi-bin/private/DocDB/";
+
+$ContentSearchReturns = "/usr1/www/html/DocDB/";
+
+$DocDBHome = "";
+
+$WelcomeMessage = "This is the repository of $Project talks, publications, and other documents.";
+
+# Location of the script called for server status updates
+$ServerStatusUrl  = "/cgi-bin/DocDB/serverstatus.sh";
+
+# Server status polling interval in milliseconds
+$ServerStatusPollInterval  = "900000";
+
+$ReadOnly       = 0;            # Can be used in conjunction with individual
+                                # authorization methods to set up a group-like
+                                # area with group passwords which can view
+                                # but not change any info
+#$ReadOnlyAdmin  = 0;           # Allows administration from the read-only 
+                                # area. Only suggested for boot-strapping until
+                                # you have an individual selected as admin                               
+$UseDeadlyWarning      = 0;
+#$UseSignoffs          = 0;     # Sign-off system for document approval
+#$MailInstalled        = 1;     # Is the Mailer::Mail module installed?
+#$MailServer           = "";
+
+# These settings are for public version of DB. Uncomment these five lines
+# for the version of this file you place in the public area. While only the
+# first is probably necessary, as a precaution its wise to do the other 4 as
+# well.
+
+$Public           = 1;
+$remote_user      = ""; # Just to be safe
+$RemoteUsername   = ""; # Just to be safe
+$db_rwuser        = ""; # Just to be safe
+$db_rwpass        = ""; # Just to be safe
+
+1;

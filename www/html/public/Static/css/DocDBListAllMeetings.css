@@ -1,0 +1,60 @@
+div.eventgroupid {
+   font-weight: bold;
+   margin-bottom: 1ex;
+   margin-left: 2.5em;
+}
+
+div.eventgroupid2 {
+   font-weight: bold;
+   margin-bottom: 1ex;
+}
+
+td.meetinglink {
+
+}
+
+td.eventlocation {
+   text-align: left;
+}
+
+/* 7em if you use the :before */
+td.enddate {
+   width: 6em;
+}
+
+td.startdate {
+   width: 6em;
+}
+
+/*
+td.enddate:before {
+   content: "- ";
+}
+*/
+
+th.plain {
+   color: black;
+   text-decoration: none;
+   background-color: #eee;
+}
+
+td.moreevents {
+   text-align: center;
+   background-color: #eee;
+}
+
+a.moreevents {
+   color: blue;
+   text-decoration: underline;
+}
+
+th.fancy {
+   border: 2px solid #ccc;
+   color: blue;
+   text-decoration: underline;
+   background-color: #eee;
+}
+
+th.fancy>span {
+   cursor: pointer;
+}

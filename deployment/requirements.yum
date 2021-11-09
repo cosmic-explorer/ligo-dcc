@@ -1,0 +1,14 @@
+perl-DateTime-TimeZone-1.70-2.el7.noarch
+perl-Time-HiRes-1.9725-3.el7.x86_64
+perl-DateTime-Locale-0.45-6.el7.noarch
+perl-TimeDate-2.30-2.el7.noarch
+perl-Log-LogLite-0.82-18.el7.noarch
+perl-Log-Message-Simple-0.10-2.el7.noarch
+perl-Unix-Syslog-1.1-17.el7.x86_64
+perl-Time-Piece-1.20.1-299.el7_9.x86_64
+perl-Time-Local-1.2300-2.el7.noarch
+perl-Log-Message-0.08-3.el7.noarch
+perl-Module-Runtime-0.013-4.el7.noarch
+perl-DateTime-1.04-6.el7.x86_64
+perl-Time-Duration-1.06-17.el7.noarch
+perl-Sys-Syslog-0.33-3.el7.x86_64

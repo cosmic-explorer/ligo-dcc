@@ -1,0 +1,154 @@
+#! /usr/bin/env perl
+#
+# Description: This script provides a form to administer groups in 
+#              the DocDB and shows the relationships between groups.
+#
+#      Author: Eric Vaandering (ewv@fnal.gov)
+#    Modified: 
+
+# Copyright 2001-2007 Eric Vaandering, Lynn Garren, Adam Bryant
+
+#    This file is part of DocDB.
+
+#    DocDB is free software; you can redistribute it and/or modify
+#    it under the terms of version 2 of the GNU General Public License 
+#    as published by the Free Software Foundation.
+
+#    DocDB is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+
+#    You should have received a copy of the GNU General Public License
+#    along with DocDB; if not, write to the Free Software
+#    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+
+use CGI qw(-nosticky);                                                                                      
+use DBI;
+
+require "DocDBGlobals.pm";
+require "AdministerElements.pm";
+require "ResponseElements.pm";
+require "FormElements.pm";
+require "Scripts.pm";
+require "Security.pm";
+require "SecuritySQL.pm";
+require "SecurityHTML.pm";
+
+require "GroupHTML.pm";
+require "HTMLUtilities.pm";
+require "Sorts.pm";
+
+$query = new CGI;  # Global for subroutines
+$dbh   = DBI -> connect('DBI:mysql:'.$db_name.':'.$db_host,$db_rouser,$db_ropass);
+
+GetSecurityGroups();
+
+print $query -> header( -charset => $HTTP_ENCODING );
+DocDBHeader("Group Administration","",-scripts => ["serverstatus", "PopUps","GroupAdminDisable"]); 
+
+@ErrorStack = ();
+@WarnStack  = ();
+
+unless (CanAdminister()) {
+  push @ErrorStack,"You are not allowed to access administrative functions.";
+}
+
+EndPage(@ErrorStack);
+
+print "<p>\n";
+print FormElementTitle(-helplink => "grouptutorial", -helptext => "Help on groups", -nocolon => $TRUE, -nobreak => $TRUE);
+print "</p>\n";
+
+print "<p>Begin by selecting an action (Modify/New/Delete). The things you
+       cannot change will be disabled. If you select <strong>Modify</strong> you
+       must make a selection from the first list and any attributes you select
+       on the right will be changed. If you leave something blank, it will not
+       be changed. If you do not select subordinate groups at this point, the
+       subordinates will <strong>not</strong> be changed. To remove all the
+       subordinates, check \"Remove all\"</p>\n";
+
+print "<p>To change the dominant groups for a group, you must change the
+       subordinate groups of the dominant group.</p>\n";
+
+print "<p>Note that deleting and then re-entering with the same information is
+       not the same as modifying. Everything in the DB is tied together with
+       invisible ID numbers. <strong>Be very careful about deleting
+       groups;</strong> you may end up with documents not accessible to
+       anyone.</p>\n";
+
+### Group Modification
+
+
+print $query -> start_multipart_form('POST',"$GroupAdminister",
+                                     "id=\"groups\" name=\"groups\"");
+print '<table class="MedPaddedTable">';
+print "<tr>\n";
+print '<td colspan="3">';
+ AdministerActions(-form => "groups");
+print "</td>\n";
+print "</tr>\n";
+
+print "<tr>\n";
+print '<td rowspan="4">';
+SecurityScroll(-name      => 'parent', -disabled => $TRUE,  -hierarchy => $TRUE,
+               -helplink  => 'parent', -helptext => 'Group');
+print "</td>\n";  
+print '<td rowspan="4">';
+SecurityScroll(-name      => 'child', -disabled => $TRUE, -multiple => $TRUE,  -hierarchy => $TRUE,
+               -helplink  => 'child', -helptext => 'Subordinates');
+print "<br/>\n";
+print $query -> checkbox(-name  => "removesubs", -value    => 'removesubs', 
+                         -label => '',           -disabled => 'disabled');
+print "Remove all";
+print "</td>\n";
+
+GroupEntryBox(-disabled => $TRUE);
+
+print "<tr><td>\n";
+AdminRegardless();
+print "</td></tr>\n";
+
+print "<tr>\n";
+print '<td colspan="3">';
+AdministratorPassword();
+print "&nbsp;";
+print $query -> submit (-value => "Change Group Info");
+print "</td>\n";
+print "</tr>\n";
+
+print "</table>\n";
+print $query -> end_multipart_form;
+
+print "<p><strong>The current groups and the relationships between them are
+       shown below:</strong></p>\n";
+print "<hr/>\n";
+
+### Display of existing groups
+
+my @GroupIDs = sort numerically keys %SecurityGroups;
+
+print '<table class="HighPaddedTable">';
+foreach my $GroupID (@GroupIDs) {
+  print "<tr>\n";
+  print "<td><strong>$SecurityGroups{$GroupID}{NAME}</strong><br/>($SecurityGroups{$GroupID}{Description})</td>\n";
+  print "<td>\n";
+  print "<strong>Dominant groups:</strong>\n";
+  PrintGroupParents($GroupID);
+  print "</td>\n";
+  print "<td>\n";
+  print "<strong>Subordinate groups:</strong>\n";
+  PrintGroupChildren($GroupID);
+  print "</td>\n";
+  print "<td>\n";
+  print "<strong>Permissions:</strong>\n";
+  PrintGroupPermissions($GroupID);
+  print "</td>\n";
+  print "</tr>\n";
+} 
+print "</table>\n";
+
+print "<hr/>\n";
+
+DocDBNavBar();
+DocDBFooter($DBWebMasterEmail,$DBWebMasterName);

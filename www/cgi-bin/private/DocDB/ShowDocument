@@ -1,0 +1,220 @@
+#! /usr/bin/env perl
+#
+# Author Eric Vaandering (ewv@fnal.gov)
+#
+
+# Copyright 2001-2007 Eric Vaandering, Lynn Garren, Adam Bryant
+
+#    This file is part of DocDB.
+
+#    DocDB is free software; you can redistribute it and/or modify
+#    it under the terms of version 2 of the GNU General Public License 
+#    as published by the Free Software Foundation.
+
+#    DocDB is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+
+#    You should have received a copy of the GNU General Public License
+#    along with DocDB; if not, write to the Free Software
+#    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+
+use CGI;
+use DBI;
+use HTML::Entities;
+
+use warnings;
+no warnings qw(once);
+
+use CGI::Carp qw(carp croak fatalsToBrowser);
+
+require "DocDBGlobals.pm";
+
+if ($UseDeadlyWarning == 1) {
+   # promote run-time warnings into exceptions
+   # # *unless* we're in an try block, in which 
+   # # case just generate a log entry instead
+   local $SIG{__WARN__} = sub {
+      if ($^S) { carp  "Trapped warning: @_" }
+      else     { croak "Deadly warning: @_"  }
+   };
+}
+
+require "ResponseElements.pm";
+require "SecuritySQL.pm";
+require "DocumentSQL.pm";
+require "RevisionSQL.pm";
+require "FSUtilities.pm";
+require "HTMLUtilities.pm";
+require "Security.pm";
+require "Scripts.pm";
+require "SQLChecks.pm";
+
+require "RevisionHTML.pm";
+
+$query = new CGI;  # Global for subroutines
+
+%params = $query -> Vars;
+
+   $DocumentID = $params{docid} || 0;
+   $DocumentID =~ s/^\s+//; # Remove leading and trailing spaces
+   $DocumentID =~ s/\s+$//;
+   # YES, $Version can and will often be undefined, and will throw
+   # errors ino the logs. It CANNOT be made '0' or '', because
+   # making it '0' causes the document to default to x0, and it
+   # can't be made '', because $Version is numerically compared.
+   #
+   # The code in this file needs a rewrite!
+   #
+   $Version    = $params{version};
+   $AsOf       = $params{asof};
+my $OutFormat  = $params{outformat} || "HTML";
+   $OutFormat  = uc($OutFormat);
+   $Mode       = $params{mode} || ''; # Does this need to be global?
+   $QACheck    = $params{qastat}; 
+
+$LastVersion = $Documents{$DocumentID}{NVersions};
+
+# This is a stopgap until this stuff is all proper functional code
+sub bailOutOfShowDocument {
+   print $query -> header( -charset => $HTTP_ENCODING );
+   DocDBHeader($PageTitle,"$Project Document", -scripts => ["prototype","serverstatus", "PopUps","ValidateForm", "SignoffButton"]);
+   EndPage();
+   PrintRevisionInfo($DocRevID, -showversions => 1);
+   DocDBNavBar();
+   DocDBFooter($DBWebMasterEmail,$DBWebMasterName);
+   exit;
+}
+
+unless ($DocumentID) {
+   push @ErrorStack,"You must supply a document number!";
+   bailOutOfShowDocument();
+}  
+
+$dbh = DBI->connect('DBI:mysql:'.$db_name.':'.$db_host,$db_rouser,$db_ropass);
+
+GetSecurityGroups();
+
+if ($DocumentID =~ m/^\d+$/) {
+   FetchDocument($DocumentID);
+} elsif ($DocumentID =~ m/^[a-zA-Z]\d{6,8}$/) {
+   my $DocAlias = $DocumentID;
+   $DocumentID = GetDocumentIDByAlias($DocAlias);
+   if ($DocumentID) {
+      $DocumentID = int($DocumentID);
+      FetchDocument($DocumentID);
+   } else {
+      push @ErrorStack,"This document does not exist: '$params{docid}'.";
+      bailOutOfShowDocument(); 
+   }
+} else {
+   my $junk = HTML::Entities::encode($DocumentID);
+   push @ErrorStack,"Invalid document ID: '$junk'";
+   bailOutOfShowDocument();
+}
+
+if (defined $Version && defined $AsOf) {
+   push @ErrorStack,"You may not specify both a version and date.";
+   bailOutOfShowDocument();
+} elsif (defined $Version) {
+   if ($Version =~ /(^$|\s*\-[vx]\D*)/) {
+#      $Version = $Documents{$DocumentID}{NVersions};
+      $Version = LastAccess($DocumentID);
+   } elsif ($Version =~ /^\d+$/) {
+      # It's an int, yay!
+   } else {
+     $Version = 0;   
+   }
+   $DocRevID = &FetchRevisionByDocumentAndVersion($DocumentID,$Version);
+} elsif (defined $AsOf) {
+   if (&CheckSQLDate($AsOf)) {
+      $DocRevID = &FetchRevisionByDocumentAndDate($DocumentID,$AsOf);
+      $Version  = $DocRevisions{$DocRevID}{VERSION};
+   } else {
+      push @ErrorStack,"The as-of date must be specifed in the form YYYY-MM-DD.";
+      bailOutOfShowDocument();
+   }
+} else {
+   $Version = LastAccess($DocumentID);
+   $DocRevID = &FetchRevisionByDocumentAndVersion($DocumentID,$Version);
+}
+
+if ($Mode eq 'qacheck') {
+   my $NewState = 1;
+   my $CurrentState = $QACheck;
+   if ($CurrentState == 1) { $NewState = 0 }
+
+   &UpdateRevisionQAState($DocRevID, $NewState);
+   $dbh   = DBI->connect('DBI:mysql:'.$db_name.':'.$db_host,$db_rwuser,$db_rwpass);
+   &UpdateRevisionPublicSecurity($DocumentID, $Version, $NewState);
+
+   $DocRevisions{$DocRevID}{QAcheck} = $NewState;
+   $query->delete('mode','qacheck'); 
+} 
+
+my $DocumentNumber = $DocumentID;
+
+if ($UseAliasAsFileName) {
+   my $DocumentAlias = FetchDocumentAlias($DocumentID);
+   if ($DocumentAlias ne "") {
+      $DocumentNumber = $DocumentAlias;
+   }
+}
+
+my $PageTitle = "$ShortProject-$DocumentNumber-v$Version: Not authorized";
+
+$EmailUserID or my $EmailUserID = 0;
+
+if (&CanAccess($DocumentID,$Version, $EmailUserID) ||
+   (($Documents{$DocumentID}{Requester} == $EmailUserID) && $EmailUserID != 0 && !$Public)) {
+   if ($Version == 0) {
+      $PageTitle = "$ShortProject-$DocumentNumber-x$Version: $DocRevisions{$DocRevID}{Title}";
+   } elsif (defined $DocRevID && $DocRevID != 0 && $Version <= $Documents{$DocumentID}{NVersions}) {
+     $PageTitle = "$ShortProject-$DocumentNumber-v$Version: $DocRevisions{$DocRevID}{Title}";
+   } else {
+     push @ErrorStack,"Requested version of document does not exist.";
+     bailOutOfShowDocument();   
+   }
+} else {
+   $user_name = &remote_user;
+   if ($user_name && !$Public) {
+      push @ErrorStack,"User $user_name is not authorized to view this document.";
+      bailOutOfShowDocument();
+   } else {
+      push @ErrorStack,"This document is not publicly accessible.";
+      bailOutOfShowDocument();
+   }  
+}
+
+if ($OutFormat ne 'XML' && $OutFormat ne 'HTML') {
+   my $junk = HTML::Entities::encode($OutFormat);
+   push @ErrorStack, "Unknown OutFormat: '$junk'";
+   bailOutOfShowDocument();
+}
+
+if ($OutFormat eq 'XML') {
+   require "XMLOutput.pm";
+   $NoXMLHead || print XMLHeader();
+   NewXMLOutput();
+   my %XMLDisplay = ("All" => $TRUE);
+   my $DocumentXML = DocumentXMLOut( {-docid   => $DocRevisions{$DocRevID}{DOCID}, 
+                                      -version => $DocRevisions{$DocRevID}{Version}, 
+                                      -display => \%XMLDisplay } );
+
+   $DocumentXML && $DocumentXML -> paste(last_child => $DocDBXML);
+   print GetXMLOutput();
+} elsif ($OutFormat eq 'HTML') {
+   print $query -> header( -charset => $HTTP_ENCODING );
+   $DocumentNumberWithVersion = "$Project Document $DocumentNumber-v$Version";
+   if ($Version == 0) {
+      $DocumentNumberWithVersion = "$Project Document $DocumentNumber-x$Version";
+   } 
+   DocDBHeader($PageTitle, $DocumentNumberWithVersion,
+         -scripts => ["prototype", "ValidateForm","scriptaculous/scriptaculous", "Signatures", "serverstatus", "ICSLink", "PopUps", "MathJaxToggle"]);
+   
+   EndPage();
+   PrintRevisionInfo($DocRevID, -showversions => 1);
+   DocDBNavBar();
+   DocDBFooter($DBWebMasterEmail,$DBWebMasterName);
+}

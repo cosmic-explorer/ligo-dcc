@@ -1,0 +1,788 @@
+#! /usr/bin/env perl
+#
+# Author Eric Vaandering (ewv@fnal.gov)
+#
+
+# Copyright 2001-2007 Eric Vaandering, Lynn Garren, Adam Bryant
+
+#    This file is part of DocDB.
+
+#    DocDB is free software; you can redistribute it and/or modify
+#    it under the terms of version 2 of the GNU General Public License 
+#    as published by the Free Software Foundation.
+
+#    DocDB is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+
+#    You should have received a copy of the GNU General Public License
+#    along with DocDB; if not, write to the Free Software
+#    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+
+use CGI qw(-nosticky);                                                                                      
+use DBI;
+
+use warnings;
+no warnings qw(once);
+
+use CGI::Carp qw(carp croak fatalsToBrowser);
+
+require "DocDBGlobals.pm";
+
+if ($UseDeadlyWarning == 1) {
+   # promote run-time warnings into exceptions
+   # # *unless* we're in an try block, in which 
+   # # case just generate a log entry instead
+   local $SIG{__WARN__} = sub {
+      if ($^S) { carp  "Trapped warning: @_" }
+      else     { croak "Deadly warning: @_"  }
+   };
+}
+
+require "Scripts.pm";
+require "Sorts.pm";
+require "Messages.pm";
+
+require "AuthorSQL.pm";
+require "DocumentSQL.pm";
+require "MeetingSQL.pm";
+require "MiscSQL.pm";
+require "RevisionSQL.pm";
+require "SecuritySQL.pm";
+require "TopicSQL.pm";
+require "SignoffSQL.pm";
+
+require "ResponseElements.pm";
+require "FormElements.pm";
+require "HTMLUtilities.pm";
+require "Utilities.pm";
+require "Defaults.pm";
+require "Security.pm";
+require "XRefUtilities.pm";
+require "AuthorUtilities.pm";
+
+require "FileHTML.pm";
+require "JournalHTML.pm";
+require "KeywordHTML.pm";
+require "MeetingHTML.pm";
+require "RevisionHTML.pm";
+require "SecurityHTML.pm";
+require "SignoffHTML.pm";
+require "TalkHTML.pm";
+
+require "Cookies.pm";
+
+$query = new CGI;  # Global for subroutines
+$dbh   = DBI->connect('DBI:mysql:'.$db_name.':'.$db_host,$db_rouser,$db_ropass);
+
+&GetAuthors;
+&GetAuthorGroups;
+&GetTopics;
+&GetSecurityGroups;
+&GetDocTypes;
+GetPrefsCookie();
+
+%params = $query -> Vars;
+
+my $DocumentID   = $params{docid};
+my $ConferenceID = $params{conferenceid};
+my $SessionID    = $params{sessionid};
+my $Version      = $params{version} || 0;
+my @PreTopics    = $query -> param('pretopic');
+   $Mode         = $params{mode} || ''; # FIXME: Can't be my since used in subroutines
+   $SignoffState = '';
+   $QAState      = $params{qastat} || 0;
+
+# Global variable $Mode modified here!
+if ($Mode ne "add"     && 
+    $Mode ne "reserve" && 
+    $Mode ne "use"     &&
+    $Mode ne "update"  &&
+    $Mode ne "updatedb") {
+    $Mode = "add"; # Uh-oh...
+}
+
+unless ($Archive) { $Archive = ''; }
+
+&SetUploadMethod();
+my $Overdate = '';
+&SetDateOverride();
+&SetAuthorMode();
+&SetTopicMode();
+
+print $query -> header( -charset => $HTTP_ENCODING );
+my @Scripts = ("prototype", "jQuery/jquery-1.8", "serverstatus", "PopUps","InsertRevisionNote","AuthorMethodDisplay","ScrollListSelector", "auto", "Autocompleters", "Throttle", "Signatures", "ValidateForm");
+
+if      ($Mode eq "add") {
+  DocDBHeader("$Project Document Addition",   "Document Addition",    -scripts => \@Scripts);
+} elsif ($Mode eq "reserve" || $Mode eq "use") {
+  DocDBHeader("$Project Document Reservation","Document Reservation", -scripts => \@Scripts);
+} elsif ($Mode eq "update" || $Mode eq "updatedb") {
+  DocDBHeader("$Project Document Update",     "Document Update",      -scripts => \@Scripts);
+}
+
+@ErrorStack = ();
+@WarnStack = ();
+
+unless (CanCreate()) {
+  push @ErrorStack,"You are not allowed to modify or create documents.";
+}
+if ($Mode eq "update" || $Mode eq "updatedb") {
+  unless ($params{docid}) {
+    push @ErrorStack,"You must supply a document number to modify a document.";
+  }
+}
+if ($Mode eq "update" || $Mode eq "add") {
+  if ($Archive eq "archive" && $NumberUploads > 1) {
+    push @ErrorStack,"You cannot upload more than one archive.";
+  }
+}
+
+EndPage(@ErrorStack);
+
+# Set required/optional information
+
+my %RequiredEntries = (); 
+
+$RequiredEntries{Title}     = 1;   # Note that this isn't completely
+$RequiredEntries{Abstract}  = 1;   # functional. Some of these variables
+$RequiredEntries{Alias}     = 0;   
+$RequiredEntries{Keyword}   = 0;   # aren't passed, and of those that are
+$RequiredEntries{Note}      = 0;   # some may be ignored.
+$RequiredEntries{File}      = 1;   #
+$RequiredEntries{Type}      = 1;   # After the defaults are set a hook could
+$RequiredEntries{Requester} = 1;   # be installed to change these based on
+$RequiredEntries{Author}    = 1;   # site policy. (And then enforced in
+$RequiredEntries{Security}  = 1;   # ProcessDocumentAdd).
+$RequiredEntries{AuthorGroup} = 1;   # site policy. (And then enforced in
+$RequiredEntries{Modify}    = 1;
+$RequiredEntries{Topic}     = 1;
+$RequiredEntries{Reference} = 0;
+$RequiredEntries{PubInfo}   = 0;
+$RequiredEntries{Signoff}   = 0;
+
+if ($Mode eq "reserve") {
+  $RequiredEntries{Abstract}  = 0;
+}  
+
+if ($Mode eq "use") {
+  $RequiredEntries{Alias}  = 1;
+}  
+
+my $DocRevID = 0;
+
+if ($Mode eq "update" || $Mode eq "updatedb") {
+  &FetchDocument($DocumentID);
+  unless (&CanModify($DocumentID)) {
+    push @ErrorStack,"You are not allowed to modify this document.";
+  }
+}
+
+if ($Mode eq "updatedb") { 
+  unless (defined $Version) {
+    $Version = $Documents{$DocumentID}{NVersions};
+  }  
+  if ($Version != $Documents{$DocumentID}{NVersions}) {
+    push @WarnStack,"You are about to update an old version of this document.";
+  }
+}    
+
+if ($Mode eq "update") {
+  $Version = $Documents{$DocumentID}{NVersions};
+}
+
+# FIXME: What other ones needn't be global?
+my @AuthorDefaults   = ();
+my @AuthorGroupDefaults   = ();
+my @EventDefaults    = ();
+my @ModifyDefaults   = ();
+my @SecurityDefaults = ();
+my @AuthorsOnly      = ();
+my @TopicDefaults    = ();
+my ($AuthorListOrdered);
+my ($DocTypeIDDefault,$RequesterDefault,$RevisionNoteDefault,$SignoffsDefault,
+    $XRefDefault);
+ 
+if ($Mode eq "update" || $Mode eq "updatedb") {
+   $DocRevID             = FetchRevisionByDocumentAndVersion($DocumentID,$Version);
+   $TitleDefault         = $DocRevisions{$DocRevID}{Title};
+   $PubInfoDefault       = $DocRevisions{$DocRevID}{PUBINFO};
+   $AbstractDefault      = $DocRevisions{$DocRevID}{Abstract};
+   $RequesterDefault     = $DocRevisions{$DocRevID}{Submitter};
+   $KeywordsDefault      = $DocRevisions{$DocRevID}{Keywords};
+   $RevisionNoteDefault  = $DocRevisions{$DocRevID}{Note};
+   $DocTypeIDDefault     = $DocRevisions{$DocRevID}{DocTypeID};
+   @SecurityDefaults     = GetRevisionSecurityGroups($DocRevID);
+   my @AuthorRevIDs      = GetRevisionAuthors($DocRevID);
+      @AuthorRevIDs      = sort AuthorRevIDsByOrder @AuthorRevIDs;
+   $AuthorListOrdered    = IsAuthorListOrdered({     -authorrevids => \@AuthorRevIDs, });
+   @AuthorDefaults       = AuthorRevIDsToAuthorIDs({ -authorrevids => \@AuthorRevIDs, });
+   my @AuthorGroupRevIDs = GetRevisionAuthorGroups($DocRevID);
+   @AuthorGroupDefaults  = AuthorGroupRevIDsToAuthorGroupIDs({ -authorgrouprevids => \@AuthorGroupRevIDs, });
+   @TopicDefaults        = GetRevisionTopics({ -docrevid => $DocRevID });
+   @EventDefaults        = GetRevisionEvents($DocRevID);
+   @ReferenceDefaults    = FetchReferencesByRevision($DocRevID);
+   $XRefDefault          = SetXRefDefault($DocRevID);
+   if ($UseSignoffs) {
+      require "SignoffUtilities.pm";
+      $SignoffDefault    = BuildSignoffDefault($DocRevID,0);
+   }
+   $ParallelSignoff     = $DocRevisions{$DocRevID}{ParallelSignoff};
+} else {
+   if ($PrefAuthorID) {
+      @AuthorDefaults    = split(';', $PrefAuthorID);
+      $RequesterDefault  = $PrefAuthorID;
+   } 
+
+   push @TopicDefaults,@PreTopics; 
+
+   if ($DefaultPublicAccess) {
+      @SecurityDefaults  = (1);
+   } else {
+      @SecurityDefaults  = FindUsersGroups(); 
+   }
+   if ($Mode eq "reserve" || $Mode eq "use") {
+      @SecurityDefaults  = &GetReadGroupACLsCookie(); 
+      $ParallelSignoff = 1;
+   }
+
+}  
+
+#
+#  check if the doc is up for signature , if yes check if any if the signers are inactive
+#
+my $InactiveUsers = InactiveUsersInSignoff($DocRevID);
+
+if ($InactiveUsers) {
+    push  @WarnStack,  qq(
+            At least one of the accounts in the signoff list is inactive. <br/>
+            If the signature process is reset by the metadata change, then you will need to have only active members.
+            <button onclick="document.getElementById('SignoffBox_Anchor').scrollIntoView(true);">Edit Signature List</button> 
+         );
+     
+}
+
+# MCA:
+if ($UserValidation eq "kerberos") {
+   my $EmailUser     =  FetchEmailUserIDFromRemoteUser();
+   $RequesterDefault =  FetchAuthorIDFromEmailUserID($EmailUser);
+
+   print "<h5>Submitter: ";
+   PrintAuthorInfo($RequesterDefault);
+   print "</h5>\n";
+}
+
+@TopicDefaults = Unique(@TopicDefaults);
+
+if ($EnhancedSecurity) {
+   @ModifyDefaults  = &GetRevisionModifyGroups($DocRevID);
+   unless (@ModifyDefaults) {
+      @ModifyDefaults  = &GetWriteGroupACLsCookie(); 
+   }
+}
+
+# Warn the user if they are about to modify a controlled document
+if ($UseSignoffs && ($Mode eq "update" || $Mode eq "updatedb")) {
+   require "SignoffUtilities.pm";
+   my ($Status) = &RevisionStatus($DocRevID);
+   unless (($Status eq "Unmanaged") || ($Status eq "Ready")){
+      push @WarnStack,$Msg_WarnModManaged;
+   }
+   $SignoffState = $Status; 
+}
+
+# Find SessionTalks that the user might choose and display
+my @OpenSessionTalkIDs = ();
+
+# Explicit conference and session checks for things that aren't topics
+# FIXME: Look into modification too
+
+if ($Mode eq "add" && ($SessionID||$ConferenceID)) {
+   require "TalkSQL.pm";
+   require "MeetingSQL.pm";
+  
+   my @CheckSessionTalkIDs = ();
+
+  if ($ConferenceID) { 
+     @CheckSessionTalkIDs = &FetchSessionTalksByConferenceID($ConferenceID);
+  } elsif ($SessionID) { # Build list for SessionID
+     @CheckSessionTalkIDs = &FetchSessionTalksBySessionID($SessionID);
+     &FetchSessionByID($SessionID);
+     $ConferenceID = $Sessions{$SessionID}{ConferenceID};
+  }
+  &FetchConferenceByConferenceID($ConferenceID);
+  push @EventDefaults,$ConferenceID;
+  
+  # Check list of SessionTalks
+  foreach my $SessionTalkID (@CheckSessionTalkIDs) {
+     unless ($SessionTalks{$SessionTalkID}{Confirmed}) {
+        push @OpenSessionTalkIDs,$SessionTalkID;
+     } 
+  }
+}
+
+&EndPage(@ErrorStack); # The user may have made mistakes, warn and exit
+
+&SetFileOptions($DocRevID);
+
+my $numberSigned = &NumberOfSigners($DocRevID);
+
+print $query -> start_multipart_form('POST', $ProcessDocumentAdd, 
+                'id="documentadd" name="documentadd"',
+                onSubmit=>'="return validateForm(this);"');
+
+print "<!-- A bunch of hidden form values -->\n";
+print $query -> hidden(-name => 'mode',       -default => $Mode);
+print "\n";
+print $query -> hidden(-name => 'upload',     -default => 'file');
+print "\n";
+print $query -> hidden(-name => 'archive',    -default => 'single');
+print "\n";
+print $query -> hidden(-name => 'docid',      -default => $DocumentID);
+print "\n";
+print $query -> hidden(-name => 'oldversion', -default => $Version);
+print "\n";
+print $query -> hidden(-name => 'olddocrevid',-default => $DocRevID);
+print "\n";
+print $query -> hidden(-name => 'public',     -default => @SecurityDefaults);
+print "\n";
+print $query -> hidden(-name => 'status',     -default => $SignoffState);
+print "\n";
+print $query -> hidden(-name => 'nsigned',    -default => $numberSigned);
+print "\n";
+print $query -> hidden(-name => 'qastat',    -default => $QAState);
+print "\n";
+print $query -> hidden(-name => 'reset', -id => 'reset', -default => '0');
+print "\n";
+print $query -> hidden(-name => 'requester',  -default => [$RequesterDefault]);
+print "\n";
+
+# Generate unique ID to disallow multiple posting
+print $query -> hidden(-name => 'uniqueid', -default => &getUniqueID);
+print "\n";
+
+if ($Mode eq "updatedb") { 
+  if (defined $params{version}) {
+    print $query -> hidden(-name => 'version', -default => $Version);
+    print "\n";
+  }
+}    
+
+if ($Overdate eq "Yes") {
+  print $query -> hidden(-name => 'overdate',-default => 'Yes');
+} else {
+  print $query -> hidden(-name => 'overdate',-default => '');
+}  
+print "\n";
+
+print $query -> hidden(-name => 'special',-default => '');
+print "\n";
+print $query -> hidden(-id => 'clearinactive', -name => 'clearinactive',-default => 0);
+print "\n";
+
+WarnPage(@WarnStack);
+
+print "<table class=\"CenteredTable HighPaddedTable\">\n";
+
+print "<tr>\n";
+print "<td colspan=\"4\">\n";
+if ($Mode eq "add") {
+  print "<h4>You have chosen to add a new document to the database.<br/>\n";
+} elsif ($Mode eq "reserve" || $Mode eq "use") {
+  print "<h4>You have chosen to reserve a new document number.<br/>\n
+        Once you have this number, please add it to the first version
+        of your file(s) with the extension \"-v1\" before uploading.<br/>\n";
+} elsif ($Mode eq "update") {
+  &FetchDocument($DocumentID);
+  my $nextVersion = $Documents{$DocumentID}{NVersions} + 1;
+  $documentName = &FullDocumentID($DocumentID);
+
+  print "<h4>You have chosen to update document <a href=/$documentName>$documentName</a>.<br/>
+        The new version will be -v$nextVersion. Please refer to this version in the updated file(s).<br/>";
+} elsif ($Mode eq "updatedb") {
+  $documentName = &FullDocumentID($DocumentID,$Version);
+  print "<h4>You have chosen to update the database for <a href=/$documentName>$documentName</a>.<br/>";
+}
+
+print "Required fields are marked with an asterisk (*).<br/>\n
+Click on any of the headings for help.</h4>\n
+</td>\n
+</tr>\n";
+
+####### Action buttons:
+sub PrintActionButton {
+print "<tr><td colspan=\"4\" class=\"SubmitCell\">\n";
+if      ($Mode eq "add") {
+  print $query -> submit (-value => "Submit document");
+} elsif ($Mode eq "reserve") {
+  print $query -> submit (-value => "Request document ID");
+} elsif ($Mode eq "use") {
+  print $query -> submit (-value => "Use DCC Number");
+} elsif ($Mode eq "updatedb") {
+  print $query -> submit (-value => "Change Metadata");
+} elsif ($Mode eq "update") {
+  #print $query -> submit (-value => "Update document");
+  print $query -> submit (-value => "Upload Document/Add New Revision");
+}
+print "</td></tr>\n";
+}
+#######
+
+### Title, abstract, and keywords
+
+if (@OpenSessionTalkIDs) {
+  print "<tr>\n   <td colspan='4'>\n";
+  &SessionTalkPulldown(@OpenSessionTalkIDs);
+  print "\n   </td>\n</tr>\n";
+}
+
+if ($Mode eq "use") {
+    print "<tr>\n";
+    print "<td colspan=\"4\">\n"; 
+      &DccNumberBox(-required => $RequiredEntries{Alias});        
+    print "</td>\n";
+    print "</tr>\n";
+}
+
+print "<tr>\n";
+print "<td colspan=\"4\">\n"; 
+ &TitleBox(-required => $RequiredEntries{Title});        
+print "</td>\n";
+print "</tr>\n";
+
+print "<tr>\n";
+print "<td colspan=\"4\">\n";
+&AbstractBox(-required => $RequiredEntries{Abstract});     
+print "</td>\n";
+print "</tr>\n";
+
+print "<tr>\n";
+print "<td colspan=\"4\">\n"; 
+ &KeywordsBox(-required => $RequiredEntries{Keyword});     
+print "</td>\n";
+print "</tr>\n";
+
+print "<tr>\n"; 
+print "<td colspan=\"4\">\n"; 
+if ($Mode eq "update") {
+  &RevisionNoteBox(-jsinsert => $RevisionNoteDefault, 
+                   -required => $RequiredEntries{Note}); 
+} else {
+  &RevisionNoteBox(-default  => $RevisionNoteDefault,  
+                   -required => $RequiredEntries{Note}); 
+}  
+print "</td>\n";
+print "</tr>\n";
+
+#######
+unless ($Mode eq "reserve" || $Mode eq "use") {
+PrintActionButton;
+}
+#######
+
+### Files
+  
+@FileIDs  = &FetchDocFiles($DocRevID);
+
+if ($Mode eq "add" || $Mode eq "update") {
+  my $CopyOption = ($Mode eq "update");
+
+  print "<tr><td colspan=\"4\">\n";
+  
+  if ($Archive eq "archive") { 
+    &ArchiveUploadBox(-required => $RequiredEntries{File});
+  } else {
+    &FileUploadBox(-allowcopy => $CopyOption, -type => $Upload, -docrevid => $DocRevID,
+                   -addfiles => 1, -required  => $RequiredEntries{File}, -fileids => \@FileIDs);
+  }
+  print "</td></tr>";
+} elsif (($Mode eq "updatedb") && ($Version || @FileIDs)) { # v0 can't have files
+  print "<tr><td colspan=\"4\">\n";
+  &FileUploadBox(-desconly => $TRUE, -docrevid => $DocRevID,
+                 -fileids  => \@FileIDs);
+  print "</td></tr>";
+}
+
+#######
+unless ($Mode eq "updatedb" || $Mode eq "reserve" || $Mode eq "use") {
+PrintActionButton;
+}
+#######
+
+### Document type and date override (if present)
+
+print "<tr>\n<td colspan=\"2\">\n";
+if ($Mode eq "reserve" || $Mode eq "use") {
+   &DocTypeButtons(-required => $RequiredEntries{Type}, 
+                   -default  => $DocTypeIDDefault);
+} else {
+   &DocTypeText($DocTypeIDDefault);     
+}
+
+print "</td>\n";
+
+if ($Overdate eq "Yes") {
+  print "<td colspan=\"2\">\n";
+  &DateTimePullDown;
+  print "</td>\n";
+}  
+print "</tr>\n";
+
+my $SecurityText;
+if ($EnhancedSecurity) {
+  $SecurityText = "View Groups*";
+} else {
+  $SecurityText = "Security";
+}
+
+$AddObsoleteGroup = $FALSE;
+
+if (($Version != 0)  && 
+    ($Version != $Documents{$DocumentID}{NVersions})) {
+    $AddObsoleteGroup = $TRUE;
+}
+@SecurityDefaults = Unique(@SecurityDefaults);
+
+#unless (@SecurityDefaults) {
+#     push @SecurityDefaults, 1;
+#}
+
+print "
+<tr>
+   <td>
+      <table>
+         <tr>
+            <th colspan=6>
+               <h4> Document Permissions</h4>
+                  <center>
+                     <a href=\"$ListGroupUsers\">(Display Group Membership)</a>
+                  </center>
+            </th>
+         </tr>
+         <tr>
+        <!--<th colspan=2>$SecurityText</th>-->
+            <th colspan=2><a class=Help href=\"Javascript:helppopupwindow('/cgi-bin/private/DocDB/DocDBHelp?term=viewgeneral');\">$SecurityText</a></th>
+            <th width=140></th>
+        <!--<th colspan=2>Modify Groups*</th>-->
+            <th colspan=2><a class=Help href=\"Javascript:helppopupwindow('/cgi-bin/private/DocDB/DocDBHelp?term=modifygeneral');\">Modify Groups*</a></th>
+         </tr>
+         <tr>
+            <td>\n"; 
+
+SecurityScroll(-addpublic => 'false',
+               -name      => 'security', 
+               -helplink  => 'security',
+               -helptext  => "Hierarchical",
+               -hierarchy => $TRUE,
+               -multiple  => $TRUE,
+               -default   => \@SecurityDefaults);
+print "           </td>\n";
+
+print "           <td>\n";
+
+#if ($Mode eq "add"  ||   $Mode eq "reserve"    ||   $Mode eq "use"  ) {
+#    SecurityScroll(-addpublic => 'false',
+#               -addobsolete => $AddObsoleteGroup, 
+#               -name      => 'security',
+#               -helplink  => 'viewspecific',
+#               -helptext  => "Specific",
+#               -hierarchy => $FALSE,
+#               -default   => \@AuthorsOnly,
+#               -multiple  => $TRUE);
+#} else {
+    SecurityScroll(-addpublic => 'false',
+               -addobsolete => $AddObsoleteGroup, 
+               -name      => 'security',
+               -helplink  => 'viewspecific',
+               -helptext  => "Specific",
+               -hierarchy => $FALSE,
+               -multiple  => $TRUE,
+               -default   => \@SecurityDefaults);
+#}
+
+print "           </td>\n";
+print "           <td>\n";
+print "           </td>\n";
+
+if ($EnhancedSecurity) {
+   print "           <td>\n";
+   SecurityScroll(-addpublic => $FALSE,
+                  -name      => 'modify', 
+                  -helplink  => 'modifygroups',
+                  -helptext  => "Hierarchical",
+                  -multiple  => $TRUE,
+                  -default   => \@ModifyDefaults,
+                  -hierarchy => $TRUE);
+   print "           </td>\n";
+
+   print "           <td>\n";
+   
+   if ($Mode eq "add") {
+      SecurityScroll(-addpublic   => $FALSE,
+                     -name        => 'modify', 
+                     -helplink    => 'modifyspecific',
+                     -helptext    => "Specific",
+                     -multiple    => $TRUE,
+                     -addobsolete => $FALSE,
+                     -default     => \@AuthorsOnly,
+                     -hierarchy   => $FALSE);
+    } elsif ($Mode eq "reserve" || $Mode eq "use") {
+      SecurityScroll(-addpublic   => $FALSE,
+                     -name        => 'modify', 
+                     -helplink    => 'modifyspecific',
+                     -helptext    => "Specific",
+                     -multiple    => $TRUE,
+                     -addobsolete => $FALSE,
+                     -default     => \@ModifyDefaults,
+                     -hierarchy   => $FALSE);
+    } else {
+      SecurityScroll(-addpublic   => $FALSE,
+                     -name        => 'modify', 
+                     -helplink    => 'modifyspecific',
+                     -helptext    => "Specific",
+                     -multiple    => $TRUE,
+                     -default     => \@ModifyDefaults,
+                     -addobsolete => $FALSE,
+                     -hierarchy   => $FALSE);
+    }
+}
+
+print "
+            </td>
+         </tr>
+      </table>
+   </td>
+</tr>
+<tr>
+   <td>
+      <table>
+         <tr>
+            <td>
+            </td>
+            <td>
+               <a class=\"Help\" href=\"Javascript:helppopupwindow('/cgi-bin/private/DocDB/DocDBHelp?term=authors');\">Authors *</a>
+            </td>
+            <td>
+            </td>
+         </tr>
+         <tr>
+            <td id=\"AuthorScroll\">\n";
+
+my $showall = 0; if($UserPreferences{AuthorMode2} eq 'all'){$showall = 1;}
+AuthorScroll(-showall  => $showall,
+             -required => $RequiredEntries{Author}, 
+             -helptext => "Select authors here ...",
+             -helplink => "authors",
+             -onchange => "packValues(event, 'authors','authormanual');",
+             -onblur   => "unfocus();",
+             -default  => \@AuthorDefaults);
+
+print "            </td>\n";
+
+
+# Author names as a list
+AuthorJSList(2);
+
+print "<td id=\"AuthorText\"><div id=\"authormanualdiv\">\n"; 
+AuthorTextEntry({ -required => $RequiredEntries{Author},
+                  -default   => \@AuthorDefaults,
+                  -helptext  => " ...or type here" });
+print "</div></td>\n";
+
+print "<td id=\"GroupScrollDisplay\" >\n"; 
+AuthorGroupScroll( -helplink => "authorgroups", -helptext => "Author Groups",
+                   -multiple => "true",
+                   -required  => $RequiredEntries{AuthorGroup},
+                   -extratext => "(Optional)",
+                   -default => \@AuthorGroupDefaults, -name     => "authorgroups");
+
+print "      </td>
+   </tr>
+   <tr>
+      <td>
+      </td>
+      <td>
+         <div id=\"AuthorTextError\"></div>
+      </td>
+      <td>
+      </td>
+   </tr>
+</table >";
+
+### Topics 
+
+if ($TopicMode eq "single") {
+  print "<tr><td colspan=\"4\">\n"; 
+  TopicScroll({ -required => $RequiredEntries{Topic}, -size     => 20 , 
+                -default  => \@TopicDefaults,         -multiple => $TRUE, 
+                -minlevel => $Preferences{Topics}{MinLevel}{Document}, });
+} elsif ($TopicMode eq "multi") {
+  print "<tr><td colspan=\"4\" id=\"TopicScrollTable\">\n"; 
+  TopicScrollTable({ -required => $RequiredEntries{Topic}, 
+                     -default  => \@TopicDefaults, 
+                     -multiple => $TRUE, 
+                     -minlevel => $Preferences{Topics}{MinLevel}{Document}, });
+}
+print "</td></tr>\n";
+
+if ($Preferences{Options}{SubmitAgree}) {
+  print '<tr><td colspan="4">';
+  print $Preferences{Options}{SubmitAgree};
+  print $query -> checkbox(-name  => 'submitagree', -label => "");
+  print "</td></tr>\n";
+}  
+
+#######
+PrintActionButton;
+#######
+
+### Events
+
+print "<tr><td colspan=\"4\">\n";
+ EventSelect( {-required => $FALSE,          -format   => "full", 
+               -default  => \@EventDefaults, -multiple => $TRUE} );
+print "</td></tr>\n";
+
+### Cross-references to other documents
+print "<tr><td colspan=\"4\">\n"; 
+RelatedDocsBox( -default  => $XRefDefault);
+print "</td></tr>\n";
+
+### References and Publication info
+print "   <tr>\n      <td colspan='4'>\n         ";
+&ReferenceForm;
+print "\n      </td>\n   </tr>\n";
+print "   <tr>\n      <td colspan='4'>\n         ";
+&PubInfoBox;
+print "\n      </td>\n   </tr>\n";
+
+# See SignoffHTML.pm
+#
+# Note that this is, like most things in this page,
+# a row in a table where it should be a div outside
+# of any tables.
+#
+#  In the future, entering the DocRevID for the last parameter will limit the names in the signoff list
+#  SignoffBox(-parallelsignoff => $ParallelSignoff, -default => $SignoffDefault, -docrevid => $DocRevID);
+#  Currently 
+if ($UseSignoffs) {
+  print "<tr>"; 
+  SignoffBox(-parallelsignoff => $ParallelSignoff, -default => $SignoffDefault, 0);
+  print "</tr>\n";
+}
+
+#######
+PrintActionButton;
+#######
+
+#print "\n   </td></tr> </table>\n";
+print "\n </table>\n";
+
+# Global JS variable needed by the onLoad function getSignoffSate().
+# See HTMLUtilities.pm
+print "\n<script>var DOCREVID = $DocRevID;</script>\n";
+print $query -> end_multipart_form;
+print "\n";
+DocDBNavBar();
+DocDBFooter($DBWebMasterEmail,$DBWebMasterName);

@@ -1,0 +1,378 @@
+<!--#include file="header.shtml"-->
+
+
+<div id="container-main">
+	<!--
+	<div id="feature">		
+		Some feature here
+	</div>
+	-->
+	<div id="main">
+
+		<h2>News</h2>
+
+		<a name="09-16-21"></a>
+		<h3>Sep 16, 2021</h3>
+		<p>DCC <strong>version 3.4.1</strong> which includes software fixes and enhanced functionality. Some of these functional enhancements include: 
+			<ul>
+				<li>
+					A <a href="https://dcc.ligo.org/bugzilla/show_bug.cgi?id=506">list of bug fixes</a> and code cleanup.</li>
+				<li>
+					Operating System Patches</li>
+			</ul>
+
+
+		<a name="03-04-21"></a>
+		<h3>Mar 04, 2021</h3>
+		<p>DCC <strong>version 3.4.0</strong> which includes software fixes and enhanced functionality. Some of these functional enhancements include: 
+			<ul>
+				<li>
+					Document Parallel Signoff  <a href=https://dcc.ligo.org/G2002164>https://dcc.ligo.org/G2002164</a></li>
+				<li>
+					Enhanced Signature Report</li>
+				<li>
+					Document Tree Generator <a href=https://dcc.ligo.org/G2100309>https://dcc.ligo.org/G2100309</a></li>
+				<li>
+					MathJax "$" Handler</li> 
+				<li>
+					UI control to change the number of files to upload from the form</li>
+				<li>
+					Bulk Update (New menu location in the left side panel)</li>
+				<li>
+					NSF logo visible on all pages</li>
+				<li>
+					A longer <a href="https://dcc.ligo.org/bugzilla/show_bug.cgi?id=460">list of bug fixes</a> and code cleanup.</li>
+			</ul>
+
+
+		<a name="06-29-19"></a>
+		<h3>Jun 29, 2019</h3>
+		<p>DCC <strong>version 3.3.0</strong> upgrade focused on including the KAGRA collaboration to form the LIGO-VIRGO-KAGRA (LVK) collaboration.  It also includes software fixes and enhanced functionality.  Some of enhancements include:
+			<ul>
+				<li>
+					Document Clone</li>
+				<li>
+					Document Bulk Update</li>
+				<li>
+					Support of the MathJax display engine</li> 
+				<li>
+					Addition of the LIGO-India group and related group document permissions</li>
+				<li>
+					Automatic KAGRA account provisioner</li>
+				<li>
+					Cross linking the LIGO-VIRGO-KAGRA web sites</li>
+				<li>
+					A longer <a href="https://dcc.ligo.org/bugzilla/show_bug.cgi?id=447">list of bug fixes</a> and code cleanup.</li>
+			</ul>
+
+
+
+      <a name="08-22-13"></a>
+      <h3>Aug 22, 2013</h3>
+      <p>A DCC upgrade focused on signatures, email notifications, short URL functionality, and user interface enhancements:</p>
+         <ul>
+            <li> Permit the modification of a number of relatively innocuous document attributes <strong>without</strong> resetting a signature chain, e.g., Keywords, Topics, Related Documents, view/modify rules, Author list, and the Signature list itself. Note, changing other attributes will continue to reset any pre-existing signatures, e.g., Title, Abstract, Notes, and actual uploaded files.</li>
+            <li> Ditto for <strong>not</strong> resetting public access to documents when any of the "innocuous" attributes are changed.</li>
+            <li> For both the case of documents with signatures and public access, a second "do you really want to do this" confirmation will be made if a significant change has been requested that will reset the signature chain or public access. In other words, resetting a signature chain or public access to a document will require two actions by the user: 1) request one or more significant changes to a such a document; 2) enter a confirmation to proceed with the reset or select an option to cancel and review the significant changes.</li>
+ 
+           <li> The DCC now has better support for Latin1 (ISO8559-1) character set, which means that words (i.e., names) with special characters are now more often input and displayed correctly.</li>
+           <li> On the Preferences page, default authors can now be selected from a list, in addition to typing in names by hand.</li>
+           <li> On the Search page, it's now possible to deselect a name that's been highlighted in the drop-down list of authors.</li>
+           <li> Rules on using either a fuller, more inclusive full list of authors vs a smaller list of active authors have been clarified.</li>
+           <li> Signoff selection now supports name autocomplete and sorted list of names without opening a separate popup window.</li>
+           <li> It's now possible to search for documents by the name of the person that made most recent update (either a change of files or a change of metadata).</li>
+           <li> It's now possible to use LIGO identifiers when selecting document notification.</li>
+           <li> Email notifications by document type are now supported.</li>
+           <li> Email notifications now support the short URL format.</li>
+           <li> Email notifications now honor the same access rules as a document view.</li>
+           <li> When a final signature is applied to a document, an email notification is now sent to the original document Submitter, Authors, and everyone that has modified the current version, in addition to all the signers.</li>
+           <li> A more refined search for filenames with unusual characters (e.g., a pound sign).</li>
+           <li> Short URL feature has been expanded:  Use it for filenames by adding a filename after a document identifier -- for example,<br>
+               <a href="https://dcc.ligo.org/LIGO-M080375/public/LIGO-M080375-V11%20(Abbreviations%20And%20Acronyms).pdf">https://dcc.ligo.org/LIGO-M080375/public/LIGO-M080375-V11 (Abbreviations And Acronyms).pdf</a>; <br>
+               <a href="https://dcc.ligo.org/G1200837/Fractal%20analysis%20of%20LIGO%20s%20data.pdf">https://dcc.ligo.org/G1200837/Fractal analysis of LIGO s data.pdf</a> <br>
+               Note that the feature works with or without the "LIGO-" prefix or a version number, and it works for both public and non-public documents.</li>
+           <li> It's now possible to specify "xml" or "html" as the output format when retrieving a document using a short URL:<br>
+                <a href="https://dcc.ligo.org/LIGO-G0900090/of=xml">https://dcc.ligo.org/LIGO-G0900090/of=xml</a><br>
+                <a href="https://dcc.ligo.org/LIGO-G0900090/of=html">https://dcc.ligo.org/LIGO-G0900090/of=html</a><br>
+                If no output format value is specified, the default HTML format is used.</li>
+           <li> You can now click to email submitters, authors, editors, and signers of a document.<br>
+                A single email will be sent to the selected group, with the document identifier as the subject of the message.</li>
+           <li>Highlight the "Signature Report" button on the Home page, for users that have that option, when the report  for the current user indicates there are one or more documents waiting for their signature.</li>
+           <li> Error messages are now disambiguated between unauthorized and non-existent document access attempts.</li>
+           <li> Enable all members of the DCC group Lab_Management to certify documents, thereby making public_pending documents actually become publicly accessible.</li>
+           <li> A large number of minor bug fixes</li>
+         </ul>
+
+
+
+      <a name="03-24-13"></a>
+      <h3>Mar 24, 2013</h3>
+      <p>Viewing PDF files in Firefox version 19:</p>
+      <p>
+         When viewing Engineering drawings, the Firefox PDF viewer does not show red lines in PDF files;
+         SolidWorks drawings are rendered unreadable.  This is a limitation of the browser's built-in PDF 
+         viewer.  It is <strong>not</strong> a problem with the drawings or with the DCC.  
+         <a href="https://support.mozilla.org/en-US/kb/disable-built-pdf-viewer-and-use-another-viewer">Disable the built-in viewer</a> 
+         and use an external program such as Adobe or Preview.</p>
+
+
+
+      <a name="03-01-13"></a>
+      <h3>Mar 01, 2013</h3>
+      <p>DCC <strong>version 3.0.0</strong> released with these features:
+         <ul>
+               <li> <strong>Autocomplete</strong> for author names:<br> 
+                  <ul>
+                     <li> Just typing a few characters will bring up a list of possible matches.</li>
+                     <li> Choose if you want all authors or only active authors in the autocomplete, in the "Preferences" panel.</li>
+                     <li> Works for a single author, in the front page, or</li>
+                     <li> Works for multiple authors of a document, or selecting default authors, or searching for authors.</li>
+                  </ul>
+               <li> <strong>Federated identity</strong>: The DCC can be used by people who have an identity from a LIGO partner:<br>
+                  <ul>
+                     <li> At the login portal, you can use your ligo.org identity, also called your "albert.einstein".
+                     <li> You can also login to DCC with an identity from the University of Tokyo, for LIGO affiliates who work for KAGRA.</li>
+                     <li> You can also use your "LIGO Guest" identity to log in.</li>
+                     <li> In the future, other partners will be added to this federation.
+                  </ul>
+               <li> <strong>Short URLs</strong>: Quote your documents with simple, easy URLs:<br>
+                  <ul>
+                     <li> Document links can be of the form <a href=https://dcc.ligo.org/M1000066>https://dcc.ligo.org/M1000066</a>.
+                     <li> Document links can be of the form <a href=https://dcc.ligo.org/LIGO-M1000066>https://dcc.ligo.org/LIGO-M1000066</a>.
+                     <li> Explicit version numbers can be added, as in <a href=https://dcc.ligo.org/M1000066-v17>https://dcc.ligo.org/M1000066-v17</a>.
+                     <li> Public documents can be quoted as in <a href=https://dcc.ligo.org/M1000066/public>https://dcc.ligo.org/M1000066/public</a>.
+                     <li> Specific files from a document can be quoted as in <a href=https://dcc.ligo.org/M1000066/pdf>https://dcc.ligo.org/M1000066/pdf</a>, so long as the result is unique.
+                  </ul>
+               <li> <strong>Explicit permissions</strong> are now required for documents:<br>
+                  <ul>
+                     <li> For example, a talk to the LSC might have view permissions as "LSC" and "Authors"; with modify permissions set to "Authors".
+                     <li> For more information, see <a href=https://dcc.ligo.org/LIGO-M1000108>https://dcc.ligo.org/M1000108</a>
+                  </ul>
+               <li> <strong>Redesigned portal page</strong>:<br>
+                  <ul>
+                     <li> Restructured content makes the page easy to use</li>
+                     <li> Improved design makes it visually appealing</li>
+                  </ul>
+         </ul>
+         For more information, see <a href=https://dcc.ligo.org/wiki/index.php/WhatsNew>Whats New</a>.
+      </p>
+
+
+
+		<a name="03-08-11"></a>
+		<h3>Mar 08, 2011</h3>
+		<p>DCC <strong>version 2.3.0</strong> was released with better usability for searching and author input. Among the new features:
+			<ul>
+				<li>
+					Shortcuts to some frequent searches -- e.g., documents by the logged in author,
+					and a search by title -- were added to the main page.</li>
+				<li>
+					An updated author input field makes it easy to list authors in a particular order.</li>
+				<li>
+					Basic search was fine-tuned: Since all words entered should no match, a number of returned matches is reduced. 
+					Also, the default ordering of returned documents was changed.</li>
+				<li>
+					In the table of search results, column headings can now be sorted by clicking on the heading.</li>
+				<li>
+					Advanced search interface, which gives greater control over search parameters, is now featured more prominently
+					on the main page.</li>
+				<li>
+					Files with names that contain nonstandard characters (eg, ";^") can no longer be uploaded.</li>
+				<li>
+					Easily find who's in which access group:  Select "List documents by Group" on the main page.</li>
+				<li>
+					Default to only one Main file when creating a new document or version.</li>
+				<li>
+					A longer <a href="https://dcc.ligo.org/bugzilla/show_bug.cgi?id=234">list of bug fixes</a> and code cleanup.</li>
+			</ul>
+
+
+
+		<a name="01-12-12"></a>
+		<h3>Jan 12, 2012</h3>
+		<p><strong>L documents (Letters)</strong> from the old DCC were migrated.</p>
+			<ul>
+				<li>
+					As before, each old document was gived an -x0 version in the new DCC, with all available files and metadata. 
+					For documents that were migrated earlier by hand, the -x0 version was updated in the "Notes and Changes" section 
+					with the document's full metadata.  Any files not already migrated were added to the -x0.  The subsequent versions
+					were left unchanged.</li>
+				<li>
+					Access rules to previously migrated documents were left unchanged for all versions.</li>
+				<li>
+					For documents migrated de novo, an -x0 version was created with permissions set to "Lab Directorate"
+					for documents whose files were internal and encrypted; and "Lab Management" for documents whose files
+					were internal unencrypted.</li>
+				<li>
+					Safety documents migrated de novo were set to "Lab Safety".</li>
+			</ul>
+
+
+
+		<a name="10-10-11"></a>
+		<h3>Oct 10, 2011</h3>
+		<p><strong>P documents (Publications/Formal Notes)</strong> from the old DCC were migrated.</p>
+			<ul>
+				<li>
+					Each old document was given an -x0 version in the new DCC, in which its files and metadata were migrated. 
+					Documents migrated previously by hand were upated in their -x0 version with a full set of metadata and files
+					that were not already copied.  Any subsequent versions of such documents were left intact.</li>
+				<li>
+					Access rules of previously migrated documents were left unchanged.</li>
+				<li>
+					Access rules of documents migrated de novo were set to "LVC."</li>
+			</ul>
+
+
+		<a name="06-23-11"></a>
+		<h3>Jun 23, 2011</h3>
+		<p><strong>M documents (Management/Policy)</strong> from the old DCC were migrated.</p>
+			<ul>
+				<li>
+					Each old document was gived an -x0 version in the new DCC, with all available files and metadata. 
+					For documents that were migrated earlier by hand, the -x0 version was updated in the "Notes and Changes" section 
+					with the document's full metadata.  Any files not already migrated were added to the -x0.  The subsequent versions
+					were left unchanged.</li>
+				<li>
+					Access rules to previously migrated documents were left unchanged for all versions.</li>
+				<li>
+					For documents migrated de novo, an -x0 version was created with permissions set to "Lab Directorate"
+					if their files were internal, and "Lab Management" if their files were public.</li>
+			</ul>
+
+
+		<a name="03-24-11"></a>
+		<h3>Mar 24, 2011</h3>
+		<p><strong>C documents (Contractual/Procurement)</strong> from the old DCC were migrated.</p>
+			<ul>
+				<li>
+					Each old document was gived an -x0 version in the new DCC, with all available files and metadata. 
+					For documents that were migrated earlier by hand, the -x0 version was updated in the "Notes and Changes" section 
+					with the document's full metadata.  Any files not already migrated were added to the -x0.  The subsequent versions
+					were left unchanged.</li>
+				<li>
+					Access rules to previously migrated documents were left unchanged for all versions.</li>
+				<li>
+					For documents migrated de novo, an -x0 version was created with permissions set to "Lab Business."</li>
+			</ul>
+
+
+
+		<a name="02-10-11"></a>
+		<h3>Feb 10, 2011</h3>
+		<p><strong>G documents (Presentations/Graphics)</strong> from the old DCC were migrated.</p>
+			<ul>
+				<li>
+					Each old document was gived an -x0 version in the new DCC, with all available files and metadata. 
+					For documents that were migrated earlier by hand, the -x0 version was updated in the "Notes and Changes" section 
+					with the document's full metadata.  Any files not already migrated were added to the -x0.  The subsequent versions
+					were left unchanged.</li>
+				<li>
+					Access rules to previously migrated documents were left unchanged for all versions.</li>
+				<li>
+					For documents migrated de novo, an -x0 version was created with View permissions set to "public"
+					and Modify permissions set to "LIGO Lab."</li>
+			</ul>
+
+
+
+		<a name="12-15-10"></a>
+		<h3>Dec 15, 2010</h3>
+		<p><strong>T documents (Technical Notes)</strong> from the old DCC were migrated.</p>
+			<ul>
+				<li>
+					Each old document was gived an -x0 version in the new DCC, with all available files and metadata. 
+					For documents that were migrated earlier by hand, the -x0 version was updated in the "Notes and Changes" section 
+					with the document's full metadata.  Any files not already migrated were added to the -x0.  The subsequent versions
+					were left unchanged.</li>
+				<li>
+					Access rules to previously migrated documents were left unchanged for all versions.</li>
+				<li>
+					For documents migrated de novo, an -x0 version was created with View access set to "public"
+					and Modify permissions set to "LIGO Lab."</li>
+			</ul>
+
+
+		<a name="10-29-10"></a>
+		<h3>Oct 29, 2010</h3>
+		<p><strong>E documents (Engineering)</strong> from the old DCC were migrated.</p>
+			<ul>
+				<li>
+					Each old document was gived an -x0 version in the new DCC, with all available files and metadata. 
+					For documents that were migrated earlier by hand, the -x0 version was updated in the "Notes and Changes" section 
+					with the document's full metadata.  Any files not already migrated were added to the -x0.  The subsequent versions
+					were left unchanged.</li>
+				<li>
+					Access rules to previously migrated documents were left unchanged for all versions.</li>
+				<li>
+					For documents migrated anew, an -x0 version was created with View access set to "public"
+					and Modify permissions set to "LIGO Lab."</li>
+			</ul>
+
+
+		<a name="09-09-10"></a>
+		<h3>Sep 09, 2010</h3>
+		<p><strong>D documents (Drawings)</strong> from the old DCC were migrated.</p>
+			<ul>
+				<li>
+					Each old document was gived an -x0 version in the new DCC, with all available files and metadata. 
+					For documents that were migrated earlier by hand, the -x0 version was updated in the "Notes and Changes" section 
+					with the document's full metadata.  Any files not already migrated were added to the -x0.  The subsequent versions
+					were left unchanged.</li>
+				<li>
+					Access rules to previously migrated documents were left unchanged for all versions.</li>
+				<li>
+					For documents migrated anew, an -x0 version was created with View access set to "public"
+					and Modify permissions set to "LIGO Lab."</li>
+			</ul>
+
+
+		<a name="10-08-09"></a>
+		<h3>Oct 08, 2009</h3>
+		<p>DCC <strong>version 2.2.2</strong> released.</p>
+			<ul>
+				<li>
+					DCC was upgraded with a faster search engine, more precise default author and file content searches, 
+					and a richer group access hierarchy.</li>
+				<li>
+					Since people usually search for "small author list" documents, default author searches now exclude
+					matches against groups such as "LSC".  To include all author groups in the search, use 
+					<a href="https://dcc.ligo.org/cgi-bin/private/DocDB/SearchForm">Advanced Search</a> and select "Include Author Groups".</li>
+				<li>
+					The <a href="https://dcc.ligo.org/cgi-bin/private/DocDB/DocumentDatabase">simple text search</a> now searches for documents with ALL, rather than ANY, substrings specified by the user.</li>
+            <li>
+               The search engine is now faster.  In addition, new documents are uploaded to the system in real-time, without a 30-min wait as before.</li>
+            <li>
+               Additional hierarchial complexity has been added to the author group access atructure.  Major author groups can now have sub-groups that inherit membership of the parent group.  For example, <a href="https://dcc.ligo.org/cgi-bin/private/DocDB/ListGroupUsers#AdLIGO_Business">aLIGO Business</a> group inherits access rights of its parent <a href="https://dcc.ligo.org/cgi-bin/private/DocDB/ListGroupUsers#Lab_Business">Lab Business</a> group.</li>
+            <li>
+               Documents that are publicly accessible now have a prominent link to their public version in the upper-left corner of the page that describes the document, or its document card. This allows easier access to public documents by external collaborators.</li>
+			</ul>
+
+      <a name="05-07-09"></a>
+      <h3>May 07, 2009</h3>
+		<p>DCC <strong>version 2.2.0</strong> released.</p>
+         <ul>
+            <li> The upgrades allows to select large groups of authors at once, e.g., for a paper by the LSC or Virgo Collaboration, in addition to individual authors. This allows to search for a document by either a particular author, or by the author's group of affiliation.  For example, a search for an LSC member will return all documents with LSC as an author group; to search for a particular LSC member's documents instead, de-select "Include Author Groups" in your search.</li>
+            <li> Additional access groups not in the original release have been added.</li>
+            <li> A few <a href="https://dcc.ligo.org/bugzilla/show_bug.cgi?id=142">bug fixes</a> have been made.</li>
+
+         </ul>
+      
+
+
+      <a name="01-26-09"></a>
+      <h3>Jan 26, 2009</h3>
+      <p>The new DCC was released to the LSC and Virgo Collaborations. The new system has a substantially expanded set of features, which include:</p>
+         <ul>
+            <li> A structured hierarchy of group access privileges, from Lab Directorate (with the broadest access) to Public (with the narrowest).</li>
+            <li> An information-rich description ("metadata") of documents, which allows for highly selective searches.</li>
+            <li> A detailed user interafce that allows users to create documents, upload files, and make edits to existing documents.</li>
+            <li> An option of receiving e-mail notifications of changes to a document of your interest.</li>
+            <li> An option of grouping documents associated with a particular event.</li>
+         </ul>
+
+	</div>
+</div>
+
+
+<!--#include file="footer.shtml"-->

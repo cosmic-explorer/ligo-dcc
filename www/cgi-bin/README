@@ -1,0 +1,17 @@
+As of DCC 3.0.0:
+
+private -> /usr1/www/cgi-bin/private/DocDB
+
+public -> /usr1/www/cgi-bin/DocDB
+
+and then:
+
+#!/bin/ksh
+for file in /usr1/www/cgi-bin/private/DocDB/*
+do
+   filename=${file##*/}
+   if [[ ! -f "/usr1/www/cgi-bin/DocDB/$filename" ]]
+   then
+      ln -s $file "/usr1/www/cgi-bin/DocDB/$filename"
+   fi
+done

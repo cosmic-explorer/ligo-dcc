@@ -1,0 +1,60 @@
+#!/bin/bash
+SOURCE=${1:-$(git rev-parse --show-toplevel)}/www/cgi-bin
+DEST=${2:-$DOCDB_CGI_DIR}
+
+OSFamily=$(awk -F= '/^ID=/ { print $2}' /etc/os-release)
+
+case $OSFamily in 
+   debian)
+     APACHE_USER=www-data
+     ;;
+   *)
+     APACHE_USER=apache
+     ;;
+esac
+
+mkdir -p ${DEST}/DocDB ${DEST}/private/DocDB
+
+#RPM package requirements
+for REQS in requirements.yum deployment/requiremensts.yum
+do
+    if [ -e "$REQS" ]
+    then
+        xargs -n 1 -a $REQS yum install -y 
+    fi
+done 
+
+
+#occasional CPAN and fixups 
+cpanm -l /usr/local/share/perl5 CGI::Log
+ln -s /usr/local/share/perl5/lib/perl5/CGI/Log.pm /usr/local/share/perl5/CGI/Log.pm
+
+
+
+rsync -av --no-links ${SOURCE}/private/DocDB/ ${DEST}/private/DocDB/
+DOCDBVERSION=$(git branch | awk '/^\*/ {print $2}')
+sed  "s/GIT_COMPUTED_VERSION/\"${DOCDBVERSION}\"/" ${SOURCE}/private/DocDB/DocDBVersion.pm > ${DEST}/private/DocDB/DocDBVersion.pm
+
+
+# not a mistake most files from public are same as private
+# diffs are DocumentDatabase
+#rsync -av ${SOURCE}/private/ ${DEST}/DocDB/
+rsync -av ${SOURCE}/DocDB ${DEST}/
+for PRIVATE_FILE in ${DEST}/private/DocDB/* 
+do 
+    PUBLIC_FILE=${DEST}/DocDB/${PRIVATE_FILE##*/}
+    if ! test -f "$PUBLIC_FILE"
+    then
+        ln -s $PRIVATE_FILE $PUBLIC_FILE
+    fi
+done
+
+chown -R ${APACHE_USER}. ${DEST}
+
+# FIXME E-Traveler
+#COPY ${DOCDB_TAG_TO_INSTALL}/E-Traveler/  ${E_TRAVELER_DIR}
+#SOURCE=${1:-$(git rev-parse --show-toplevel)}/E-Traveler
+#DEST=${2:-$E_TRAVELER_DIR}
+#rsync -avz ${SOURCE}/ ${DEST}/
+
+

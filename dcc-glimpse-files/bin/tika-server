@@ -1,0 +1,2 @@
+#!/bin/bash
+java -jar /usr/local/bin/tika-app.jar -t  -s -p 9998

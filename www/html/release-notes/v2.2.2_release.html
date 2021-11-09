@@ -1,0 +1,36 @@
+<html>
+<head>
+<title>DCC version 2.2.2 release</title>
+</head>
+
+<h2>DCC version 2.2.2 was released on October 8, 2009.</h2>
+
+In addition to a few <a href="https://dcc.ligo.org/bugzilla/show_bug.cgi?id=167">bug fixes</a> this DCC release adds the following functionality. If you have any questions please contact <a href="mailto:dcc-help@ligo.org">dcc-help@ligo.org</a>.
+<p>
+<dl>
+<dt><dd><img src="dot1.gif"> 
+The default behavior of author searches now excludes matches against author groups such as "LSC" since most people are interested in searching for "small author list" documents. It is still possible to match against author groups in the <a href="https://dcc.ligo.org/cgi-bin/private/DocDB/SearchForm">Advanced Search</a> by selecting <tt>Include Author Groups</tt> halfway down the page.
+<p>
+
+<dt><dd><img src="dot1.gif"> 
+The simple <a href="https://dcc.ligo.org/cgi-bin/private/DocDB/DocumentDatabase">Text Search</a> was changed to perform a more restrictive search for documents that include <tt>ALL</tt> the specified strings rather than the previous more inclusive match for documents that contain <tt>ANY</tt> of the specified strings. The previous behavior is still available from the <a href="https://dcc.ligo.org/cgi-bin/private/DocDB/SearchForm">Advanced Search</a>.
+<p>
+
+<dt><dd><img src="dot1.gif"> 
+The DCC search engine has been upgraded to a significantly faster system that will scale to a significantly larger number of documents and is synchronously updated when new documents are uploaded, i.e., it is no longer necessary to wait for up to 30 minutes for new content to be indexed.
+<p>
+
+<dt><dd><img src="dot1.gif"> 
+The document group access structure has been extended to allow sub-groups to be created relative to the <a href="https://dcc.ligo.org/wiki/index.php?title=Onion">main group hierarchy</a> that inherit membership from a parent group.  The initial example of this is a new <a href="https://dcc.ligo.org/cgi-bin/private/DocDB/ListGroupUsers#AdLIGO_Business">AdLIGO_Business</a> group which has implicit access rights for members of its parent <a href=https://dcc.ligo.org/cgi-bin/private/DocDB/ListGroupUsers#Lab_Business>Lab_Business</a> group.
+<p>
+
+<dt><dd><img src="dot1.gif"> 
+Documents that are publicly accessible, i.e., do not require an account to access, now have their public address listed as the most prominent link when viewing such a document. This is to facilitate sharing URLs with external collaborators.  For example, when viewing the <a href="https://dcc.ligo.org/cgi-bin/private/DocDB/ShowDocument?docid=361">October 2008 Author List</a> from a logged in session you will now see in the upper left corner a <a href="https://dcc.ligo.org/cgi-bin/DocDB/ShowDocument?docid=361">Public link</a> that anyone this is sent to can access without having to login. The internal <tt>Private link:</tt> is still exposed below the <tt>Public link:</tt> for circulation to collaboration colleagues who might want to modify a document you direct them to.
+</dl>
+
+
+<p>
+Please also note that most internal scientific discussions should be marked for viewing by the group LVC to share with both the LSC and Virgo collaborations unless it really is private content that should be restricted to a smaller group. For example, many G- presentation documents during the last L-V meeting where mistakenly left as viewable by only the group LSC.
+
+
+</html>

@@ -1,0 +1,585 @@
+#! /usr/bin/env perl
+#
+# USAGE:  
+#
+# Remove --test parameter to execute in non-test mode.
+#
+# To modify all the documents listed in a file
+#               ChangeACLs --filename=files.txt --add=26 --latestonly  --test
+# To modify a particular document
+#               ChangeACLs --document=M1100316 --add=26 --latestonly  --test
+# To modify all the documents from a particular topic:
+#               ChangeACLs --topic=25 --add=16 --del=27 --test
+# To modify all the documents from a particular event:
+#               ChangeACLs --event=110 --add=16 --del=27 --test
+# To modify all the documents from a particular eventgroup:
+#               ChangeACLs --eventgroup=6 --add=19 --del=27 --test
+# To modify all the documents from a particular author:
+#               ChangeACLs --author=622  --add=16 --del=27 --test
+# To modify all the documents from a particular author and add another author (if name does not yet exist as an author):
+#               ChangeACLs --author=622  --addauthor=16 [--delauthor=27] --test
+# To add an ACL group when another ACL group is present, example add KAGRA to all LVC viewable document
+#               ChangeACLs --view=2 --add=37 --test
+# To filter by DocumentType, use --doctype.   Example below:  Add KAGRA to all LVC viewable T-documents
+#               ChangeACLs --view=2 --add=37 --doctype=10 --test
+#
+
+use DBI;
+use Getopt::Long;
+
+
+require "DocDBGlobals.pm";
+require "ProjectGlobals.pm";
+require "FSUtilities.pm";
+require "RevisionSQL.pm";
+require "DocumentSQL.pm";
+require "SecuritySQL.pm";
+require "Utilities.pm";
+
+
+sub UpdateEventSecurity {
+      my ($ConferenceID, $Add_Group, $Add_Update, $Delete_Group, $Delete_Update, $Test) = @_;
+
+      my ($GroupID);
+      $Found_to_be_Deleted = 0;
+      if ($Delete_Group) {
+          my $security_list = $dbh -> prepare("select GroupID from MeetingSecurity where ConferenceID=?");
+          $security_list -> execute($ConferenceID);
+          $security_list -> bind_columns(undef, \($GroupID));
+          while ($security_list -> fetch) {
+              if ($GroupID == $Delete_Group) {
+                  $Found_to_be_Deleted = 1;
+              }
+          }  
+          if ($Found_to_be_Deleted)  {
+              if ($Test) {
+                  print "1. DELETE $Delete_Group from Event $ConferenceID\n";
+                  my $delete_cmd = "2. DELETE FROM MeetingSecurity WHERE ConferenceID=$ConferenceID AND GroupID=$Delete_Group";
+                  print "$delete_cmd\n";
+              }
+              else {
+                  my $delete_cmd = "DELETE FROM MeetingSecurity WHERE ConferenceID=$ConferenceID AND GroupID=$Delete_Group";
+                  my $delete_grp = $dbh -> prepare($delete_cmd);
+                  $delete_grp->execute;
+              }
+         }
+      }
+
+      $Found_to_be_Deleted = 0;
+      if ($Delete_Update) {
+          my $security_list = $dbh -> prepare("select GroupID from MeetingModify where ConferenceID=?");
+          $security_list -> execute($ConferenceID);
+          $security_list -> bind_columns(undef, \($GroupID));
+          while ($security_list -> fetch) {
+              if ($GroupID == $Delete_Update) {
+                  $Found_to_be_Deleted = 1;
+              }
+          }  
+          if ($Found_to_be_Deleted)  {
+              if ($Test) {
+                  print "1. DELETE $Delete_Update from Event $ConferenceID\n";
+                  my $delete_cmd = "2.a DELETE FROM MeetingModify WHERE ConferenceID=$ConferenceID AND GroupID=$Delete_Update";
+                  print "$delete_cmd\n";
+              }
+              else {
+                  my $delete_cmd = "DELETE FROM MeetingModify WHERE ConferenceID=$ConferenceID AND GroupID=$Delete_Update";
+                  my $delete_grp = $dbh -> prepare($delete_cmd);
+                  $delete_grp->execute;
+              }
+         }
+      }
+
+
+      $Found_to_be_Added   = 0;
+      if ($Add_Group) {
+     
+          my @GroupIDs = ();
+ 
+          my $security_list = $dbh -> prepare("select GroupID from MeetingSecurity where ConferenceID=?");
+          $security_list -> execute($ConferenceID);
+          $security_list -> bind_columns(undef, \($GroupID));
+          while ($security_list -> fetch) {
+              push @GroupIDs,$GroupID;
+              if ($GroupID == $Add_Group || $GroupID == 1) {
+                  $Found_to_be_Added = 1;
+              }
+          }  
+          if ($Test) {
+              if ($Found_to_be_Added)  {
+                  print "3. Event $ConferenceID:  Found $Add_Group \n ";
+              }
+          }
+     
+          
+          unless (@GroupIDs) { 
+               push @GroupIDs, 1; 
+               $Found_to_be_Added = 1;
+               if ($Test) {
+                  if ($Found_to_be_Added)  {
+                      print "4. Event $ConferenceID:  Found Public \n ";
+                  }
+              }
+          }
+  
+          unless ($Found_to_be_Added) {
+              push @GroupIDs, $Add_Group;
+              if ($Test) {
+                  print "5. ADDing $Add_Group to Event\n";
+                  my $add_cmd = "INSERT INTO MeetingSecurity (ConferenceID, GroupID) VALUES ($ConferenceID, $Add_Group)\n";
+                  print "6. $add_cmd : New groups  @GroupIDs \n";
+              }
+              else {
+                  my $add_cmd = "INSERT INTO MeetingSecurity (ConferenceID, GroupID) VALUES ($ConferenceID, $Add_Group)";
+                  my $add_grp = $dbh -> prepare($add_cmd);
+                  $add_grp->execute;
+              }
+         }
+
+      }
+
+      $Found_to_be_Added   = 0;
+      if ($Add_Update) {
+     
+          my @GroupIDs = ();
+ 
+          my $security_list = $dbh -> prepare("select GroupID from MeetingModify where ConferenceID=?");
+          $security_list -> execute($ConferenceID);
+          $security_list -> bind_columns(undef, \($GroupID));
+          while ($security_list -> fetch) {
+              push @GroupIDs,$GroupID;
+              if ($GroupID == $Add_Update) {
+                  $Found_to_be_Added = 1;
+              }
+          }  
+          if ($Test) {
+              if ($Found_to_be_Added)  {
+                  print "3.a Event $ConferenceID:  Found $Add_Update \n ";
+              }
+          }
+     
+          
+          unless ($Found_to_be_Added) {
+              push @GroupIDs, $Add_Update;
+              if ($Test) {
+                  print "5.a ADDing $Add_Update to Event\n";
+                  my $add_cmd = "INSERT INTO MeetingModify (ConferenceID, GroupID) VALUES ($ConferenceID, $Add_Update)\n";
+                  print "6. $add_cmd : New groups  @GroupIDs \n";
+              }
+              else {
+                  my $add_cmd = "INSERT INTO MeetingModify (ConferenceID, GroupID) VALUES ($ConferenceID, $Add_Update)";
+                  my $add_grp = $dbh -> prepare($add_cmd);
+                  $add_grp->execute;
+              }
+         }
+
+      }
+}
+
+&GetOptions("event=i"     =>  \$EventID,               # DCC ConferenceID
+            "topic=i"     =>  \$TopicID,               # DCC TopicID
+            "author=i"    =>  \$AuthorID,              # DCC AuthorID 
+            "document=s"  =>  \$Document,              # LIGO DCC Number
+            "eventgroup=i"=>  \$EventGroupID,          # DCC Event Group
+            "filename=s"  =>  \$FileName,              # Filename with a list of documents and version number
+            "parsefile=s" =>  \$ParseFileName,         # PDF file wheich needs the DCC documents parsed 
+            "view=i"      =>  \$View_Group,            # View GroupID
+            "update=i"    =>  \$Modify_Group,          # Modify GroupID
+            "add=i"       =>  \$Add_Group,             # View GroupID which needs to be added
+            "addupdate=i" =>  \$Add_Update,            # Modify GroupID which needs to be added
+            "del=i"       =>  \$Delete_Group,          # View GroupID which needs to be removed
+            "delupdate=i" =>  \$Delete_Update,         # Modify GroupID which needs to be removed
+            "addauthor=i" =>  \$Add_Author,            # AuthorID which needs to be added
+            "latestonly!" =>  \$ModifyLatest,          # Modify only the latest version
+            "doctype=i"   =>  \$DocTypeFilter,         # Modify only for this DocumentType 
+            "test!"       =>  \$Test,                  # Test-mode just to see the versions
+            );
+
+
+  $dbh   = DBI->connect('DBI:mysql:'.$db_name.':'.$db_host,$db_rwuser,$db_rwpass);
+
+
+  &GetSecurityGroups;
+
+  my $DocRevID;
+  my $revision_list;
+  my %DocRevIDList = ();
+
+
+  if ($EventID > 0) {
+     $revision_list = $dbh -> prepare(
+        "SELECT DocRevID FROM `DocumentRevision` where Obsolete=0 AND DocRevID in (
+            SELECT DocRevID  from RevisionEvent where ConferenceID=?)
+        ");
+     $revision_list -> execute($EventID);
+     $revision_list -> bind_columns(undef, \($DocRevID));
+  }
+  elsif ($TopicID > 0) {
+     $revision_list = $dbh -> prepare(
+        "SELECT DocRevID FROM `DocumentRevision` where Obsolete=0 AND DocRevID in (
+            SELECT DocRevID  from RevisionTopic where TopicID=?)
+        ");
+     $revision_list -> execute($TopicID);
+     $revision_list -> bind_columns(undef, \($DocRevID));
+  }
+  elsif ($View_Group > 0) {
+     $revision_list = $dbh -> prepare(
+        "SELECT DocumentRevision.DocRevID FROM `DocumentRevision` 
+            LEFT JOIN RevisionSecurity ON DocumentRevision.DocRevID = RevisionSecurity.DocRevID
+            WHERE Obsolete=0  AND  RevisionSecurity.GroupID=? AND 
+                  DocumentRevision.DocRevID NOT IN (SELECT DocRevID from RevisionSecurity where GroupID=?)
+        ");
+     $revision_list -> execute($View_Group, $Add_Group);
+     $revision_list -> bind_columns(undef, \($DocRevID));
+  }
+  elsif ($Modify_Group > 0) {
+     $revision_list = $dbh -> prepare(
+        "SELECT DocumentRevision.DocRevID FROM `DocumentRevision` 
+            LEFT JOIN RevisionModify ON DocumentRevision.DocRevID = RevisionModify.DocRevID
+            WHERE Obsolete=0  AND  RevisionModify.GroupID=? AND 
+                  DocumentRevision.DocRevID NOT IN (SELECT DocRevID from RevisionModify where GroupID=?)
+        ");
+     $revision_list -> execute($Modify_Group, $Add_Group);
+     $revision_list -> bind_columns(undef, \($DocRevID));
+  }
+  elsif ($AuthorID > 0) {
+     $revision_list = $dbh -> prepare(
+        "SELECT DocRevID FROM `DocumentRevision` where Obsolete=0 AND DocRevID in (
+            SELECT DocRevID  from RevisionAuthor where AuthorID=?)
+        ");
+     $revision_list -> execute($AuthorID);
+     $revision_list -> bind_columns(undef, \($DocRevID));
+  }
+  elsif ($EventGroupID > 0) {
+     my $EventID; 
+     $event_list =  $dbh -> prepare("SELECT ConferenceID from Conference where EventGroupID =? ");
+     $event_list -> execute($EventGroupID);
+     $event_list -> bind_columns(undef, \($EventID));
+     while ($event_list -> fetch) {
+         &UpdateEventSecurity($EventID, $Add_Group, $Add_Update, $Delete_Group, $Delete_Update, $Test);
+     }
+
+     $revision_list = $dbh -> prepare(
+        "SELECT DocRevID FROM `DocumentRevision` where Obsolete=0 AND DocRevID in (
+            SELECT DocRevID  from RevisionEvent where ConferenceID in (
+                SELECT ConferenceID from Conference where EventGroupID =?)
+            )
+        ");
+     $revision_list -> execute($EventGroupID);
+     $revision_list -> bind_columns(undef, \($DocRevID));
+  }
+  elsif ($Document) {
+     $revision_list = $dbh -> prepare("SELECT DocRevID FROM `DocumentRevision` 
+        RIGHT JOIN Document ON Document.DocumentID = DocumentRevision.DocumentID 
+        where Obsolete=0 AND Document.Alias LIKE (?)");
+
+     $revision_list -> execute($Document);
+     $revision_list -> bind_columns(undef, \($DocRevID));
+  }
+#  elsif ((defined $ParseFileName) $$ ($ParseFileName ne '')) {
+#     system ("dcc-scrape.sh", $ParseFileName);
+#     open (FILE, "< scrape-dcc-out.txt");
+#
+#      my $i = 0;
+#      while (<FILE>){
+#         $i++;
+#         my ($line) = $_;
+#         my @words = ();
+#
+#         chomp ($line);
+#         @words = parse_line(" ", 0, $line);
+#          
+#         my $DCC_Number = $words[0];
+#         my $VersionNumber = $words[1];
+#          
+#         my $rev_list;
+#         my $docrevid;
+#         $rev_list = $dbh -> prepare("SELECT DocRevID FROM `DocumentRevision` 
+#            RIGHT JOIN Document ON Document.DocumentID = DocumentRevision.DocumentID 
+#            where Obsolete=0 AND VersionNumber=? AND Document.Alias LIKE (?)");
+#
+#         $rev_list -> execute($VersionNumber, $DCC_Number);
+#         $rev_list -> bind_columns(undef, \($docrevid));
+#         $rev_list -> fetch;
+#        
+#         if ($Test) { print "$i: $DCC_Number : $VersionNumber = $docrevid\n" ; }
+#         if (!exists $DocRevIDList{$docrevid}) {
+#             $DocRevIDList{$docrevid} = 1;
+#  }
+  elsif ((defined $FileName) && ($FileName ne '')) {
+      use Text::ParseWords;
+      open (FILE, "< $FileName");
+
+      my $i = 0;
+      while (<FILE>){
+         $i++;
+         my ($line) = $_;
+         my @words = ();
+
+         chomp ($line);
+         @words = parse_line(" ", 0, $line);
+          
+         my $DCC_Number = $words[0];
+         my $VersionNumber = $words[1];
+          
+         my $rev_list;
+         my $docrevid;
+         $rev_list = $dbh -> prepare("SELECT DocRevID FROM `DocumentRevision` 
+            RIGHT JOIN Document ON Document.DocumentID = DocumentRevision.DocumentID 
+            where Obsolete=0 AND VersionNumber=? AND Document.Alias LIKE (?)");
+
+         $rev_list -> execute($VersionNumber, $DCC_Number);
+         $rev_list -> bind_columns(undef, \($docrevid));
+         $rev_list -> fetch;
+         
+         if ($Test) { print "$i: $DCC_Number : $VersionNumber = $docrevid\n" ; }
+         if (!exists $DocRevIDList{$docrevid}) {
+             $DocRevIDList{$docrevid} = 1;
+	 }
+      }
+      close (FILE);
+  }
+  else { 
+      print "Exiting..."; exit; 
+  }
+
+
+  if ($revision_list) {
+      my $i = 0;
+      while ($revision_list -> fetch) {
+          $i++;
+
+          if ($DocTypeFilter > 0) {
+              my $docrevid;
+              my $doctypeselect = $dbh -> prepare (
+                  "SELECT DocRevID from DocumentRevision where DocRevID=? AND DocTypeID=?"); 
+              $doctypeselect -> execute ($DocRevID, $DocTypeFilter);
+              $doctypeselect -> bind_columns(undef, \($docrevid));
+              $doctypeselect -> fetch;
+              if (!exists $DocRevIDList{$docrevid}) {
+                  $DocRevIDList{$docrevid} = 1;
+                  if ($Test) { print "$i: filtered $docrevid\n" ; }
+              }
+             
+          }
+          else {
+             $DocRevIDList{$DocRevID} = 1;
+              if ($Test) { print "$i: $DocRevID\n" ; }
+          }
+
+      } 
+  }
+
+
+  foreach my $DocRevID (keys %DocRevIDList) {
+      FetchDocRevisionByID($DocRevID);
+
+      my $Version    = $DocRevisions{$DocRevID}{Version};
+      if ($Test) { print "7. Original DocRevID = $DocRevID\n"; }
+      if ($ModifyLatest) {
+           my $DocumentID = $DocRevisions{$DocRevID}{DOCID};
+           FetchDocument($DocumentID);
+           $Version = $Documents{$DocumentID}{NVersions};
+           $DocRevID = FetchRevisionByDocumentAndVersion($DocumentID, $Version);
+           if ($Test) { print "8. Final DocRevID = $DocRevID\n"; }
+           FetchDocRevisionByID($DocRevID);
+      }
+
+     
+
+      my ($GroupID);
+ 
+      if ($Delete_Group) {
+          $Found_to_be_Deleted = 0;
+          if ($Test) { print "9. DELETE: $DocRevID: $DocRevisions{$DocRevID}{DOCID}-$DocRevisions{$DocRevID}{Version}\n"; }
+          my $security_list = $dbh -> prepare("select GroupID from RevisionSecurity where DocRevID=?");
+          $security_list -> execute($DocRevID);
+          $security_list -> bind_columns(undef, \($GroupID));
+          while ($security_list -> fetch) {
+              if ($GroupID == $Delete_Group) {
+                  $Found_to_be_Deleted = 1;
+              }
+          }  
+          if ($Found_to_be_Deleted)  {
+              if ($Test) {
+                  print "10. DELETE  $Delete_Group\n";
+                  my $delete_cmd = "DELETE FROM RevisionSecurity WHERE DocRevID=$DocRevID AND GroupID=$Delete_Group";
+                  print "11. $delete_cmd\n";
+              }
+              else {
+                  my $delete_cmd = "DELETE FROM RevisionSecurity WHERE DocRevID=$DocRevID AND GroupID=$Delete_Group";
+                  my $delete_grp = $dbh -> prepare($delete_cmd);
+                  $delete_grp->execute;
+              }
+         }
+      }
+
+      if ($Delete_Update) {
+          $Found_to_be_Deleted = 0;
+          if ($Test) { print "12. DELETE: $DocRevID: $DocRevisions{$DocRevID}{DOCID}-$DocRevisions{$DocRevID}{Version}\n"; }
+          my $security_list = $dbh -> prepare("select GroupID from RevisionModify where DocRevID=?");
+          $security_list -> execute($DocRevID);
+          $security_list -> bind_columns(undef, \($GroupID));
+          while ($security_list -> fetch) {
+              if ($GroupID == $Delete_Update) {
+                  $Found_to_be_Deleted = 1;
+              }
+          }  
+          if ($Found_to_be_Deleted)  {
+              if ($Test) {
+                  print "13. DELETE  $Delete_Update\n";
+                  my $delete_cmd = "DELETE FROM RevisionModify WHERE DocRevID=$DocRevID AND GroupID=$Delete_Update";
+                  print "14. $delete_cmd\n";
+              }
+              else {
+                  my $delete_cmd = "DELETE FROM RevisionModify WHERE DocRevID=$DocRevID AND GroupID=$Delete_Update";
+                  my $delete_grp = $dbh -> prepare($delete_cmd);
+                  $delete_grp->execute;
+              }
+         }
+      }
+
+      my @GroupIDs = ();
+      $Found_to_be_Added   = 0;
+      if ($Add_Group) {
+          my $security_list = $dbh -> prepare("select GroupID from RevisionSecurity where DocRevID=?");
+          $security_list -> execute($DocRevID);
+          $security_list -> bind_columns(undef, \($GroupID));
+          while ($security_list -> fetch) {
+              push @GroupIDs,$GroupID;
+              if ($GroupID == $Add_Group || $GroupID == 1) {
+                  $Found_to_be_Added = 1;
+              }
+              if ($Test) {
+                  if ($Found_to_be_Added)  {
+                      print "15. $DocRevID:  Found $Add_Group \n ";
+                  }
+              }
+          }  
+     
+          
+          unless (@GroupIDs) { 
+               push @GroupIDs, 1; 
+               $Found_to_be_Added = 1;
+               if ($Test) {
+                  if ($Found_to_be_Added)  {
+                      print "16. $DocRevID:  Found Public \n ";
+                  }
+              }
+          }
+  
+          unless ($Found_to_be_Added) {
+              push @GroupIDs, $Add_Group;
+              if ($Test) { print "17. ADD: $DocRevID: $DocRevisions{$DocRevID}{DOCID}-$DocRevisions{$DocRevID}{Version}\n"; }
+              if ($Test) {
+                  print "18. ADDing $Add_Group\n";
+                  my $add_cmd = " INSERT INTO RevisionSecurity (DocRevID, GroupID) VALUES ($DocRevID, $Add_Group)\n";
+                  print "19. $add_cmd : New groups  @GroupIDs \n";
+              }
+              else {
+                  my $add_cmd = "INSERT INTO RevisionSecurity (DocRevID, GroupID) VALUES ($DocRevID, $Add_Group)";
+                  my $add_grp = $dbh -> prepare($add_cmd);
+                  $add_grp->execute;
+                  
+              }
+         }
+
+      }
+
+      $Found_to_be_Added   = 0;
+      if ($Add_Update) {
+          my $security_list = $dbh -> prepare("select GroupID from RevisionModify where DocRevID=?");
+          $security_list -> execute($DocRevID);
+          $security_list -> bind_columns(undef, \($GroupID));
+          while ($security_list -> fetch) {
+              push @GroupIDs,$GroupID;
+              if ($GroupID == $Add_Update) {
+                  $Found_to_be_Added = 1;
+              }
+              if ($Test) {
+                  if ($Found_to_be_Added)  {
+                      print "20. $DocRevID:  Found $Add_Update \n ";
+                  }
+              }
+          }  
+     
+          
+          unless ($Found_to_be_Added) {
+              push @GroupIDs, $Add_Update;
+              if ($Test) { print "21. ADD: $DocRevID: $DocRevisions{$DocRevID}{DOCID}-$DocRevisions{$DocRevID}{Version}\n"; }
+              if ($Test) {
+                  print "22. ADDing to RevisionModify $Add_Update\n";
+                  my $add_cmd = " INSERT INTO RevisionModify (DocRevID, GroupID) VALUES ($DocRevID, $Add_Update)\n";
+              }
+              else {
+                  my $add_cmd = "INSERT INTO RevisionModify (DocRevID, GroupID) VALUES ($DocRevID, $Add_Update)";
+                  my $add_grp = $dbh -> prepare($add_cmd);
+                  $add_grp->execute;
+                  
+              }
+         }
+
+      }
+
+      unless (@GroupIDs) { 
+          my $security_list = $dbh -> prepare("select GroupID from RevisionSecurity where DocRevID=?");
+          $security_list -> execute($DocRevID);
+          $security_list -> bind_columns(undef, \($GroupID));
+          while ($security_list -> fetch) {
+              push @GroupIDs,$GroupID;
+          }
+          $security_list = $dbh -> prepare("select GroupID from RevisionModify where DocRevID=?");
+          $security_list -> execute($DocRevID);
+          $security_list -> bind_columns(undef, \($GroupID));
+          while ($security_list -> fetch) {
+              push @GroupIDs,$GroupID;
+          }
+      }
+      @GroupIDs = Unique(@GroupIDs);
+      $DocID = $DocRevisions{$DocRevID}{DOCID};
+      $VersionNumber  = $DocRevisions{$DocRevID}{Version};
+      print "23. $DocID-v$VersionNumber - Final Groups to be in htaccess file: @GroupIDs\n";
+      &ProtectDirectory( $DocRevisions{$DocRevID}{DOCID}, 
+                         $DocRevisions{$DocRevID}{Version},
+                         $DocRevID,
+                         @GroupIDs);
+
+      my @AuthorIDs = ();
+      $Found_to_be_Added   = 0;
+      if ($Add_Author) {
+          my $author_list = $dbh -> prepare("select AuthorID from RevisionAuthor where DocRevID=?");
+          $author_list -> execute($DocRevID);
+          $author_list -> bind_columns(undef, \($testAuthorID));
+          while ($author_list -> fetch) {
+              push @AuthorIDs,$testAuthorID;
+              if ($testAuthorID == $Add_Author) {
+                  $Found_to_be_Added = 1;
+              }
+              if ($Test) {
+                  if ($Found_to_be_Added)  {
+                      print "24. $DocRevID:  Found $Add_Author \n ";
+                  }
+              }
+          }  
+     
+          unless ($Found_to_be_Added) {
+              push @AuthorIDs, $Add_Author;
+              if ($Test) { print "25. ADD: $DocRevID: $DocRevisions{$DocRevID}{DOCID}-$DocRevisions{$DocRevID}{Version}\n"; }
+              if ($Test) {
+                  print "26. ADDing $Add_Author\n";
+                  my $add_cmd = " INSERT INTO RevisionAuthor (DocRevID, AuthorID, AuthorOrder) VALUES ($DocRevID, $Add_Author, 0)\n";
+                  print "27. $add_cmd : New groups  @AuthorIDs \n";
+              }
+              else {
+                  my $add_cmd = "INSERT INTO RevisionAuthor (DocRevID, AuthorID, AuthorOrder) VALUES ($DocRevID, $Add_Author, 0)";
+                  my $add_author = $dbh -> prepare($add_cmd);
+                  $add_author -> execute;
+                  
+              }
+         }
+
+      }
+
+  }
+
+
+exit;

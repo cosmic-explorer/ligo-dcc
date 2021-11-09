@@ -1,0 +1,152 @@
+#! /usr/bin/env perl
+#
+#      Author: Eric Vaandering (ewv@fnal.gov)
+#    Modified: 
+
+# Copyright 2001-2007 Eric Vaandering, Lynn Garren, Adam Bryant
+
+#    This file is part of DocDB.
+
+#    DocDB is free software; you can redistribute it and/or modify
+#    it under the terms of version 2 of the GNU General Public License 
+#    as published by the Free Software Foundation.
+
+#    DocDB is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+
+#    You should have received a copy of the GNU General Public License
+#    along with DocDB; if not, write to the Free Software
+#    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+
+use CGI qw(-nosticky);                                                                                      
+use DBI;
+
+require "DocDBGlobals.pm";
+require "HTMLUtilities.pm";
+require "SecuritySQL.pm";
+require "Scripts.pm";
+require "ResponseElements.pm";
+require "FormElements.pm";
+require "Messages.pm";
+require "Cookies.pm";
+require "Security.pm";
+require "SecuritySQL.pm";
+require "SecurityHTML.pm";
+require "MeetingSecurityUtilities.pm";
+
+$query = new CGI;  # Global for subroutines
+$dbh   = DBI->connect('DBI:mysql:'.$db_name.':'.$db_host,$db_rouser,$db_ropass);
+
+GetSecurityGroups();
+
+print $query -> header( -charset => $HTTP_ENCODING );
+DocDBHeader("Reserve a Document Number","",-scripts => ["serverstatus", "PopUps"]);
+@ErrorStack = ();
+
+if ($Public || !&CanCreate()) {
+  push @ErrorStack,"You are not allowed to modify or create documents.";
+}
+
+my $PersonalAccountLink = PersonalAccountLink();
+
+print "<div id=\"ReserveHomeBody\">\n";
+
+EndPage(@ErrorStack);
+
+print "<div id=\"Header3Col\">\n";
+print "<h4>\n";
+#print "Click any <span class=\"Help\">highlighted link</span> for quick help.\n";
+print "\n";
+print "</h4>\n";
+print "</div>\n";  # Header3Col
+
+print "<div id=\"LeftColumn3Col\">\n";
+
+# Old; changed to a list below 02.27.13
+#print "<p><strong><a href=\"$MainPage\">Main Menu</a></strong></p>\n";
+#print "<p><strong><a href=\"$WikiInstructions\">Instructions</a></strong></p>\n";
+#print "<p><strong><a href=\"$DocDBHome\">Using the DCC</a></strong></p>\n";
+
+print "<ul class=nav>\n";
+print "<li><a href=\"$MainPage\">Main menu</a></li>\n";
+print "<li><a href=\"$WikiInstructions\">Instructions</a></li>\n";
+print "<li><a href=\"$DocDBHome\">Using the DCC</a></li>\n";
+print "</ul>\n";
+
+print "</div>\n";  # LeftColumn3Col
+
+print "<div id=\"MainColumn3Col\">\n";
+print "<strong>Choices for reserving a number: ";
+#print "(".FormElementTitle(-helplink => "modifytypes", -helptext => "Which option do I choose?",
+#                           -nobold => $TRUE, -nocolon  => $TRUE,         -nobreak  => $TRUE).")</strong>";
+print "</strong>";
+
+### Reserve form (button)
+
+print "<ul>\n";
+print "<li>"; 
+print "\n",$query -> startform('POST',$DocumentAddForm),"<div>\n";
+print $query -> submit (-value => "Reserve");
+print " a new document number\n"; 
+#print "(if you don't yet have a draft of your document).\n";
+print $query -> hidden(-name => 'mode',    -default => 'reserve');
+print "\n</div>\n",$query -> endform,"\n\n";
+print "</li>"; 
+
+### Use form (button)
+
+print "<br><li>"; 
+print "\n",$query -> startform('POST',$DocumentAddForm),"<div>\n";
+print $query -> submit (-value => "Use");
+print " a document number from the old DCC\n"; 
+print $query -> hidden(-name => 'mode',    -default => 'use');
+print "\n</div>\n",$query -> endform,"\n\n";
+print "</li>"; 
+
+print $query -> endform;
+print "\n\n";
+
+print "</ul><br><strong>Search for reserved numbers: </strong>";
+
+my $ShowForm  =  "<ul><li>\n";
+   $ShowForm .= $query -> startform('POST',$ShowDocument);
+   $ShowForm .= "<div>\n";
+   $ShowForm .= $query -> submit (-value => "Number Search");
+   $ShowForm .= " <strong>$ShortProject-#</strong> "; 
+   $ShowForm .= $query -> textfield(-name => "docid", -size =>  8, -maxlength => 8);
+#   $ShowForm .= " <strong>-v</strong> "; 
+#   $ShowForm .= $query -> textfield(-name => "version", -size => 3, -maxlength => 3);
+   $ShowForm .= "\n</div>\n";
+   $ShowForm .= $query -> endform;
+
+print "<div class=\"ReserveHome\">$ShowForm</div>\n";  
+
+my $SearchDiv = "<ul><li>\n";
+   $SearchDiv .= $query -> startform('POST',$Search);
+   $SearchDiv .= "<div>\n";
+   $SearchDiv .= $query -> submit (-value => "Basic Search");
+   $SearchDiv .= " "; 
+   $SearchDiv .= $query -> textfield(-name => "simpletext", -size => 40, -maxlength => 300);
+   $SearchDiv .= $query -> hidden(-name => "simple", -default => '1');
+   $SearchDiv .= " <strong>(<a href=\"$SearchForm#Advanced\">Advanced</a>";
+   $SearchDiv .= ")</strong>"; 
+   $SearchDiv .= "\n</div>\n";
+   $SearchDiv .= $query -> endform;
+print "<div class=\"ReserveHome\">$SearchDiv</div>\n";  
+
+### Right column (wrapped around by middle column)
+
+#print "<div id=\"RightColumn3Col\">\n";
+#print "</div>\n";  # RightColumn3Col
+
+print "</div>\n";  # MainColumn3Col
+
+print "<div id=\"Footer3Col\">\n"; # Must have to keep NavBar on true bottom
+print "</div>\n";  # Footer3Col
+print "</div>\n";  # ModifyHomeBody
+
+&DocDBNavBar;
+&DocDBFooter($DBWebMasterEmail,$DBWebMasterName);
+

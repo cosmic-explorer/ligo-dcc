@@ -1,0 +1,98 @@
+#! /usr/bin/env perl
+#
+
+use CGI;
+use DBI;
+use Data::Dumper;
+
+$query = new CGI;  # Global for subroutines
+
+my ($Sec,$Min,$Hour,$Day,$Mon,$Year) = localtime(time);
+++$Mon;
+$Year += 1900;
+$Mon = sprintf '%02d', $Mon;
+$Day = sprintf '%02d', $Day;
+my $TimeString = "$Year-$Mon-$Day";
+
+$council_file = "/tmp/council_$TimeString.txt";
+
+open (COUNCIL_LOG, ">>./logs/lsccouncil_$TimeString.log");
+
+$docdb_handle = DBI->connect('DBI:mysql:dcc_docdb:localhost', "docdbrw" , "*******");
+
+
+%Members = ();
+
+require "Source_MembersLDAP.pm";
+
+$ldap_server = 'ldaps://ldap.ligo.org';
+$ldap_base = "ou=people,dc=ligo,dc=org";
+$ldap_attr = "isMemberOf";
+$ldap_attr_val = "Communities:LVC:LSC:Council:LSCCouncil";
+$ldap_search_val = "employeeNumber";
+
+my $search_command = qq(./SearchLDAP $ldap_server "$ldap_base" $ldap_attr "$ldap_attr_val" $ldap_search_val| sed 's/$ldap_search_val: //g' > $council_file);
+
+system ("$search_command");
+
+my ($LSCCouncil_GroupID);
+my $lsc_council_query = $docdb_handle -> prepare(
+          "SELECT GroupID from  SecurityGroup where Name LIKE (\"LSC_Council\")");
+$lsc_council_query -> execute();
+$lsc_council_query -> bind_columns(undef, \($LSCCouncil_GroupID));
+
+
+# Make sure that the LSC_Council group exists
+
+if ($lsc_council_query -> fetch) {
+
+    # Clear out the LSC_Council groupo
+    my $lsc_council_clear =   $docdb_handle -> prepare(
+                  "DELETE from UsersGroup where GroupID=? ");
+    $lsc_council_clear -> execute ($LSCCouncil_GroupID);
+    
+       
+    if ((defined $council_file) && ($council_file ne '')) {
+    use Text::ParseWords;
+    open (FILE, "< $council_file");
+    print "council file $council_file\n";
+
+    my $i = 0;
+    while (<FILE>){
+         $i++;
+         my ($line) = $_;
+         my @words = ();
+
+         chomp ($line);
+         @words = parse_line(" ", 0, $line);
+
+         my $EmployeeNumber = $line;
+         print "\nEmployeeNumber $EmployeeNumber   ";
+
+         my ($EmailUserID);
+         my $EmailUserID_query = $docdb_handle -> prepare ("SELECT EmailUserID from EmailUser where EmployeeNumber=$EmployeeNumber");
+         $EmailUserID_query -> execute;
+         $EmailUserID_query -> bind_columns(undef, \($EmailUserID));
+
+         if ( $EmailUserID_query -> fetch ) {
+              my $users_group_insert = $docdb_handle -> prepare("INSERT into UsersGroup (EmailUserID, GroupID) values (?,?)");
+              $users_group_insert -> execute($EmailUserID, $LSCCouncil_GroupID ) or print "ERROR:  Unable to add $EmailUserID to group $LSCCouncil_GroupID in UserGroup Table";
+
+              print "EmailUserID $EmailUserID";
+         }
+    }
+    
+
+    }
+
+}
+else {
+    print COUNCIL_LOG "LSC_Council group does not exist\n";
+}
+
+exit 1;
+
+
+#close(ROSTER_LOG);
+
+#system("/home/dcc/roster/dist_files");

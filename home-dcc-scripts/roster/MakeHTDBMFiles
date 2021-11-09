@@ -1,0 +1,25 @@
+#! /usr/bin/env perl
+#
+
+use CGI;
+use DBI;
+
+require "DocDB_HTDBM.pm";
+$query = new CGI;  # Global for subroutines
+
+my ($Sec,$Min,$Hour,$Day,$Mon,$Year) = localtime(time);
+++$Mon;
+$Year += 1900;
+my $TimeString = "$Year-$Mon-$Day";
+
+open (ROSTER_LOG, ">/tmp/dbm_$TimeString.txt");
+
+$docdb_handle = DBI->connect('DBI:mysql:dcc_docdb:localhost', "docdbrw" , "*******");
+
+DocDB_GenerateHTDBMFiles();
+
+$docdb_handle -> disconnect;
+
+close(ROSTER_LOG);
+
+#system("/home/dcc/roster/dist_files");

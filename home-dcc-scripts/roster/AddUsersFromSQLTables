@@ -1,0 +1,46 @@
+#! /usr/bin/env perl
+#
+
+use CGI;
+use DBI;
+
+
+$query = new CGI;  # Global for subroutines
+
+require "Source_MembersSQL.pm";
+require "DocDB_InstitutionSQL.pm";
+require "DocDB_UsersSQL.pm";
+require "DocDB_HTDBM.pm";
+
+my ($Sec,$Min,$Hour,$Day,$Mon,$Year) = localtime(time);
+++$Mon;
+$Year += 1900;
+$Mon = sprintf '%02d', $Mon;
+$Day = sprintf '%02d', $Day;
+my $TimeString = "$Year-$Mon-$Day";
+
+open (ROSTER_LOG, ">>./logs/roster_$TimeString.log");
+
+$VERIFY_USERS = 1;
+
+$myligo_handle = DBI->connect('DBI:mysql:myligo:authcore.ligo.caltech.edu', "reader" , "*******");
+
+$docdb_handle = DBI->connect('DBI:mysql:dcc_docdb:localhost', "docdbrw" , "*******");
+
+&GetMembersFromSourceTable;
+$myligo_handle -> disconnect;
+
+&DocDB_UpdateInstitutionTable();
+&DocDB_GetInstitutions();
+&DocDB_UpdateAuthorTable();
+&DocDB_UpdateEmailUserTable();
+&DocDB_UpdateUsersGroup();
+
+#DocDB_GenerateHTDBMFiles();
+
+
+$docdb_handle -> disconnect;
+
+close(ROSTER_LOG);
+
+#system("/home/dcc/roster/dist_files");

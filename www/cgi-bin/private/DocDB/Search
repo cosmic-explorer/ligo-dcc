@@ -1,0 +1,96 @@
+#! /usr/bin/env perl
+#
+#        Name: $RCSfile: Search,v $
+# Description: Search on documents in local DocDB
+#
+#    Revision: $Revision: 1.27.2.10 $
+#    Modified: $Author: vondo $ on $Date: 2007/12/31 16:03:23 $
+#
+#      Author: Eric Vaandering (ewv@fnal.gov)
+
+# Copyright 2001-2008 Eric Vaandering, Lynn Garren, Adam Bryant
+
+#    This file is part of DocDB.
+
+#    DocDB is free software; you can redistribute it and/or modify
+#    it under the terms of version 2 of the GNU General Public License
+#    as published by the Free Software Foundation.
+
+#    DocDB is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+
+#    You should have received a copy of the GNU General Public License
+#    along with DocDB; if not, write to the Free Software
+#    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+
+use Benchmark;
+use CGI;
+use DBI;
+
+use warnings;
+no warnings qw(once);
+
+use CGI::Carp qw(carp croak fatalsToBrowser);
+
+require "DocDBGlobals.pm";
+
+if ($UseDeadlyWarning == 1) {
+   # promote run-time warnings into exceptions
+   # # *unless* we're in an try block, in which 
+   # # case just generate a log entry instead
+   local $SIG{__WARN__} = sub {
+      if ($^S) { carp  "Trapped warning: @_" }
+      else     { croak "Deadly warning: @_"  }
+   };
+}
+
+$StartTime = new Benchmark;
+
+require "HTMLUtilities.pm";
+require "Search.pm";
+
+sub GoogleSearch {
+   my $q = $_[0];
+   
+   my $querydomain = 'site:dcc.ligo.org +';
+
+   $q = "$querydomain $q";  
+ 
+   print $query->redirect(
+      -uri=>"https://www.google.com/?q=$q");
+
+   ## This also works
+   #print $query->header(-Refresh=>"0\;url=https://www.google.com/?q=$q");
+}
+
+$query = new CGI;  # Global for subroutines
+
+### Set up, give user initial information
+my %CGIParams = $query -> Vars;
+
+if ($Public) {
+   GoogleSearch($CGIParams{simpletext});
+} else {
+   $dbh = DBI->connect('DBI:mysql:'.$db_name.':'.$db_host,$db_rouser,$db_ropass)
+   or croak "Unable to connect: $DBI::errstr\n";
+
+   LocalSearch( {-cgiparams => \%CGIParams} );
+
+   ### Print footers
+   $EndTime  = new Benchmark;
+
+   ### Pull info out of params into local variables
+   my $OutFormat = $CGIParams{outformat} || "HTML";
+      $OutFormat =~ tr/[a-z]/[A-Z]/;
+
+   if ($OutFormat eq 'HTML') {
+      DocDBNavBar();
+      DocDBFooter($DBWebMasterEmail,$DBWebMasterName);
+   } elsif ($OutFormat eq 'XML') {
+      print GetXMLOutput();
+   } 
+}
+
+exit;

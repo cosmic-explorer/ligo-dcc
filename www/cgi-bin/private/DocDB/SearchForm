@@ -1,0 +1,287 @@
+#! /usr/bin/env perl
+#
+#        Name: $RCSfile: SearchForm,v $
+#        Description: Build the input form for the "Advanced" (formerly normal) DocDB Search
+#
+#        Revision: $Revision: 1.17.10.11 $
+#        Modified: $Author: vondo $ on $Date: 2007/12/31 16:03:23 $
+#
+#        Author: Eric Vaandering (ewv@fnal.gov)
+#
+#
+#        Copyright 2001-2008 Eric Vaandering, Lynn Garren, Adam Bryant
+#
+#    This file is part of DocDB.
+#
+#    DocDB is free software; you can redistribute it and/or modify
+#    it under the terms of version 2 of the GNU General Public License
+#    as published by the Free Software Foundation.
+#
+#    DocDB is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with DocDB; if not, write to the Free Software
+#    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+
+use CGI qw(-nosticky);
+use DBI;
+
+use warnings;
+
+no warnings qw(once);
+
+use CGI::Carp qw(carp croak fatalsToBrowser);
+
+require "DocDBGlobals.pm";
+
+if ($UseDeadlyWarning == 1) {
+   # promote run-time warnings into exceptions
+   # # *unless* we're in an try block, in which
+   # # case just generate a log entry instead
+   local $SIG{__WARN__} = sub {
+      if ($^S) { carp  "Trapped warning: @_" }
+      else     { croak "Deadly warning: @_"  }
+   };
+}
+
+require "FormElements.pm";
+require "SearchFormElements.pm";
+require "Scripts.pm";
+require "Sorts.pm";
+require "AuthorSQL.pm";
+require "TopicSQL.pm";
+require "SecuritySQL.pm";
+require "MiscSQL.pm";
+require "ResponseElements.pm";
+require "HTMLUtilities.pm";
+require "MeetingHTML.pm";
+require "Cookies.pm";
+
+$query = new CGI;
+$dbh   = DBI->connect('DBI:mysql:'.$db_name.':'.$db_host,$db_rouser,$db_ropass);
+
+GetAuthors();
+GetTopics();
+GetSecurityGroups();
+GetJournals();
+GetDocTypes();
+
+%params = $query -> Vars;
+
+print $query -> header( -charset => $HTTP_ENCODING );
+
+DocDBHeader("$Project Document Database Search","Document Database Search",
+            -search => $TRUE, -scripts => ["serverstatus", "PopUps",
+            "TopicChooser", "EventChooser","Throttle", "jQuery/jquery-1.8",
+            "auto", "Autocompleters", "prototype", "SearchForm"]);
+
+
+print "<h4>Click on any of the <span class=\"Help\">highlighted headings</span> for help.</h4>\n";
+
+# Simple Search Form
+print "<!-- Simple Search Form -->\n";
+print $query -> start_form('GET',$Search,"name=\"simplesearch\"");
+print '<table id="QuickSearchForm"
+       class="SearchFormTable LowPaddedTable CenteredTable">
+   <tr>
+      <td>
+';
+
+print FormElementTitle(-helplink => "quicksearch", -nobreak => $TRUE,
+                       -helptext => "Search for", );
+print "\n      </td>\n      <td>\n";
+
+print $query -> textfield(-size => 40, -id => "simplesearch", -name => "simpletext");
+print $query -> hidden(-name => "simple", -default => '1');
+
+print "\n      </td>\n      <td>\n";
+
+print $query -> submit (-value => "Basic Search",-onClick => "return validate(this);");
+
+print "\n      </td>\n   </tr>\n";
+
+unless ($Public) {
+   # Throttle
+   print "   <tr>
+      <td colspan=2 align=right>
+         <div id='throttle1'>
+            <script>makeThrottleWidget('throttle1')</script>
+         </div>
+      </td>
+   </tr>\n";
+}
+
+print '</table>
+<!-- End of simple search form -->';
+
+# End of Simple Search form
+print $query -> end_multipart_form;
+
+print "<hr/>\n";
+
+# Advanced search table
+print $query -> start_form('GET',$Search,"name=\"queryform\"");
+print "<table class=\"SearchFormTable HighPaddedTable CenteredTable\">\n";
+print "<tr>\n";
+ print "<td colspan=\"3\" class=\"SubmitCell\">\n";
+ print $query -> submit (-value => "Advanced Search", -onClick => "return validate(this);");
+ print "\n&nbsp;&nbsp;&nbsp;\n";
+ print $query -> reset (-value => "Reset Search Form");
+
+ unless ($Public) {
+    print "<p>
+   <center>
+      <div id='throttle2'>
+         <script>makeThrottleWidget('throttle2')</script>
+      </div>
+   </center>\n";
+ }
+
+ print "      </td>\n";
+ print "   </tr>\n";
+ print "   <tr>\n";
+ print "      <td colspan=\"3\" class=\"SubmitCell\">\n";
+ LogicTypeButtons();
+ print "      </td>\n";
+ print "   </tr>\n";
+ print "   <tr>\n";
+ print "      <td colspan=\"3\" class=\"SubmitCell\">\n";
+ ModeSelect();
+ print "      </td>\n";
+ print "   </tr>\n";
+
+ print "   <tr>\n";
+ print "      <td colspan=\"3\">\n";
+ print "         <table class=\"LowPaddedTable LeftHeader\">\n";
+ DocumentNumberSearchBox();
+ TitleSearchBox();
+ AbstractSearchBox();
+ KeywordsSearchBox();
+ RevisionNoteSearchBox();
+ PubInfoSearchBox();
+ FileNameSearchBox();
+ DescriptionSearchBox();
+ if ($ContentSearch) {
+    ContentSearchBox();
+ }
+ print "         </table>\n";
+
+# Here is the part that implements the autocomplete for id=authormanual, the previous textarea
+ AuthorJSList(1);
+
+
+ print "      <tr>\n";
+ print "   <td>\n";
+
+my $showall = 0; if($UserPreferences{AuthorMode} eq 'all'){$showall = 1;}
+AuthorScroll(-showall  => $showall,
+             -required => $RequiredEntries{Author},
+             -helptext => "Authors: Select ...",
+             -helplink => "authors",
+             -multiple => $TRUE,
+             -name     => "authors",
+             -onchange => "packValues(event, 'authors','authormanual');",
+             -onblur   => "unfocus();",
+             -default  => \@AuthorDefaults);
+
+ print "   </td>\n";
+
+print '    <td id="AuthorText"  style="width: 300px;">
+              <div id="authormanualdiv" >
+';
+
+AuthorTextEntry({ -required => $RequiredEntries{Author},
+                  -default   => \@AuthorDefaults,
+                  -helptext  => "...or type here",
+                  -name      => "authormanual" });
+
+print '       </div>
+           </td> ';
+
+  print "\n   <td><br/><br/>\n";
+  print $query -> checkbox(-name  => "includeauthorgrps",
+                           -label => "Include Author Groups");
+  print "\n      <br/>\n";
+  print "         <div id=\"AuthorTextError\"></div>\n      </td>\n   </tr>\n";
+
+## The following <tr> was commented out because it was
+## broken and was in the way of the 03/01/2013 3.0 DCC release
+## Phil Ehrens <pehrens@ligo.caltech.edu>
+ print "\n   <tr>\n      <td>\n";
+# AuthorScroll(-helplink => "author", -helptext => "Authors", -multiple => $TRUE);
+
+# well of course the following is not needed at all it is done above RW Oct 2013
+#my $showall = 0; if($UserPreferences{AuthorMode} eq 'all'){$showall = 1;}
+AuthorScroll(-showall  => $showall,
+             -required => $RequiredEntries{Author},
+             -helptext => "Last Updated By: Select ...",
+             -helplink => "lastupdated",
+             -multiple => $TRUE,
+             -name     => "requesters",
+             -onchange => "packValues(event, 'requesters','requestersmanual');",
+             -onblur   => "unfocus();",
+             -default  => \@AuthorDefaults);
+ #print "      </td>\n      <td>\n";
+ #AuthorTextEntry( {-helptext => "Authors", -helplink => "authortextsearch"} );
+ #print "\n      </td>\n";
+ print "<td id=\"AuthorText2\"><div id=\"requestersmanualdiv\"> \n";
+ AuthorTextEntry({ -required => $RequiredEntries{Author},
+                   -default   => \@AuthorDefaults,
+                   -helptext  => "...or type here",
+                    -name      => "requestersmanual" });
+
+ print "\n         </div>\n      </td>\n   </tr>\n";
+
+
+  print "\n   <tr>\n      <td colspan=\"3\" class=\"SubmitCell\">\n";
+  print $query -> submit (-value => "Advanced Search", -onClick => "return validate(this);");
+  print "\n&nbsp;&nbsp;&nbsp;\n";
+  print $query -> reset (-value => "Reset Search Form");
+  print "\n      </td>\n";
+  print "      <td>\n";
+  print "      </td>\n";
+  print "   </tr>\n";
+  print "   <tr>\n";
+  print "      <td>\n";
+  DocTypeMulti();
+  print "\n      </td>\n";
+  print "      <td colspan=2>\n";
+  print FormElementTitle(-helplink => "beforeafterdate", -helptext => "Any Version Modified Between");
+  DateRangePullDown();
+  print "\n      </td>\n";
+  print "   </tr>\n";
+
+  print "   <tr>\n      <td colspan=\"3\">\n";
+  TopicScroll({ -multiple => $TRUE, -helplink => "searchtopic", });
+  print "\n       <br/>\n";
+  print $query -> checkbox(-name  => "includesubtopics", -checked => 'checked',
+                           -label => "Include sub-topics");
+  print "\n      </td>\n   </tr>\n";
+
+if (!$Public) {
+    print "   <tr>\n";
+    print "      <td>\n";
+    EventGroupSelect( {-multiple => $TRUE, -onchange => "selectEvent(this.form);"} );
+    print "\n      </td>\n";
+    print "      <td colspan=\"2\">\n";
+    EventSelect( {-multiple => $TRUE, -format => "full"} );
+    print "\n      </td>\n";
+    print "   </tr>\n";
+}
+
+  print "   <tr>\n";
+  print "      <td colspan=\"3\" class=\"SubmitCell\">\n";
+  print $query -> submit (-value => "Advanced Search", -onClick => "return validate(this);");
+  print "\n        &nbsp;&nbsp;&nbsp;\n";
+  print $query -> reset (-value => "Reset Search Form");
+  print "\n      </td>\n";
+  print "   </tr>\n";
+  print "</table>\n";
+  print $query -> end_multipart_form;
+  print "<br>";
+
+DocDBNavBar();
+DocDBFooter($DBWebMasterEmail,$DBWebMasterName);

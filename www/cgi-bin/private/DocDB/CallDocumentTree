@@ -1,0 +1,66 @@
+#! /usr/bin/env perl
+
+require "DocumentTree";
+
+open (DEBUG, ">", "/tmp/debug");
+use IO::Handle; DEBUG->autoflush(1);
+#$dbh   = dbi->connect('dbi:mysql:'.$db_name.':'.$db_host,$db_rouser,$db_ropass);
+$dbh   = DBI->connect('DBI:mysql:database='.$db_name.':host='.$db_host,$db_rouser,$db_ropass);
+
+my $Twig = XML::Twig -> new();
+$query = new CGI;  # Global for subroutines
+%CGIParams = $query -> Vars;
+print $query -> header( -charset => $HTTP_ENCODING);
+# attempt to get information as if form is being called for first time
+my $FirstClick = $CGIParams{'firstclick'};
+my $DocumentID = $CGIParams{'docid'};
+my $Version   = $CGIParams{'version'};
+CreateConnection(-type => "rw");
+
+#my $Alias = FetchDocumentAlias($DocumentID);
+if ($DocumentID =~ m/^\d+$/) {
+   my $Alias = FetchDocumentAlias($DocumentID);
+} elsif ($DocumentID =~ m/^[a-zA-Z]\d{6,8}$/) {
+   my $Alias = $DocumentID;
+  $DocumentID = GetDocumentIDByAlias($Alias);
+}
+my $RevID = FetchRevisionByDocumentAndVersion($DocumentID,$Version);
+my $Title = '';
+if ($Version == 0) {
+    $Title = "Related Document Tree for " . $Alias . "-x0";
+}
+else {
+    $Title = "Related Document Tree for " . $Alias . "-v" . $Version;
+}
+DocDBHeader("Related Document Tree",$Title, -scripts => ["prototype","serverstatus", "PopUps","ValidateForm"]);
+
+# If form is being called for first time
+# just call all the things now
+if ($FirstClick == '3') {
+    # print 'First click?';
+    my $Depth   = $CGIParams{'depth'};
+    my $exclude_string = $CGIParams{'exclude'}; # dummy variable
+    my @Exclude = ();
+    PrintInfoForm($Depth, "");
+    PrintDocTree($RevID, $Depth, "");
+    # $FirstClick = '2';
+    print $query -> hidden(-name => 'firstclick', -default => 0);
+}
+# In this case form is being called with new params,
+# so we need to fetch those params
+else {
+    my $Depth   = $query -> param('DepthField');
+    my @Exclude = $query -> param('ExcludeType');
+    # my @Exclude = split(/\|/, $StrExclude);
+    my $joined = join "|", @Exclude;
+    # print "Try 2 Exclude: @Exclude \n";
+    PrintInfoForm($Depth, $joined);
+    PrintDocTree($RevID, $Depth, $joined);
+}
+
+# print DEBUG "here2\n";
+close (DEBUG);
+EndPage();
+DocDBNavBar();
+DocDBFooter($DBWebMasterEmail,$DBWebMasterName);
+1;

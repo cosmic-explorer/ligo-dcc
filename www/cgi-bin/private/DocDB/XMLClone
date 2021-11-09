@@ -1,0 +1,309 @@
+#! /usr/bin/env perl
+#
+#        Name: $RCSfile: XMLClone,v $
+# Description: Allows the user to provide an XML file with all the data describing a document.
+#              The user can upload the XML file with a command like
+#
+#              curl -F outformat=xml -F XMLFile=@file.xml -u user:pass http://host.com/cgi-bin/DocDB/XMLUpload
+#
+#    Revision: $Revision: 1.1.4.5 $
+#    Modified: $Author: vondo $ on $Date: 2007/08/10 14:34:34 $
+#
+#      Author: Eric Vaandering (ewv@fnal.gov)
+
+# Copyright 2001-2007 Eric Vaandering, Lynn Garren, Adam Bryant
+
+#    This file is part of DocDB.
+
+#    DocDB is free software; you can redistribute it and/or modify
+#    it under the terms of version 2 of the GNU General Public License
+#    as published by the Free Software Foundation.
+
+#    DocDB is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+
+#    You should have received a copy of the GNU General Public License
+#    along with DocDB; if not, write to the Free Software
+#    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+
+use CGI qw(-nosticky);
+use DBI;
+use XML::Twig;
+use File::Basename;
+use CGI::Carp qw(fatalsToBrowser);
+use POSIX;
+require DocDBGlobals;
+require HTMLUtilities;
+require ResponseElements;
+require DBUtilities;
+require DocumentUtilities;
+require FSUtilities;
+require AuthorSQL;
+require MiscSQL;
+require Security;
+require "SecuritySQL.pm";
+require "DocumentHTML.pm";
+require "Defaults.pm";
+require "Scripts.pm";
+require "RevisionSQL.pm";
+require "SignoffSQL.pm";
+require "FSUtilities.pm";
+use IO::String;
+
+my $Twig = XML::Twig -> new();
+$query = new CGI;  # Global for subroutines
+%CGIParams = $query -> Vars;
+print $query -> header( -charset => $HTTP_ENCODING );
+DocDBHeader("Clone Document Results","Clone Document Reservation Results", -scripts => ["prototype","serverstatus", "PopUps","ValidateForm"]);
+CreateConnection(-type => "rw");
+
+&GetSecurityGroups;
+
+# Get basic document info from button click
+my $DocumentID = $CGIParams{'docid'};
+my $Mode       = $CGIParams{'mode'};
+my $Version   = $CGIParams{'version'};
+
+# This is where the submitted document's XML file is copied into a string.
+require "XMLOutput.pm";
+unless ($NoXMLHead) {
+  #print XMLHeader();
+}
+NewXMLOutput();
+
+my %XMLFields = ("All" => 1);
+my $XMLText = DocumentXMLOut( {-docid   => $DocumentID,
+                               -version => $Version,
+                               -display => \%XMLFields,
+                              } );
+if ($XMLText) {
+  $XMLText -> paste(last_child => $DocDBXML);
+}
+
+my $ReportXML = XMLReport();
+$ReportXML -> paste(last_child => $DocDBXML);
+my $XMLTextString = GetXMLOutput();
+
+
+# This is where the XMLStringOutput gets the control block etc. added
+# Little ugly and hardcoded indices (sorry!) but works.
+# PGA : really dirty patchup replace 17 with 12+length($DocDBVersion)
+my $insert = "<control><mode>new</mode></control>\n";
+substr($XMLTextString, index($XMLTextString, 'version') + 12 + length($DocDBVersion), 0, $insert);
+substr($XMLTextString, index($XMLTextString, '<report/>'), 10) = "";
+#         my $header = "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n";
+my $header = "<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>\n";
+substr($XMLTextString, 0, 0, $header);
+substr($XMLTextString, index($XMLTextString, 'amp;'), 4) = "";
+
+# Quick check of permisisons just in case
+unless (CanCreate()) {
+  push @ErrorStack,"You are not allowed to modify or create documents.";
+  &EndPage(-startpage => $TRUE);
+}
+
+# Safe Parse the XML file of the original so that we can fetch children from tree
+my ($NewDocumentID,$NewDocRevID);
+my $fh = IO::String->new($XMLTextString);
+
+if (@ErrorStack) { &EndPage(-startpage => $TRUE); }
+if (!$XMLTextString) {
+  die "XMLClone Error: XMLTextString is null for some reason.";
+}
+$Twig -> safe_parse($fh) or die "XMLClone Error: XML Parsing (XML::Twig method safe_parse) Failed! \n\t$@\n$XMLTextString\n";
+
+my $XML = $Twig -> root();
+# Get control block
+my $Control = $XML     -> first_child("control");
+my $XMLMode = $Control -> first_child("mode") -> text();
+my $UseDate = $Control -> first_child("usedate");
+push @DebugStack,"XMLMode: \'$XMLMode\'";
+
+# Get Authentication if needed
+my $Authentication =  $XML -> first_child("authentication");
+my ($User,$Password);
+if ($Authentication) {
+  $User     = $Authentication -> first_child("username") -> text();
+  $Password = $Authentication -> first_child("password") -> text();
+}
+
+# Get document basic info
+my $Document = $XML       -> first_child("document");
+my $Revision = $Document -> first_child("docrevision");
+push @DebugStack,"Document: \'$Document\'";
+
+# Extract text information from XML
+my ($PubInfo,$Note,$Abstract);
+my $Title = $Revision -> first_child("title")      -> text();
+my $OldRevID = FetchRevisionByDocumentAndVersion($DocumentID, $Version);
+
+if ($Revision -> first_child("publicationinfo")) {
+  $PubInfo = $Revision -> first_child("publicationinfo") -> text();
+}
+# get old document alias and current signed in user (will be new author)
+$OldAlias = FetchDocumentAlias($DocumentID);
+$SubmitterID = FetchAuthorIDFromEmailUserID(&FetchEmailUserIDFromRemoteUser(&remote_user));
+$SubmitterName = $Authors{$SubmitterID}{FULLNAME};
+
+# Extract keywords from XML
+my @Keywords = $Revision -> children("keyword");
+
+my @KeywordsText = ();
+foreach $Keyword (@Keywords) {
+  push @KeywordsText,$Keyword -> text();
+}
+
+my $Keywords = join ' ',@KeywordsText;
+
+# Extract Document Type
+my $DocType = $Revision -> first_child("doctype");
+my $DocTypeID= $DocType  -> {'att'} -> {'id'};
+
+# Extract author list from XML
+my @AuthorIDs = ();
+my @Authors = $Revision -> children("author");
+foreach $Author (@Authors) {
+  my $AuthorID = $Author -> {'att'} -> {'id'};
+  unless ($AuthorID) {
+    my $FirstName = $Author -> first_child("firstname") -> text();
+    my $LastName  = $Author -> first_child("lastname")  -> text();
+    ($AuthorID) = ProcessManualAuthors("$FirstName $LastName");
+  }
+  push @AuthorIDs, $AuthorID;
+}
+
+# Extract Journal References from XML
+@ReferenceIDs = FetchReferencesByRevision($OldRevID);
+
+# Extract view and modify groups
+my @ViewIDs = ();
+my @ModifyIDs = ();
+my @ViewGroups = $Revision -> children("viewgroup");
+foreach $Group (@ViewGroups) {
+  my $ID = $Group -> {'att'} -> {'id'};
+  push @ViewIDs, $ID;
+}
+my @ModifyGroups = $Revision -> children("modifygroup");
+foreach $Group (@ModifyGroups) {
+  my $ID = $Group -> {'att'} -> {'id'};
+  push @ModifyIDs, $ID;
+}
+
+# Extract topic list from XML
+my @TopicIDs = ();
+my @Topics = $Revision -> children("topic");
+foreach $Topic (@Topics) {
+  my $TopicID = $Topic -> {'att'} -> {'id'};
+  if ($TopicID) {
+    push @TopicIDs, $TopicID;
+  } else {
+    #extract name and lookup
+    #bail if more than one match
+  }
+}
+
+# Extract event list from XML (not used currently)
+my @EventIDs = ();
+my @Events = $Revision -> children("event");
+foreach $Event (@Events) {
+  my $EventID = $Event -> {'att'} -> {'id'};
+  if ($EventID) {
+    push @EventIDs, $EventID;
+  }
+}
+
+# Extract the Related Documents from XML
+my @XRefIDs = ();
+my @XRefs = $Revision -> children("xrefto");
+
+foreach $XRef (@XRefs) {
+  my $XRefID = $XRef -> {'att'} -> {'docid'};
+  if ($XRefID) {
+       push @XRefIDs,  $XRefID;
+  }
+}
+
+# Initialize Abstract and get local time
+$Abstract = $DocRevisions{$OldRevID}{Abstract};
+my ($sec, $min, $hour, $mday, $mon, $year, $wday, $yday, $isdst) = localtime(time);
+my $nice_timestamp = sprintf("%04d-%02d-%02d %02d:%02d:%02d", $year+1900, $mon+1, $mday, $hour, $min, $sec);
+my $zone = strftime("%Z", localtime());
+
+# use local time, old alias, old rev id, current signed in user, old version to add duplicate announcement to note
+if ($Version == 0){
+  $Note = "This document is a duplicate of $OldAlias-x0 cloned on $nice_timestamp $zone.\n\n";
+} else {
+  $Note = "This document is a duplicate of $OldAlias-v$Version cloned on $nice_timestamp $zone.\n\n";
+}
+$Note .= $DocRevisions{$OldRevID}{Note};
+
+
+if (@ErrorStack) { &EndPage(-startpage => $TRUE); }
+# This is where the actual duplicate document is created
+# Must pass in docid 0 and version new for it to work 
+($NewDocumentID,$NewDocRevID) = AddDocument({
+   -docid       => 0,             -version     => 0,
+   -title       => $Title,        -requesterid => $SubmitterID,
+   -abstract    => $Abstract,     -keywords    => $Keywords,
+   -pubinfo     => $PubInfo,      -note        => $Note,
+   -typeid      => $DocTypeID,    -datetime    => $DateTime,
+   -authorids   => \@AuthorIDs,   -topicids    => \@TopicIDs,
+   -viewids     => \@ViewIDs,     -modifyids   => \@ModifyIDs,
+   -referenceids  => \@ReferenceIDs,
+   #-eventids    =>  \@EventIDs,   -files         =>  \%Files
+ });
+
+# If document was public, duplicate should be public pending
+unless (@ViewIDs) {
+  my $ID = FetchSecurityGroupByName($Public_Group);
+  push @ViewIDs, $ID;
+  &GetSecurityGroups;
+  &ProtectDirectory($NewDocumentID,
+                0,
+                $NewDocRevID,
+                @ViewIDs);
+  FetchDocRevisionByID($NewDocRevID);
+  my $NewState = 0;
+  &UpdateRevisionQAState($NewDocRevID, $NewState);
+  &UpdateRevisionPublicSecurity($NewDocumentID, 0, $NewState);
+  # set QA check to 0 means public
+  $DocRevisions{$NewDocRevID}{QAcheck} = 0;
+}
+
+# Insert References to other documents
+if (@XRefIDs) {
+  require "XRefSQL.pm";
+  &InsertXRefs(-docrevid => $NewDocRevID, -documents => \@XRefIDs);
+}
+
+# Duplicate any signoffs
+my @SignoffIDs = GetAllSignoffsByDocRevID($OldRevID);
+my @SignoffEmailUserIDs = GetAllEmailUserIDsBySignoffIDs(@SignoffIDs);
+my $ParallelSignoff     = $DocRevisions{$OldRevID}{ParallelSignoff};
+InsertSignoffList($NewDocRevID, $ParallelSignoff, @SignoffEmailUserIDs);
+
+# Print intermediate page with 2 buttons on it
+my %Labels = {'xml'=>'XML', 'html' => 'HTML (This page)'};
+my $Alias =  FetchDocumentAlias($NewDocumentID);
+print "<p>You were successful. Your duplicate document is $Alias. <br/>";
+my $event = 'onClick="window.location=';
+if ($Version == 0){
+  $lb1 = $event."'/".&FetchDocumentAlias($DocumentID)."-x0'\"";
+}
+else {
+ $lb1 = $event."'/".&FetchDocumentAlias($DocumentID)."-v$Version'\"";
+}
+$lb2 = $event."'/".&FetchDocumentAlias($NewDocumentID)."-x0'\"";
+print "<div id=\"NotRevisionInfo\">\n";
+print "   <div id=\"pda2buttons\">\n";
+print "      <button class=pda2bl ".$lb1.">Go To Original Document</button>";
+print "      <button class=pda2bl ".$lb2.">Go To New Document</button>";
+print "   </div> <!-- pda2buttons -->\n";
+print "</div> <!-- RevisionInfo -->\n";
+print "<p/><hr/><p/>\n";
+EndPage();
+DocDBNavBar();
+DocDBFooter($DBWebMasterEmail,$DBWebMasterName);
+

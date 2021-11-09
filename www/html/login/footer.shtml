@@ -1,0 +1,51 @@
+<div id="container-footer">
+	<div id="footer">
+		<table width="100%" class="footer-table" summary="Table is used for layout purposes only.">
+			<tr>
+				<td width="25%">
+					<strong>About</strong><br><br>
+					<a href="https://my.ligo.org/">Request a LIGO account</a><br>
+					<a href="https://my.ligo.org/pwreset.php">Reset your password</a><br><br>
+
+					<a href="Quick_Start_Guide.html">Getting started with DCC</a><br>
+					<a href="FAQ.html">FAQ</a><br>
+					<a href="Documentation.html">User manual</a><br><br>
+					
+					<a href="https://dcc.ligo.org/cgi-bin/DocDB/DocumentDatabase">Quick search</a><br>
+					<a href="https://dcc.ligo.org/cgi-bin/DocDB/SearchForm">Advanced search</a><br>
+					<!--<a href="http://admdbsrv.ligo.caltech.edu/dcc/">Old DCC search</a><br>-->
+					<a href="Getting_DCC_Help.html">Help</a><br>
+				</td>
+				<td width="25%">
+					<strong>Mirrors</strong><br><br>
+					<a href="https://dcc-lho.ligo.org/">LHO</a><br>
+					<a href="https://dcc-llo.ligo.org/">LLO</a><br><br>
+
+					<strong>Other GW project documents</strong><br><br>
+					<a href="https://gwdoc.icrr.u-tokyo.ac.jp/">KAGRA DCC</a><br>
+					<a href="https://tds.virgo-gw.eu/">Virgo TDS</a><br>
+				</td>
+				<td>
+					<strong>Contact</strong><br><br>
+					<a href="mailto:dcc-help@ligo.org">DCC Help</a><br>
+					<a href="https://my.ligo.org/support.php">MyLIGO Help</a><br><br>
+					<a href="mailto:veronica@ligo.caltech.edu">Web</a><br><br>
+				</td>
+
+			</tr>
+			<tr>
+				<td colspan="3">
+					<hr size="1" color="#ddd">
+					Supported by the <a href="http://www.nsf.gov/">National Science Foundation</a><br>
+				</td>
+			</tr>
+		</table>
+	</div>
+</div>
+
+
+
+
+
+</body>
+</html>

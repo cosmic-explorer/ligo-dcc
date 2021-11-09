@@ -1,0 +1,36 @@
+#! /usr/bin/env perl 
+
+#
+# Description: Does a Shibboleth logout and redirects to Home
+#
+# Copyright 2012  Melody C. Araya
+
+#    This file is part of DocDB.
+
+#    DocDB is free software; you can redistribute it and/or modify
+#    it under the terms of version 2 of the GNU General Public License
+#    as published by the Free Software Foundation.
+
+#    DocDB is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+
+#    You should have received a copy of the GNU General Public License
+#    along with DocDB; if not, write to the Free Software
+#    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+
+
+use CGI;
+
+require "ProjectGlobals.pm";
+require "CGIInclude.pm" or die $!;
+
+
+$query = new CGI;
+
+my $URL = $host_name."Shibboleth.sso/Logout?return=".$host_name;
+
+print $query -> redirect($URL);
+
+1;

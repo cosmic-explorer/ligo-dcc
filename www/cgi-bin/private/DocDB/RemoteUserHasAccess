@@ -1,0 +1,72 @@
+#! /usr/bin/env perl 
+
+#
+# Description: Change preferences for what/when to be notified of document
+#              changes in e-mail.
+#
+
+open(STDERR, ">>", "/tmp/errlog.log");
+open (DEBUG, ">>/tmp/debug");
+
+use CGI;
+use DBI;
+use CGI::Carp;
+use File::Basename;
+use lib dirname (__FILE__);
+
+require "CGIInclude.pm" or die $!;
+require "DocDBGlobals.pm";
+require "ProjectGlobals.pm";
+require "SiteConfig.pm";
+require "ResponseElements.pm";
+require "NotificationSQL.pm";
+require "SignoffSQL.pm";
+require "SecuritySQL.pm";
+require "RevisionSQL.pm";
+require "RevisionHTML.pm";
+require "EmailSecurity.pm";
+require "FSUtilities.pm";
+require "Security.pm";
+
+chomp(@stdin = <STDIN>);
+my $RemoteUser = $stdin[0];
+
+
+
+
+use constant request_uri => $ENV{URI};
+use constant authnz_remote_user => $RemoteUser;
+
+print DEBUG "User: '$RemoteUser'\n";
+print DEBUG   "      Time: ".(localtime)."\n";
+foreach $key (keys %ENV) {
+  print DEBUG "$key = $ENV{$key}\n";
+}
+print DEBUG "\n";
+
+my $Filename = $web_root.&request_uri;
+
+$dbh   = DBI->connect('DBI:mysql:'.$db_name.':'.$db_host, $db_rwuser, $db_rwpass) or die(3);
+
+my $DocRevID = DocRevIDFromFullFile($Filename);
+
+my $EmailUser = FetchEmailUserIDFromRemoteUserName($RemoteUser);
+our $GLOBAL_EMAILUSER = $EmailUser;
+
+&GetSecurityGroups;
+#print "Content-Type: text/html\n\nFilename is: $Filename";
+
+my $CanAccessRev = CanAccessRevision($DocRevID, $EmailUser);
+
+print DEBUG "access was $CanAccessRev \n";
+close(DEBUG);
+
+if ($CanAccessRev) {
+   exit(0);
+} 
+else 
+{
+   exit(1);
+}
+
+

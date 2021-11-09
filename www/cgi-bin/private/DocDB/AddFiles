@@ -1,0 +1,280 @@
+#! /usr/bin/env perl
+#
+# Description: Adds downloaded files to the database and filesystem
+#
+#      Author: Eric Vaandering (ewv@fnal.gov)
+#    Modified: 
+
+# Copyright 2001-2007 Eric Vaandering, Lynn Garren, Adam Bryant
+
+#    This file is part of DocDB.
+
+#    DocDB is free software; you can redistribute it and/or modify
+#    it under the terms of version 2 of the GNU General Public License 
+#    as published by the Free Software Foundation.
+
+#    DocDB is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+
+#    You should have received a copy of the GNU General Public License
+#    along with DocDB; if not, write to the Free Software
+#    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+
+use Benchmark;
+use CGI;
+use DBI;
+use File::Basename;
+
+use warnings;
+no warnings qw(once);
+
+use CGI::Carp qw(carp croak fatalsToBrowser);
+
+require "DocDBGlobals.pm";
+
+if ($UseDeadlyWarning == 1) {
+   # promote run-time warnings into exceptions
+   # # *unless* we're in an try block, in which 
+   # # case just generate a log entry instead
+   local $SIG{__WARN__} = sub {
+      if ($^S) { carp  "Trapped warning: @_" }
+      else     { croak "Deadly warning: @_"  }
+   };
+}
+
+$StartTime = new Benchmark;
+
+require "ResponseElements.pm";
+require "SecuritySQL.pm";
+require "RevisionSQL.pm";
+require "MiscSQL.pm";
+require "SignoffSQL.pm";
+
+require "FSUtilities.pm";
+require "WebUtilities.pm";
+require "HTMLUtilities.pm";
+require "FileUtilities.pm";
+require "SignoffUtilities.pm";
+require "Security.pm";
+
+require "RevisionHTML.pm";
+
+$Mode = 'add';
+
+$query = new CGI;  # Global for subroutines
+$dbh   = DBI -> connect('DBI:mysql:'.$db_name.':'.$db_host,$db_rwuser,$db_rwpass);
+
+&GetSecurityGroups; # FIXME Replace with fetches in right place
+
+### Set up, give user initial information
+
+%params = $query -> Vars;
+
+### Check parameters for errors
+
+@ErrorStack = ();
+@WarnStack  = ();
+
+### Get document and revision ID
+
+my $DocumentID  = $params{docid}   || 0;
+my $Version     = $params{version} || 0;
+my $Replace     = $params{replace};
+my $MaxFiles    = $params{maxfiles};
+my $SubmitAgree = $params{submitagree};
+my $NumberSigned = $params{nsigned};
+my $ResetState  = $params{reset}   || 1;
+
+my $DocRevID;
+
+# This is a stopgap until this stuff is all proper functional code
+sub bailOutOfAddFiles {
+   print $query -> header( -charset => $HTTP_ENCODING );
+   &DocDBHeader("$Project File Addition Results","File Addition Results");
+   &DontPrintRevisionInfo('add');
+   EndPage();
+   DocDBNavBar();
+   DocDBFooter($DBWebMasterEmail,$DBWebMasterName);
+   exit;
+}
+
+### Check for user errors
+
+if ($DocumentID > 0 && $Version > 0) {
+  $DocRevID = &FetchRevisionByDocumentAndVersion($DocumentID,$Version);
+  unless ($DocRevID) {
+    push @ErrorStack,"No such document exists.";
+    bailOutOfAddFiles();
+  }
+  unless (&CanModify($DocumentID,$Version)) {
+    push @ErrorStack,"You are not authorized to modify this document.";
+    bailOutOfAddFiles();
+  }
+} else {
+   #
+   #  Only docdbadm can upload files to -x0
+   # 
+   if (CanAdminister()) {
+      $DocRevID = &FetchRevisionByDocumentAndVersion($DocumentID,$Version);
+      my @GroupIDs     = GetRevisionSecurityGroups($DocRevID);
+ 
+      &UpdateRevisionPublicSecurity($DocumentID, $Version, 0);
+ 
+      &ProtectDirectory($DocumentID,$Version,$DocRevID,@GroupIDs);
+   } else {
+      push @ErrorStack,"You must supply document and version numbers to add files.";
+      bailOutOfAddFiles();
+   }
+}
+
+if ($Preferences{Options}{SubmitAgree} && !$SubmitAgree) {
+   push @ErrorStack,'You must check the box near with this statement: <br/>'.
+                    $Preferences{Options}{SubmitAgree}.
+                    '<br/>to add files to the document.';
+   bailOutOfAddFiles();
+}
+
+
+my $UpdateLink = $DocumentAddForm."?mode=update&docid=$DocumentID";
+
+# Fill in file hash
+my %Files = ();
+my $NeedURLs   = 0;
+my $AddNewFile = 0;
+
+for (my $i = 1; $i<= $MaxFiles; ++$i) {
+   my $Key = $i; # Probably something better later
+   if ($params{"upload$i"}) {
+      my $short_file = basename($params{"upload$i"});
+      $AddNewFile = 1;
+      $Files{$Key}{File} = $query ->  param("upload$i");
+      if (&ExistsUpload($DocRevID,$Files{$Key}{File})) {
+         if ($Replace) {
+         push @WarnStack,"The file $short_file already existed and has been
+                          replaced with a new version.";
+         } else {
+            push @ErrorStack,"The file $short_file already exists.  You may not add
+                 files with the same file name.<br>
+                 You probably want to <a href=\"$UpdateLink\">create a new version</a>,
+                 not add files.";
+            bailOutOfAddFiles();
+         }
+      }  
+   } elsif ($params{"url$i"}) {
+      my $short_file = basename($params{"url$i"});
+      $NeedURLs = 1;
+      $AddNewFile = 1;
+      $Files{$Key}{URL}  = $params{"url$i"};
+      $Files{$Key}{User} = $params{http_user};
+      $Files{$Key}{Pass} = $params{http_pass};
+      if (&ExistsURL($DocRevID,$Files{$Key}{URL})) {
+         if ($Replace) {
+            push @WarnStack,"The file $short_file already existed and has been
+                            replaced with a new version.";
+         } else {
+            push @ErrorStack,"The file $short_file already exists. 
+               You may not add files with the same file name.<br>
+               You probably want to <a href=\"$UpdateLink\">update</a> your document, 
+               not add files.";
+            bailOutOfAddFiles();
+         }
+      }  
+   }
+   
+   if ($params{"main$i"}) {
+      $Files{$Key}{Main} = 1;
+   } else {
+      $Files{$Key}{Main} = 0;
+   }          
+ 
+   $Files{$Key}{Description} = $params{"filedesc$i"};
+}
+
+unless ($AddNewFile) {
+  push @ErrorStack,"You must supply a file for this document.";
+  bailOutOfAddFiles();
+}
+
+# Download HTTP files (generates it's own warnings)
+ 
+if ($NeedURLs) {
+  my $TmpDir = &MakeTmpSubDir();
+  %Files = &DownloadURLs(-tmpdir => $TmpDir, -files => \%Files);
+}  
+
+### Put files in filesystem
+$new_dir = &MakeDirectory($DocumentID,$Version);
+
+my @FileIDs = &AddFiles(-docrevid   => $DocRevID, -files => \%Files, 
+                        -replaceold => $Replace);
+
+
+my @securities = &GetRevisionSecurityGroups($DocRevID);
+
+if (scalar(@securities) == 0 && $ResetState == 1) {
+   push @securities, 1;
+   @securities = Unique(@securities);
+
+   &InsertSecurity(-docrevid  => $DocRevID,
+                  -viewids   => \@securities,
+                  -modifyids => \@ModifyGroups);
+   
+   UnlinkDirectory($DocumentID, $Version);
+   push @WarnStack,"The public status of this document has been revoked.<br>
+                   The document must be recertified.<p>";
+}
+
+### Remove signatures from document if they existed
+if ($NumberSigned && $UseSignoffs && $ResetState == 1) {
+  require "SignoffUtilities.pm";
+  $Status = &UnsignRevision($DocRevID);
+  if ($Status eq "Unsigned") {
+    push @WarnStack,"All signatures from the document have been removed.";
+  }
+} elsif ($NumberSigned) {
+   push @WarnStack,"All signatures from the previous document revision have been preserved.";
+}
+  
+%DocFiles = (); @Files    = (); # Files DB not in sync, clear it
+
+### Output feedback to the user
+my $full_docid = FullDocumentID($DocumentID);
+$DocRevID   = FetchRevisionByDocumentAndVersion($DocumentID,$Version);
+
+unless ($DocRevID) {
+  push @ErrorStack,"This document does not exist.<p>\n";
+  bailOutOfAddFiles();
+}
+
+print $query -> header( -charset => $HTTP_ENCODING );
+&DocDBHeader("$Project File Addition Results","File Addition Results");
+
+WarnPage(@WarnStack); @WarnStack = ();
+
+print "You were successful in adding files.<p><hr><p>\n"; 
+
+### Touch document
+&UpdateRevision(-docrevid => $DocRevID);
+
+&DontPrintRevisionInfo('add');
+
+&UpdateRevisionQAState($DocRevID, 0);
+my @GroupIDs     = GetRevisionSecurityGroups($DocRevID);
+&ProtectDirectory($DocumentID,$Version,$DocRevID,@GroupIDs);
+
+if ($MailInstalled && $UseSignoffs) { 
+  &ClearSignatures(); 
+  &NotifySignees($DocRevID);
+}
+
+if ($MailInstalled) {
+  require "MailNotification.pm";
+  MailNotices(-docrevid => $DocRevID, -type => "addfiles");
+}
+
+$EndTime  = new Benchmark;
+
+DocDBNavBar();
+DocDBFooter($DBWebMasterEmail,$DBWebMasterName);

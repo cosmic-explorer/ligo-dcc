@@ -1,0 +1,116 @@
+#!/usr/bin/perl -w
+use strict;
+use warnings;
+
+# make sure to include the right 
+# path https://stackoverflow.com/questions/841785/how-do-i-include-a-perl-module-thats-in-a-different-directory
+# undecided yet if I go for /usr1/www/cgi-bin/private/DocDB (using "production" locatio)
+# for .. or ../.. (assumes test directory in production location, simpler but with implication on deployment)
+# or for $GIT_ROOT/cgi-bin/private (assumes I know GIT_ROOT, and structure is the same) 
+# or externally manage PERL5LIB and trust it blindly
+#
+
+# make sure to add the dcc code directory to the LIB
+#use lib '/usr1/www/cgi-bin/private/DocDB';
+# do I smell setup() ?
+{
+  system("cp SiteConfig.pm.org SiteConfig.pm");
+}
+
+
+use DCC_CGI;
+
+# How many tests need to run ?
+use Test::Simple tests => 3;
+
+&setup();
+
+END { &teardown() ; }
+
+my ($DocumentXML, $err, $exit) = &cgi_call( script          => 'ShowDocument', 
+  					    report_warnings => 0,
+                                            query_string    => 'docid=T080330&outformat=xml');
+print "Err  : $err  \n";
+print "Exit : $exit \n";
+
+ok($exit == 0 , 'ShowDocument returned code 0');
+ok($err eq "", 'ShowDocument did not generate warnings or errors');
+ok($DocumentXML =~ /xref(by|to).*alias/ , '#445, DocumentAlias listed in xrefby, xrefto in XML output' );
+
+
+__DATA__
+
+# Ad-Hoc SiteConfig.pm leveraged from dcc-dev 
+# (temporarily?) replace SiteConfig.pm in tests directory should there be a need to Setup and take down  
+
+# DB settings
+
+$db_name       = "dcc_docdb";    # Database name
+$db_host       = "localhost";
+$db_rwuser     = "docdbrw";      # You can change the names of the accounts if you are
+$db_rwpass     = "*******"; # hosting more than one DocDB on the same SQL server
+$db_rouser     = "docdbro";      # (for two different projects). Otherwise its probably
+$db_ropass     = "*******"; # best just to leave the names as-is.
+
+# optionally pre-create the $dbh connection object
+use DBI;
+$dbh = DBI->connect('DBI:mysql:'.$db_name.':'.$db_host,$db_rouser,$db_ropass);
+
+
+# Root directories and URLs
+
+$file_root   = "/usr1/www/html/DocDB/";    
+$script_root = "/usr1/www/cgi-bin/private/DocDB/"; 
+$public_root = "/usr1/www/html/public/";
+
+# Places in local filesystem where XMLUpload can get files           
+@LocalUploadDirectories = ( "/usr1/www/E-Traveler/html/data", "/tmp" );
+
+# Gives us "hostname" from $HOSTNAME
+use Sys::Hostname;
+#
+$host_name = 'https://'.hostname.'.ligo.org/';
+#
+$web_root        = $host_name."DocDB/";
+$wiki_root       = $host_name."wiki/index.php";
+$cgi_root        = $host_name."cgi-bin/private/DocDB/";
+$Public_cgi_root = $host_name."cgi-bin/DocDB/";
+$secure_root     = $host_name."private/DocDB";
+#
+$DocDBHome = $host_name."/wiki/index.php/Main_Page";
+
+$pnp_host_name = 'pnp-dev.ligo.org';
+
+$WelcomeMessage = "This is the repository of $Project talks, publications, and other documents.";
+
+# Location of the script called for server status updates
+#$ServerStatusUrl  = "/cgi-bin/private/DocDB/serverstatus.sh";
+$ServerStatusUrl  = "/cgi-bin/private/DocDB/serverstatus.sh";
+# Server status polling interval in milliseconds
+$ServerStatusPollInterval  = "60000";
+
+$ReadOnly       = 0;            # Can be used in conjunction with individual
+                                # authorization methods to set up a group-like
+                                # area with group passwords which can view
+                                # but not change any info
+#$ReadOnlyAdmin  = 0;           # Allows administration from the read-only 
+                                # area. Only suggested for boot-strapping until
+                                # you have an individual selected as admin                               
+
+$UseDeadlyWarning     = 0;
+$UseSignoffs          = 0;     # Sign-off system for document approval
+$MailInstalled        = 0;     # Is the Mailer::Mail module installed?
+#$MailServer           = "";
+
+# These settings are for public version of DB. Uncomment these five lines
+# # for the version of this file you place in the public area. While only the
+# # first is probably necessary, as a precaution its wise to do the other 4 as
+# # well.
+#
+# #$Public           = 1;
+# #$remote_user      = ""; # Just to be safe
+# #$RemoteUsername   = ""; # Just to be safe
+# #$db_rwuser        = ""; # Just to be safe
+# #$db_rwpass        = ""; # Just to be safe
+
+1;

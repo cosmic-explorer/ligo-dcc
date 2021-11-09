@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+   <head>
+      <title>DCC - LIGO Document Control Center Portal</title>
+      <link rel="stylesheet" type="text/css" href="./css/style.css">
+      <script type="text/javascript" src="./js/show-login.js"></script>
+      <link rel="stylesheet" type="text/css" href="./idpselect.css">
+   </head>
+
+   <body onLoad="document.getElementsByName('loginbutton')[0].focus();">
+
+	   <!-- Double auth login popup -->
+      <div id="infobox" style="visibility:hidden;">
+         <span id="myMessage" name="myMessage"></span>
+         <hr>
+         <div id="closer">
+            <input type=checkbox id=mybox>Do not show this again.
+            <hr>
+            <a onclick="checkBox();document.getElementById('infobox').style.display='none';return false;" href=""><input type="button" value="OK"></a>
+         </div>
+      </div>
+      <!-- /Double auth login popup -->
+
+<div id="container-header">
+	<div id="header-box">
+		<div id="header-nav">
+			<ul>
+				<li><a href="Quick_Start_Guide.html">Get started</a></li>
+				<li><a href="FAQ.html">FAQ</a></li>
+				<li><a href="Documentation.html">Documentation</a></li>
+				<li><a href="Getting_DCC_Help.html">Help</a></li>
+			</ul>
+		</div>
+		<div id="header">
+			LIGO Document Control Center Portal
+		</div>
+
+		<div id="search">
+		   <form method="get" target="_blank" action="https://dcc.ligo.org/cgi-bin/DocDB/Search" id="cse-search-box">
+		      <div class="searchbox">
+		         <input type="text" name="simpletext"
+		          id="q" size="31" value="Google public document search"
+		          onfocus="if(this.value==this.defaultValue)this.value='';" onblur="if(this.value=='')this.value=this.defaultValue;" />
+		         <input type="submit" name="sa" id="sa" value="Go" />
+		      </div>
+		   </form>
+	
+		</div>
+
+	</div>
+</div>

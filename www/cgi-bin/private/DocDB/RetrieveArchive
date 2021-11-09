@@ -1,0 +1,130 @@
+#! /usr/bin/env perl
+#
+# Description: Create an archive (.zip, .tar, .tar.gz) file of the document
+#              and stream it to the user.
+#
+#      Author: Eric Vaandering (ewv@fnal.gov)
+#    Modified:
+#
+
+# Copyright 2001-2007 Eric Vaandering, Lynn Garren, Adam Bryant
+
+#    This file is part of DocDB.
+
+#    DocDB is free software; you can redistribute it and/or modify
+#    it under the terms of version 2 of the GNU General Public License
+#    as published by the Free Software Foundation.
+
+#    DocDB is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+
+#    You should have received a copy of the GNU General Public License
+#    along with DocDB; if not, write to the Free Software
+#    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+
+# FIXME: No links ask for .tar (might change)
+
+use CGI;
+use DBI;
+
+require "DocDBGlobals.pm";
+require "ResponseElements.pm";
+require "SecuritySQL.pm";
+require "DocumentSQL.pm";
+require "FSUtilities.pm";
+require "HTMLUtilities.pm";
+require "FileUtilities.pm";
+require "Security.pm";
+
+$query = new CGI;  # Global for subroutines
+
+%params = $query -> Vars;
+
+my $Type       = $params{type} ;
+my $DocumentID = $params{docid};
+
+unless ($DocumentID) {
+  push @ErrorStack,"You are must supply a document number!";
+}
+
+unless ($Type eq "zip" || $Type eq "tar.gz" || $Type eq ".tar") {
+  $Type = "tar.gz";
+}
+
+$dbh   = DBI->connect('DBI:mysql:'.$db_name.':'.$db_host,$db_rouser,$db_ropass);
+&GetSecurityGroups;
+&FetchDocument($DocumentID);
+
+if (defined $params{version}) {
+  $Version = $params{version};
+} else {
+  $Version = $Documents{$DocumentID}{NVersions};
+}
+
+unless (&CanAccess($DocumentID,$Version)) {
+  if (&remote_user) {
+    push @ErrorStack,"The &remote_user group is not authorized to view this document (or it does not exist).";
+  } else {
+    push @ErrorStack,"This document is not publicly accessible.";
+  }
+}
+
+if (($Type eq "zip" && !$Zip)) {
+  push @ErrorStack,"You asked for a type of archive this system can't produce.";
+}
+
+my $DocRevID   = &FetchRevisionByDocumentAndVersion($DocumentID,$Version);
+
+unless ($DocRevID) {
+  push @ErrorStack,"This document does not exist.";
+}
+
+my $Status;
+my $TmpFile;
+
+unless (@ErrorStack) {
+  my $Directory = &GetDirectory($DocumentID,$Version);
+
+### Get rid of files left over from old (< v6.5.0) versions
+
+  my $TarFile   = "$Directory/tmp$DocumentID-$Version.tar";
+  my $TgzFile   = "$Directory/tmp$DocumentID-$Version.tar.gz";
+  my $ZipFile   = "$Directory/tmp$DocumentID-$Version.zip";
+  unlink $TarFile;
+  unlink $TgzFile;
+  unlink $ZipFile;
+
+  my $ShortFile = "tmp$DocumentID-$Version.$Type";
+
+  $TmpFile   = "$TmpDir/$ShortFile";
+  $Directory =~ s/\/+$//g;
+
+  if ($Type eq "tar.gz") {
+    if ($GTar) {
+      $Status = system("$GTar czf $TmpFile -C $Directory .");
+    } elsif ($Tar && $GZip) {
+      $Status = system("$Tar cf - $Directory | $GZip > $TmpFile");
+    }
+  } elsif ($Type eq "tar") {
+    $Status = system("$Tar cf $TmpFile $Directory");
+  } elsif ($Type eq "zip") {
+    $Status = system("$Zip $TmpFile $Directory/*");
+  }
+  if ($Status) {
+    push @ErrorStack,"There was a problem creating the archive. Please contact an administrator.";
+  }
+}
+
+# Streamfile was formerly part of FileUtilities.pm
+# but was removed because it caused a dependency on
+# perl-File-MimeInfo
+#StreamFile(-file => $TmpFile);
+push @ErrorStack,"StreamFile was removed from FileUtilities.pm on 10-30-2012!";
+print $query -> header( -charset => $HTTP_ENCODING );
+DocDBHeader("File Retrieve Results");
+EndPage(@ErrorStack);
+
+DocDBNavBar();
+DocDBFooter($DBWebMasterEmail,$DBWebMasterName);

@@ -1,0 +1,49 @@
+#! /usr/bin/env perl
+#
+# Copyright 2010-    Melody Araya
+
+
+#    DocDB is free software; you can redistribute it and/or modify
+#    it under the terms of version 2 of the GNU General Public License 
+#    as published by the Free Software Foundation.
+
+#    DocDB is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+
+#    You should have received a copy of the GNU General Public License
+#    along with DocDB; if not, write to the Free Software
+#    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+
+use DBI;
+
+require "CGIInclude.pm";
+
+
+require "ProjectGlobals.pm";
+require "SecuritySQL.pm";
+
+
+$dbh   = DBI->connect('DBI:mysql:'.$db_name.':'.$db_host,$db_rwuser,$db_rwpass);
+
+&GetSecurityGroups;
+
+  
+  my $DocumentID = ();
+  my $Alias = ();
+  my $revision_list = $dbh -> prepare(
+  "SELECT Document.DocumentID, Document.Alias FROM RevisionSecurity NATURAL JOIN Document WHERE GroupID =1 AND RevisionSecurity.DocRevID IN (  SELECT DocumentRevision.DocRevID FROM DocumentRevision LEFT JOIN RevisionTopic ON DocumentRevision.DocRevID = RevisionTopic.DocRevID WHERE RevisionTopic.TopicID =72 AND DocumentRevision.DocTypeID = 2) ");
+
+  $revision_list -> execute();
+  $revision_list -> bind_columns(undef, \($DocumentID, $Alias));
+  while ($revision_list -> fetch) {
+    open (LOG, ">>/tmp/migration_helper_log");
+    print LOG "Updating $Alias : docid = $DocumentID \n";
+    UpdateRevisionPublicSecurity($DocumentID, 0, 1);
+    close (LOG); 
+  }
+
+
+
+exit;

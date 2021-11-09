@@ -1,0 +1,69 @@
+body {
+  margin:6px 6px 6px 6px;
+  background-image: url('/includes/sm_logo_trim2.gif');
+  background-repeat: no-repeat;
+	font-family : arial, helvetica, sans-serif;
+  background-color: white;
+}
+
+
+ 
+td  {
+	color: #000000;
+	font-family : arial, helvetica, sans-serif;
+}
+
+/* Change alternating <li> environments */
+
+li.Odd {
+  background: #ddf;
+}
+
+li.Even {
+  background: white;
+}
+
+/* Change alternating <tr> environments */
+
+tr.Odd, tbody.Odd {
+  background: #ddf;
+}
+
+tr.Even, tbody.Even {
+  background: white;
+}
+
+
+ul  {
+	color: #000000;
+	font-family : arial, helvetica, sans-serif;
+}
+	
+hr  {
+	color: #000000;
+	font-family : arial, helvetica, sans-serif;
+}
+	
+p  {
+	color: #000000;
+	font-family : arial, helvetica, sans-serif;
+}
+	
+.smalltext  {
+	color: #000000;
+	font-family : arial, helvetica, sans-serif;
+	font-size : 9px;
+}
+
+.stdtext  {
+	color: #000000;
+	font-family : arial, helvetica, sans-serif;
+}
+
+.lgtext  {
+	color: #000000;
+	font-family : arial, helvetica, sans-serif;
+	font-size : 19px;
+}
+
+

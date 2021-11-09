@@ -1,0 +1,188 @@
+<!--#include file="header-portal.shtml"-->
+
+<div id="container-main">
+	<div id="feature2">
+		<div id="feature2-buttons">
+			<input type="image"
+                 src="./images/enter-login-4.png"
+                  id="loginbutton"
+                name="loginbutton"
+               value=""
+             onclick="setVisibility('loginbox', 'inline');"
+             onfocus="this.src='./images/enter-login-4-hover.png'"
+              onblur="this.src='./images/enter-login-4.png'" > 
+         &nbsp; 
+			<input type="image"
+                 src="./images/enter-public-4.png"
+                name="public"
+               value=""
+             onclick="self.location='/cgi-bin/DocDB/DocumentDatabase'"
+             onfocus="this.src='./images/enter-public-4-hover.png'"
+              onblur="this.src='./images/enter-public-4.png'" >
+
+             <!-- include file="BigRedButton.shtml"-->
+
+			<div id="loginbox">
+				<div id="loginboxcloser">
+               <a onclick="document.getElementById('loginbox').style.display='';return false;"
+                     href="">[x] close</a>
+            </div>
+            <div id="idpSelect"></div>
+            <script src="./typeahead.js"        type="text/javascript"></script>
+            <script src="./idpselect_config.js" type="text/javascript"></script>
+            <script src="./idpselect.js"        type="text/javascript"></script>
+            <noscript>
+            <!--
+               Your browser does not support javascript.  Please use
+               <a href="http://federation.org/DS/DS?entityID=https%3A%2F%2FyourentityId.edu.edu%2Fshibboleth&return=https%3A%2F%2Fyourreturn.edu%2FShibboleth.sso%2FDS%3FSAMLDS%3D1%26target%3Dhttps%3A%2F%2Fyourreturn.edu%2F">this link</a>.    
+            -->
+            </noscript>
+			</div>
+
+		</div>
+	</div>
+	<div id="main">
+
+   <center>
+      <div id=gwannounce>
+         <span id=NSBH>
+            <a href=/LIGO-P2000357/public><h2>Observation of gravitational waves from two neutron star-black hole coalescences</h2></a>
+            <br>
+            <a href=/LIGO-P2000357/public><img src="/NSBH_disruption.png" alt="Observation of gravitational waves from two neutron star-black hole coalescences"></a>
+         </span>
+<!--
+         <span id=GWTC-2>
+            <a href=/LIGO-P2000061/public><h2>GWTC-2: Compact Binary Coalescences Observed by LIGO and Virgo During the First Half of the Third Observing Run</h2></a>
+            <br>
+            <a href=/LIGO-P2000061/public><img src="/GWTC-2-masses.png" alt="GWTC-2: Compact Binary Coalescences Observed by LIGO and Virgo During the First Half of the Third Observing Run link the scientific article"></a>
+         </span>
+         <span id=GW190521>
+            <a href=/LIGO-P2000020/public><h3>GW190521: A Binary Black Hole Merger with a Total Mass of 150 Msun</h3></a>
+            <br>
+            <a href=/LIGO-P2000020/public><img src="/GW190521.png" alt="GW190521: A Binary Black Hole Merger with a Total Mass of 150 Msun link the scientific article"></a>
+         </span>
+         <span id=P190814>
+            <a href=/LIGO-P190814/public><h3>GW190814: Gravitational Waves from the Coalescence of a 23 Msun Black Hole with a 2.6 Msun Compact Object</h3></a>
+            <br>
+            <a href=/LIGO-P190814/public><img src="/GW190814.png" alt="GW190814: Gravitational Waves from the Coalescence of a 23 Msun Black Hole with a 2.6 Msun Compact Object, link the scientific article"></a>
+         </span>
+         <span id=P190412>
+            <a href=/LIGO-P190412/public><h2>GW190412: Observation of a Binary-Black-Hole Coalescence with Asymmetric Masses</h2></a>
+            <br>
+            <a href=/LIGO-P190412/public><img src="/GW190412.png"></a>
+         </span>
+         <span id=P190425>
+            <a href=/LIGO-P190425/public><h3>GW190425: Observation of a Compact Binary Coalescence with Total Mass ~3.4 Msun</h3></a>
+            <br>
+            <a href=/LIGO-P190425/public><img src="/GW190425_waves.png"></a>
+         </span>
+         <span id=GWTC-1>
+            <a href=/LIGO-P1800307/public><h3>GWTC-1: A Gravitational-Wave Transient Catalog of Compact Binary Mergers Observed by LIGO and Virgo during the First and Second Observing Runs</h3></a>
+            <br>
+            <a href=/LIGO-P1800307/public><img src="/GWTC-1-chirp.png"></a>
+         </span>
+         <span id=P150914>
+            <a href=/LIGO-P150914/public/main><h3>Observation of Gravitational Waves from a Binary Black Hole Merger</h3></a>
+            <br>
+            <a href=/LIGO-P150914/public/main><img src="/prl_cover.png"></a>
+         </span>
+         <span id=P170817>
+            <a href=/LIGO-P170817/public/main><h3>GW170817: Observation of Gravitational Waves from a Binary Neutron Star Inspiral</h3></a>
+            <br>
+            <a href=/LIGO-P170817/public/main><img height=361 width=300 src="/cv119016.png"></a>
+            <p></p>
+            <a href=https://papers.ligo.org><b>Detection Publications</b></a>
+         </span>
+-->
+      </div>
+   </center>
+
+		<div id="about">
+			<h2>about</h2>
+
+			<h3>Accessing private documents</h3>
+			<p>
+				You'll need a login name and password.  For LIGO members and affiliates, it's your <a href="https://my.ligo.org/">ligo.org</a> login of the <i>albert.einstein</i> type.<br>
+            Don't have a LIGO account? <a href="https://my.ligo.org/">Request an account</a>.<br>
+            Have a LIGO account but <a href="https://my.ligo.org/pwreset.php">forgot your password</a>?</p>
+
+			<h3>Using the DCC</h3>
+			<p>
+				<a href="Quick_Start_Guide.html">Quick start guide</a><br>
+				<a href="FAQ.html">Frequently asked questions</a><br>
+				<a href="Documentation.html">Documentation</a>:  A user manual of all DCC features.<br>
+				<a href="Getting_DCC_Help.html">Getting help</a>:  Where to look and what to do.</p>
+
+			<h3>Mirrors</h3>
+			<p>
+				Backup read-only DCC systems are available at <a href="https://dcc-lho.ligo.org/">LHO</a>
+				and <a href="https://dcc-llo.ligo.org/">LLO</a>.  They can be used when central DCC is unavailable.</p>
+		</div>
+
+		<div id="news">
+			<h2>news</h2>
+			<div class="news-scroll">
+			<table width="100%" class="newstable" summary="Table is used for layout purposes only.">
+            <tr>
+               <td class="news-date">Oct-2020</td>
+               <td class="news-cont">
+               <b><font size=+1 color=red>GWTC-2</font></b>
+               <br>
+               <a href=https://www.ligo.caltech.edu/page/detection-companion-papers#gwtc-2><b><font color=blue>GWTC-2: Compact Binary Coalescences Observed by LIGO and Virgo During the First Half of the Third Observing Run</font></b></a>
+               </td>
+            </tr>
+            <tr>
+               <td class="news-date">Dec-2018</td>
+               <td class="news-cont">
+               <b><font size=+1 color=red>GWTC-1</font></b>
+               <br>
+               <a href=https://www.ligo.caltech.edu/page/detection-companion-papers#gwtc-1><b><font color=blue>GWTC-1: A Gravitational-Wave Transient Catalog of Compact Binary Mergers Observed by LIGO and Virgo during the First and Second Observing Runs</font></b></a>
+               </td>
+            </tr>
+            <tr>
+               <td class="news-date">Oct-2017</td>
+               <td class="news-cont">
+               <b><font size=+1 color=red>GW170817</font></b>
+               <br>
+               <a href=https://www.ligo.caltech.edu/page/detection-companion-papers#gw170817><b><font color=blue>GW170817: Observation of Gravitational Waves from a Binary Neutron Star Inspiral</font></b></a>
+               </td>
+            </tr>
+            <tr>
+               <td class="news-date">Sep-2017</td>
+               <td class="news-cont">
+               <b><font size=+1 color=red>GW170814</font></b>
+               <br>
+               <a href=https://www.ligo.caltech.edu/page/detection-companion-papers#gw170814><b><font color=blue>A Three-Detector Observation of Gravitational Waves from a Binary Black Hole Coalescence</font></b></a>
+               </td>
+            </tr>
+            <tr>
+               <td class="news-date">Jun-2017</td>
+               <td class="news-cont">
+               <b><font size=+1 color=red>GW170104</font></b>
+               <br>
+               <a href=https://www.ligo.caltech.edu/page/detection-companion-papers#gw170104><b><font color=blue> Observation of a 50-Solar-Mass Binary Black Hole Coalescence at Redshift 0.2</font></b></a>
+               </td>
+            </tr>
+            <tr>
+               <td class="news-date">Jun-2016</td>
+               <td class="news-cont">
+               <b><font size=+1 color=red>GW151226</font></b>
+               <br>
+               <a href=https://www.ligo.caltech.edu/page/detection-companion-papers#gw151226><b><font color=blue>Observation of Gravitational Waves from a 22-Solar-mass Binary Black Hole Coalescence</font></b></a>
+               </td>
+            </tr>
+            <tr>
+               <td class="news-date">Feb-2016</td>
+               <td class="news-cont">
+               <b><font size=+1 color=red>GW150914</font></b>
+               <br>
+               <a href=https://www.ligo.caltech.edu/page/detection-companion-papers#gw150914><b><font color=blue>Observation of Gravitational Waves from a Binary Black Hole Merger</font></b></a>
+               </td>
+               </tr>
+		      </table>
+		   </div>
+	   </div>
+   </div>
+</div>
+
+<!--#include file="footer.shtml"-->

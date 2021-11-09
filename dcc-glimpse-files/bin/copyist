@@ -1,0 +1,72 @@
+#!/bin/bash
+
+WORKER="worker${1:-0}"
+QUEUE=${2:-textify}
+SHADOW=/usr2/GLIMPSE/shadow
+LOGGER="echo"
+tty -s || LOGGER="/usr/bin/logger -t copyist"
+
+
+
+if [ "$(id -un)" =  "apache" ]
+then
+  $LOGGER "running as apache user: check!"
+  $LOGGER "Starting ${WORKER} listening to ${QUEUE}"
+else
+  $LOGGER "Actively refusing to run outside apache context"
+  sleep 3600
+  exit 
+fi
+
+
+while :
+do
+  ITEM_TO_TRANSCODE=$(/usr/bin/redis-cli BRPOP $QUEUE 0 | tail -n 1)
+  
+  if [ "$ITEM_TO_TRANSCODE" = "0" ]
+  then 
+    sleep 0.1
+    continue
+  fi
+
+  if [ -d "$ITEM_TO_TRANSCODE" ]
+  then 
+     $LOGGER "$WORKER using prefilter.tcl on $ITEM_TO_TRANSCODE"
+     # dealing with a whole directory here
+     DEST="${SHADOW}${ITEM_TO_TRANSCODE}"
+     mkdir -p "${DEST}"
+     /usr/local/bin/prefilter.tcl "$ITEM_TO_TRANSCODE"
+  elif [ -f "$ITEM_TO_TRANSCODE" ]
+  then 
+     # a single readable file
+     DEST="${SHADOW}${ITEM_TO_TRANSCODE}"
+     DEST_DIR=$(/usr/bin/dirname "${DEST}")
+     if [ -f "$DEST" ]
+     then
+         $LOGGER "$ITEM_TO_TRANSCODE already transcoded"
+         # NOOP
+         : 
+     else
+         extension="${ITEM_TO_TRANSCODE##*.}"
+         case $extension in
+             "pdf"|"ps")
+                /usr/bin/redis-cli LPUSH $QUEUE "$ITEM_TO_TRANSCODE" > /dev/null
+                $LOGGER "${WORKER} uses tika-app to transcode ${DEST}"
+                 mkdir -p "${DEST_DIR}"
+#                 java -jar /usr/local/bin/tika-app.jar -T "${ITEM_TO_TRANSCODE}" >  "$DEST"
+                 < "${ITEM_TO_TRANSCODE}" nc localhost 9998 > "$DEST"
+                 ;;
+             *)   
+                 $LOGGER "${WORKER} uses prefilter.tcl to transcode ${DEST}"
+                 /usr/local/bin/prefilter.tcl "${FILE_TO_TRANSCODE}" > /dev/null
+                 ;;
+         esac
+     fi
+     
+  else 
+     # Item to transcode does not exist or is not accessible
+     $LOGGER "${ITEM_TO_TRANSCODE} does not exist or is not readable by apache user"
+  fi
+
+done
+

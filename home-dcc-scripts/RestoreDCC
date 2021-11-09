@@ -1,0 +1,38 @@
+#!/bin/bash
+
+cd /home/dcc/dcc_docdb 
+
+YESTERDAY=$(date --date="1 days ago" +"%Y-%m-%d")
+TODAY=$(date +"%Y-%m-%d");
+
+if [ -e dcc_docdb_$TODAY.sql.gz ]
+then
+    gunzip -f /home/dcc/dcc_docdb/dcc_docdb_$TODAY.sql.gz
+    TODAYS_FLEN=$(wc -l < dcc_docdb_$TODAY.sql)
+
+    if [ -e dcc_docdb_$YESTERDAY.sql.gz ]
+    then
+        gunzip -f /home/dcc/dcc_docdb/dcc_docdb_$YESTERDAY.sql.gz
+        YESTERDAYS_FLEN=$(wc -l < dcc_docdb_$YESTERDAY.sql)
+    else
+        YESTERDAYS_FLEN=0
+    fi
+
+    if  [ "$TODAYS_FLEN" -ge "$YESTERDAYS_FLEN" ]
+    then
+        mysql --defaults-file="/home/dcc/.my.cnf" -u  dcc_restore dcc_docdb < /home/dcc/dcc_docdb/dcc_docdb_$TODAY.sql;
+        [ -e /home/dcc/dcc_docdb/ChangeEngine.sql ] && mysql --defaults-file="/home/dcc/.my.cnf" -u  dcc_restore dcc_docdb < /home/dcc/dcc_docdb/ChangeEngine.sql
+    fi
+fi
+ 
+
+# housekeeping:
+# keep 30 days max
+DAYS_TO_KEEP=+30
+
+# gzip past dumps
+find /home/dcc/dcc_docdb/ -name 'dcc_docdb*.sql' -mtime +2 -exec gzip --rsyncable {} \;
+
+# delete older gzip
+find /home/dcc/dcc_docdb/ -name 'dcc_docdb*.sql.gz' -mtime $DAYS_TO_KEEP -delete
+ 

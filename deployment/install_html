@@ -1,0 +1,33 @@
+#!/bin/bash -x
+SOURCE=${1:-$(git rev-parse --show-toplevel)}
+DEST=${2:-$DOCDB_HTML_DIR}
+STATIC="${DEST}/Static"
+PUBLIC_DOCDB_DIR="${DEST}/public"
+
+mkdir -p ${STATIC}/ ${PUBLIC_DOCDB_DIR}/Static/css/
+mkdir -p ${PUBLIC_DOCDB_DIR}/Static/js
+mkdir -p ${PUBLIC_DOCDB_DIR}/Static/img
+mkdir -p ${PUBLIC_DOCDB_DIR}/Static/images
+
+rsync -a --no-links --exclude=LIGODocDB.css  ${SOURCE}/www/html/ ${DEST}/
+
+
+OSFamily=$(awk -F= '/^ID=/ { print $2}' /etc/os-release)
+
+case $OSFamily in
+   debian)
+     APACHE_USER=www-data
+     ;;
+   *)
+     APACHE_USER=apache
+     ;;
+esac
+
+find ${DEST} -maxdepth 2 \! \( -path ./DocDB -o -path ./public \) -o -user root -print | xargs --no-run-if-empty -n 1 -P4 -t chown ${APACHE_USER}. 
+
+
+# FIXME: setup correct css based on instance role (derived from ENV? hostname?)
+#RUN cd ${DOCDB_STATIC_DIR}/css &&\
+#    rm LIGODocDB.css &&\
+#    ln -s LIGODocDB.css.dcc-dev-private LIGODocDB.css
+

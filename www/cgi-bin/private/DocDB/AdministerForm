@@ -1,0 +1,247 @@
+#! /usr/bin/env perl
+#
+#        Name: AdministerForm
+# Description: This single form provides a number of interfaces to admin 
+#              tools, each run by a different script. 
+#
+#      Author: Eric Vaandering (ewv@fnal.gov)
+#    Modified: 
+#
+
+# Copyright 2001-2007 Eric Vaandering, Lynn Garren, Adam Bryant
+
+#    This file is part of DocDB.
+
+#    DocDB is free software; you can redistribute it and/or modify
+#    it under the terms of version 2 of the GNU General Public License 
+#    as published by the Free Software Foundation.
+
+#    DocDB is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+
+#    You should have received a copy of the GNU General Public License
+#    along with DocDB; if not, write to the Free Software
+#    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+
+
+use CGI;                                                                                      
+use DBI;
+
+require "DocDBGlobals.pm";
+require "AdministerElements.pm";
+require "FormElements.pm";
+
+require "AuthorHTML.pm";
+require "JournalHTML.pm";
+require "DocTypeHTML.pm";
+require "TopicHTML.pm";
+require "MeetingHTML.pm";
+
+require "Scripts.pm";
+require "Security.pm";
+
+require "SecuritySQL.pm";
+require "AuthorSQL.pm";
+require "TopicSQL.pm";
+require "MiscSQL.pm";
+require "ResponseElements.pm";
+
+require "HTMLUtilities.pm";
+require "Sorts.pm";
+
+$query = new CGI;  # Global for subroutines
+$dbh   = DBI -> connect('DBI:mysql:'.$db_name.':'.$db_host,$db_rouser,$db_ropass);
+
+&GetSecurityGroups;
+&GetInstitutions;
+&GetDocTypes;
+&GetAuthors;
+&GetTopics;
+&GetJournals;
+
+print $query -> header( -charset => $HTTP_ENCODING );
+&DocDBHeader("Administer $Project DocDB","",
+             -scripts => ["serverstatus", "PopUps","AuthorAdminDisable","MiscAdminDisable","TopicAdminDisable"]); 
+
+@ErrorStack = ();
+@WarnStack  = ();
+
+unless (&CanAdminister()) {
+  push @ErrorStack,"You are not allowed to access administrative functions.";
+}
+
+EndPage(@ErrorStack);
+
+print "<b>This form allows you to administer the lists of things within
+the database.</b><p>\n"; 
+
+print "Begin by selecting an action for what you want to administer. If you
+       select <b>New</b>, the selection from the first list will be
+       ignored, but you must fill in things like Institution and the two names
+       for adding authors. If you select <b>Modify</b> you have to make a
+       selection from the first list and any attributes you select on the
+       right will be changed. If you leave something blank, it will not be
+       changed. If you select <b>Delete</b> any selections other than from 
+       the first list will be ignored.<p>\n";
+
+print "Note that deleting and then re-entering with the same information is
+       not the same as modifying. Everything in the DB is tied together with
+       invisible ID numbers.<p>\n";
+
+print "In all cases, you must supply the <i>database</i> username and password for the
+       administrator account to make any changes.<p>\n";
+
+print "<center> <b>Modify:</b> ";
+print "[&nbsp;<a href=\"\#author\">Authors</a> ] ";
+print "[&nbsp;<a href=\"\#institution\">Institutions</a>&nbsp;] ";
+print "[&nbsp;<a href=\"\#doctype\">Document&nbsp;Types</a>&nbsp;] ";
+print "[&nbsp;<a href=\"\#journal\">Journals</a>&nbsp;] ";
+print "</center><p>";
+print "<hr><p>\n";
+
+### Author Modification
+
+print "<a name=\"author\"><center><h4>Administer Authors</h4></center>\n";
+print "<center>(Changing both the first and last names will erase middle
+       initials)</center>\n";
+
+print $query -> start_multipart_form('POST',"$AuthorAdminister",
+                                     "id=\"author\" name=\"author\"");
+print "<table cellpadding=10>\n";
+print "<tr valign=top>\n";
+print "<td colspan=2>\n"; 
+ &AdministerActions(-form => "author");
+print "</td>\n";
+print "</tr>\n";
+
+print "<tr valign=top>\n";
+print "<td>\n";
+ &AuthorScroll(-helplink => "author", -disabled => true); 
+print "</td>\n";  
+print "<td>\n";
+ &InstitutionSelect(-disabled => true); 
+print "</td>\n";
+print "<td>\n"; 
+ &NameEntryBox(-disabled => true);      
+print "</td>\n";
+print "</tr>\n";
+
+print "<tr valign=top>\n";
+print "<td colspan=3>\n";
+&AdministratorPassword;
+print "&nbsp;";
+print $query -> submit (-value => "Change Author Info");
+print "</td>\n";
+print "</tr>\n";
+
+print "</table>\n";
+print $query -> end_multipart_form;
+
+print "<p><hr>\n";
+
+### Institution Administration
+
+print "<a name=\"institution\"><center><h4>Administer Institutions</h4></center>\n";
+
+print $query -> start_multipart_form('POST',"$InstitutionAdminister",
+                                     "id=\"institution\" name=\"institution\"");
+print "<table cellpadding=10>\n";
+print "<tr valign=top>\n";
+print "<td colspan=2>\n"; 
+ &AdministerActions(-form => "institution");      
+print "</td>\n";
+print "</tr>\n";
+
+print "<tr valign=top>\n";
+print "<td>\n"; 
+&InstitutionSelect(-format => "full", -disabled => true); 
+print "</td>\n";
+print "<td>\n"; &InstitutionEntryBox(-disabled => true); print "</td>\n";
+print "</tr>\n";
+
+print "<tr valign=top>\n";
+print "<td colspan=3>\n";
+&AdministratorPassword;
+print "&nbsp;";
+print $query -> submit (-value => "Change Institution Info");
+print "</td>\n";
+print "</tr>\n";
+
+print "</table>\n";
+print $query -> end_multipart_form;
+
+print "<p><hr>\n";
+
+### Document Types
+
+print "<a name=\"doctype\"><center><h4>Administer Document Types</h4></center>\n";
+
+print $query -> start_multipart_form('POST',"$DocTypeAdminister",
+                                     "id=\"documenttype\" name=\"documenttype\"");
+print "<table cellpadding=10>\n";
+print "<tr valign=top>\n";
+print "<td colspan=2>\n"; 
+ &AdministerActions(-form => "documenttype");
+print "</td>\n";
+print "</tr>\n";
+
+print "<tr valign=top>\n";
+print "<td>\n"; DocTypeSelect( {-disabled => $TRUE} ); print "</td>\n";
+print "<td>\n"; DocTypeEntryBox(-disabled => $TRUE); print "</td>\n";
+print "</tr>\n";
+
+print "<tr valign=top>\n";
+print "<td colspan=3>\n";
+&AdministratorPassword;
+print "&nbsp;";
+print $query -> submit (-value => "Change Document Type Info");
+print "</td>\n";
+print "</tr>\n";
+
+print "</table>\n";
+print $query -> end_multipart_form;
+
+print "<p><hr>\n";
+
+### Journal Administration
+
+print "<a name=\"journal\"><center><h4>Administer Journals</h4></center>\n";
+
+print $query -> start_multipart_form('POST',"$JournalAdminister",
+                                     "id=\"journals\" name=\"journals\"");
+print "<table cellpadding=10>\n";
+print "<tr valign=top>\n";
+print "<td colspan=2>\n";
+ &AdministerActions(-form => "journals");
+print "</td>\n";
+print "</tr>\n";
+
+print "<tr valign=top>\n";
+print "<td>\n";
+ &JournalSelect(-disabled => true);
+print "</td>\n";
+print "<td>\n"; &JournalEntryBox(-disabled => true);     print "</td>\n";
+print "</tr>\n";
+
+print "<tr valign=top>\n";
+print "<td colspan=3>\n";
+&AdministratorPassword;
+print "&nbsp;";
+print $query -> submit (-value => "Change Journal Info");
+print "</td>\n";
+print "</tr>\n";
+
+print "</table>\n";
+print $query -> end_multipart_form;
+
+print "<p>\n";
+&JournalTable;
+
+print "<p><hr>\n";
+
+print "<p>\n";
+
+&DocDBNavBar();
+&DocDBFooter($DBWebMasterEmail,$DBWebMasterName);

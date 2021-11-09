@@ -1,0 +1,117 @@
+#! /usr/bin/env perl
+#
+#        Name: $RCSfile: EmailAdministerForm,v $
+# Description: This script provides a form to administer users receiving
+#              e-mail notifications and shows the complete list of who is
+#              receiving what.
+#
+#    Revision: $Revision: 1.7.2.12 $
+#    Modified: $Author: vondo $ on $Date: 2007/09/20 19:53:14 $
+#
+#      Author: Eric Vaandering (ewv@fnal.gov)
+
+# Copyright 2001-2007 Eric Vaandering, Lynn Garren, Adam Bryant
+
+#    This file is part of DocDB.
+
+#    DocDB is free software; you can redistribute it and/or modify
+#    it under the terms of version 2 of the GNU General Public License
+#    as published by the Free Software Foundation.
+
+#    DocDB is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+
+#    You should have received a copy of the GNU General Public License
+#    along with DocDB; if not, write to the Free Software
+#    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+
+use CGI qw(-nosticky);
+use DBI;
+
+require "DocDBGlobals.pm";
+require "Scripts.pm";
+require "ResponseElements.pm";
+require "Security.pm";
+require "HTMLUtilities.pm";
+require "AdministerElements.pm";
+require "EmailUserHTML.pm";
+require "SecurityHTML.pm";
+
+require "MailNotification.pm";
+require "Sorts.pm";
+require "SecuritySQL.pm";
+require "NotificationSQL.pm";
+
+$query = new CGI;  # Global for subroutines
+$dbh   = DBI -> connect('DBI:mysql:'.$db_name.':'.$db_host,$db_rouser,$db_ropass);
+
+%params = $query -> Vars;
+
+my $EmailUserID  = $params{emailuserid} || 0;
+
+GetSecurityGroups();
+
+print $query -> header( -charset => $HTTP_ENCODING );
+DocDBHeader("List User Accounts","",-scripts => ["serverstatus", "PopUps", "PersonalAccountForm"]);
+
+@ErrorStack = ();
+@WarnStack  = ();
+
+
+### Display of existing groups
+
+  my @EmailUserIDs = sort EmailUserIDsByName GetEmailUserIDs();
+
+  print "<table class=\"DocumentList Alternating\">\n";
+  print "<tr><th>Name</th><th>Username</th><th>Can Sign?</th><th>Groups</th></tr>\n";
+  #print "<th>Notifications</th>\n";
+
+  my $Row = 0;
+  foreach my $EmailUserID (@EmailUserIDs) {
+
+  # Get the list of groups
+    my @Groups = ();
+    my @UserGroupIDs = FetchUserGroupIDs($EmailUserID);
+    foreach my $UserGroupID (@UserGroupIDs) {
+      FetchSecurityGroup($UserGroupID);
+      my $Link = $ListGroupUsers."#$SecurityGroups{$UserGroupID}{NAME}";
+      push @Groups,"<a href=\"$Link\">$SecurityGroups{$UserGroupID}{NAME}</a>";
+    }
+    my $Groups = join "<br/>",sort @Groups;
+    unless ($Groups) {
+      $Groups = "None";
+    }
+
+  # Figure out if there are notifications
+  # FIXME: Can't actually use this until everything is unified. Just too much work right now.
+  # FIXME: Also add option to delete all notifications when this is unified
+    my $Count = FetchNotifications( {-emailuserid => $EmailUserID} );
+    my $Notifications = "No";
+    if ($Count) {
+      $Notifications = "Yes";
+    }
+
+    my $CanSign  = ("No","Yes")[$EmailUser{$EmailUserID}{CanSign}];
+
+    ++$Row;
+    my $RowClass = ("","alt")[$Row % 2];
+
+    my $Link = $EmailAdministerForm."?emailuserid=$EmailUserID";
+
+    print "<tr class=\"$RowClass\">\n";
+    print "<td><a href=\"$Link\">$EmailUser{$EmailUserID}{Name}</a>    </td>\n";
+    print "<td><a href=\"$Link\">$EmailUser{$EmailUserID}{Username}</a></td>\n";
+    print "<td>$CanSign</td>\n";
+    print "<td>$Groups</td>\n";
+  #  print "<td>$Notifications</td>\n";
+    print "</tr>\n";
+  }
+  print "</table>\n";
+
+
+
+
+DocDBNavBar();
+DocDBFooter($DBWebMasterEmail,$DBWebMasterName);

@@ -1,0 +1,27 @@
+#!/bin/ksh
+#
+# Name: dcc-glimpse (a cron.daily script)
+#
+# This is the big rebuild script for the dcc glimpse database.
+
+# If there is an existing database, only a very fast sync of
+# incrementally added files will occur.
+#
+# If there is no database, this will take ~ 20-30 minutes to
+# build the database from scratch for 40Gb or so of mixed
+# source.
+#
+# This needs to be added to /etc/rc.d/rc.local
+# to rebuild the database at reboot:
+#
+#   /usr/local/bin/glimpse-init.sh >/dev/null 2>&1 &
+#
+# Phil Ehrens <pehrens@ligo.caltech.edu>
+#
+
+# timestamp seconds
+ts=`date +%s`
+# darn - this doesn't work?!
+#/usr/bin/pkill -9 glimpseindex
+#sleep 10
+/usr/local/bin/glimpse-init.sh >/root/glimpse-init.REPORT."$ts" 2>&1

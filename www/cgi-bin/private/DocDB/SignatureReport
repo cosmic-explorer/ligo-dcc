@@ -1,0 +1,213 @@
+#! /usr/bin/env perl
+#
+# Author Eric Vaandering (ewv@fnal.gov)
+#
+# Copyright 2001-2007 Eric Vaandering, Lynn Garren, Adam Bryant
+
+#    This file is part of DocDB.
+
+#    DocDB is free software; you can redistribute it and/or modify
+#    it under the terms of version 2 of the GNU General Public License 
+#    as published by the Free Software Foundation.
+
+#    DocDB is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+
+#    You should have received a copy of the GNU General Public License
+#    along with DocDB; if not, write to the Free Software
+#    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+
+# Get DocumentIDs of documents user has signed
+
+#select DocumentRevision.DocumentID from Signature,Signoff,DocumentRevision
+#where Signature.EmailUserID=? and Signoff.SignoffID=Signature.SignoffID and
+#Signoff.DocRevID=DocumentRevision.DocRevID and Signature.Signed=1
+
+# Get DocumentIDs of documents user hasn't signed
+
+#select DocumentRevision.DocumentID from Signature,Signoff,DocumentRevision
+#where Signature.EmailUserID=1 and Signoff.SignoffID=Signature.SignoffID and
+#Signoff.DocRevID=DocumentRevision.DocRevID and Signature.Signed=0
+
+use Benchmark;
+use CGI;
+use DBI;
+
+$StartTime = new Benchmark;
+
+require "DocDBGlobals.pm";
+
+require "SignoffSQL.pm";
+require "NotificationSQL.pm";
+
+require "ResponseElements.pm";
+require "DocumentHTML.pm";
+
+require "HTMLUtilities.pm";
+require "RevisionUtilities.pm";
+require "SignoffUtilities.pm";
+require "Utilities.pm";
+require "DocumentUtilities.pm";
+
+$query = new CGI;  # Global for subroutines
+
+%params = $query -> Vars;
+
+my $EmailUserID = $params{emailuserid};
+
+$dbh   = DBI->connect('DBI:mysql:'.$db_name.':'.$db_host,$db_rouser,$db_ropass);
+
+&FetchEmailUser($EmailUserID);
+
+### Start HTML
+
+print $query -> header( -charset => $HTTP_ENCODING );
+&DocDBHeader("Signature Report for $EmailUser{$EmailUserID}{Name}","",-scripts=>["serverstatus", "prototype", "prototype_sorttable"]);
+
+&EndPage(@ErrorStack);
+
+my @DocumentIDs = &GetSignoffDocumentIDs(-emailuserid => $EmailUserID);
+my @SignoffIDs  = &GetSignoffIDs(-emailuserid => $EmailUserID);
+
+my @ReadyDocumentIDs        = (); # Ready for persons signature
+my @ReadyforApprovalDocumentIDs = (); # Ready for persons approval 
+my @NotReadyDocumentIDs     = (); # Signature ready in future
+my @ApprovedDocumentIDs     = (); # Fully approved documents
+my @UnapprovedDocumentIDs   = (); # Fully unapproved documents
+my @SignedDocumentIDs       = (); # Signed but not approved
+my @SignedButNotApprovedDocumentIDs = (); # Signed but approved by someone else
+my @OldSignatureDocumentIDs = (); # No signature on current version
+
+foreach my $SignoffID (@SignoffIDs) {
+  $SignoffID = &FetchSignoff($SignoffID);
+  if ($SignoffID) {
+    my $DocRevID = $Signoffs{$SignoffID}{DocRevID};
+    my ($RevisionStatus) = &RevisionStatus($DocRevID);
+    if (&RevisionIsLatest($DocRevID)) {
+      &FetchDocRevisionByID($DocRevID);
+      my $DocumentID = $DocRevisions{$DocRevID}{DOCID};
+      my $Status = &SignoffStatus ($SignoffID);
+      my $LastSigner = GetLastSignerByDocRevID ($DocRevID);
+      if ($Status eq "Ready") {
+        if ($RevisionStatus eq $Pending_RevisionStatus) {
+            if ($LastSigner == $EmailUserID) {
+                push @ReadyforApprovalDocumentIDs,$DocumentID;
+            } else {
+                push @ReadyDocumentIDs,$DocumentID;
+            }
+        }
+      } elsif ($Status eq "NotReady") { 
+        if ($RevisionStatus eq $Pending_RevisionStatus) {
+            if ($LastSigner == $EmailUserID) {
+               push @ReadyforApprovalDocumentIDs,$DocumentID;
+            } else {
+               push @NotReadyDocumentIDs,$DocumentID;
+            }
+        }
+      } elsif ($Status eq "Signed") { 
+        if ($RevisionStatus eq $Approved_RevisionStatus) {
+            if ($LastSigner == $EmailUserID) {
+               push @ApprovedDocumentIDs,$DocumentID;
+            } else {
+               push @SignedButNotApprovedDocumentIDs,$DocumentID;
+            }
+        } elsif ($RevisionStatus eq $Pending_RevisionStatus) {
+            push @SignedDocumentIDs,$DocumentID;
+        } elsif ($RevisionStatus eq $Unapproved_RevisionStatus) {
+            push @UnapprovedDocumentIDs,$DocumentID;
+        }      
+      } elsif ($Status eq "Disapproved") { 
+           if ($RevisionStatus eq $Unapproved_RevisionStatus) {
+               if ($LastSigner == $EmailUserID) {
+                  push @UnapprovedDocumentIDs,$DocumentID;
+               } else {
+                  push @SignedButNotApprovedDocumentIDs,$DocumentID;
+               }
+           } else {
+               push @SignedDocumentIDs,$DocumentID;
+           }      
+      }
+    }
+  }    
+}
+    
+my @CurrentDocumentIDs = (@ReadyDocumentIDs,@ReadyforApprovalDocumentIDs,@NotReadyDocumentIDs,@ApprovedDocumentIDs,@SignedDocumentIDs,@SignedButNotApprovedDocumentIDs,@UnapprovedDocumentIDs);
+@OldSignatureDocumentIDs = RemoveArray(\@DocumentIDs,@CurrentDocumentIDs);
+
+if (@ReadyDocumentIDs) {
+  print "<center><h4>These documents are ready to be signed by $EmailUser{$EmailUserID}{Name}:</h4></center><p>\n";
+
+  my %FieldList = PrepareFieldList(-fields => ["Docid","Title","Author","Updated"]);
+  DocumentTable(-fieldlist => \%FieldList,
+                -docids    => \@ReadyDocumentIDs, 
+                -sortby    => "date", -reverse => 1);
+}
+
+if (@ReadyforApprovalDocumentIDs) {
+  print "<center><h4>These documents are ready to be approved by $EmailUser{$EmailUserID}{Name}:</h4></center><p>\n";
+
+  my %FieldList = PrepareFieldList(-fields => ["Docid","Title","Author","Updated"]);
+  DocumentTable(-fieldlist => \%FieldList,
+                -docids    => \@ReadyforApprovalDocumentIDs, 
+                -sortby    => "date", -reverse => 1);
+}
+if (@NotReadyDocumentIDs) {
+  print "<center><h4>These documents may require a future signature by $EmailUser{$EmailUserID}{Name}:</h4></center><p>\n";
+
+  my %FieldList = PrepareFieldList(-fields => ["Docid","Title","CanSign","Updated"]);
+  DocumentTable(-fieldlist => \%FieldList,
+                -docids    => \@NotReadyDocumentIDs, 
+                -sortby    => "date", -reverse => 1);
+}
+
+if (@ApprovedDocumentIDs) {
+  print "<center><h4>These documents are approved by $EmailUser{$EmailUserID}{Name}:</h4></center><p>\n";
+
+  my %FieldList = PrepareFieldList(-fields => ["Docid","Title","Author","Updated"]);
+  DocumentTable(-fieldlist => \%FieldList,
+                -docids    => \@ApprovedDocumentIDs, 
+                -sortby    => "date", -reverse => 1);
+}
+
+if (@UnapprovedDocumentIDs) {
+  print "<center><h4>These documents are disapproved by $EmailUser{$EmailUserID}{Name}:</h4></center><p>\n";
+
+  my %FieldList = PrepareFieldList(-fields => ["Docid","Title","Author","Updated"]);
+  DocumentTable(-fieldlist => \%FieldList,
+                -docids    => \@UnapprovedDocumentIDs, 
+                -sortby    => "date", -reverse => 1);
+}
+
+if (@SignedDocumentIDs) {
+  print "<center><h4>These documents are signed by $EmailUser{$EmailUserID}{Name}, but are awaiting approval:</h4></center><p>\n";
+
+  my %FieldList = PrepareFieldList(-fields => ["Docid","Title","CanSign","Updated"]);
+  DocumentTable(-fieldlist => \%FieldList,
+                -docids    => \@SignedDocumentIDs, 
+                -sortby    => "date", -reverse => 1);
+}
+
+if (@SignedButNotApprovedDocumentIDs) {
+  print "<center><h4>These documents are signed by $EmailUser{$EmailUserID}{Name} and approved by someone else:</h4></center><p>\n";
+
+  my %FieldList = PrepareFieldList(-fields => ["Docid","Title","Author","Updated"]);
+  DocumentTable(-fieldlist => \%FieldList,
+                -docids    => \@SignedButNotApprovedDocumentIDs, 
+                -sortby    => "date", -reverse => 1);
+}
+
+if (@OldSignatureDocumentIDs) {
+  print "<center><h4>Previous versions of these documents used to be but no longer need to be signed by $EmailUser{$EmailUserID}{Name}:</h4></center><p>\n";
+
+  my %FieldList = PrepareFieldList(-fields => ["Docid","Title","Author","Updated"]);
+  DocumentTable(-fieldlist => \%FieldList,
+                -docids    => \@OldSignatureDocumentIDs, 
+                -sortby    => "date", -reverse => 1);
+}
+
+$EndTime  = new Benchmark;
+
+DocDBNavBar();
+DocDBFooter($DBWebMasterEmail,$DBWebMasterName);

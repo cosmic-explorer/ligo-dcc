@@ -1,0 +1,1882 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+
+<helpfile>
+ <entry>
+  <key>LessFiles</key>
+  <title>New Version Has Fewer Files</title>
+  <text>
+     If the new version of a document has fewer files than the original version,
+     you must check this box. This ensures that you don't forget to either upload
+     new versions of the other files or forget to use the copy option to copy
+     files from one version to the next.
+  </text>
+ </entry>
+
+ <entry>
+  <key>keywordgroups</key>
+  <title>Keyword Groups</title>
+  <text>
+     The group names for managed keywords. While users can apply any keyword
+     to a document, the groups and keywords in them allow you to suggest a
+     set of <q>approved</q> keywords.
+  </text>
+ </entry>
+
+ <entry>
+  <key>authortextsearch</key>
+  <title>Authors</title>
+  <text>
+     Type in the names of authors to search for. Put each author on a new line.
+     Enter as "Smith, John" or "Smith, J" or "Smith, John Q".
+     There must be a comma after the last name.
+  </text>
+ </entry>
+
+ <entry>
+  <key>xsearchtext</key>
+  <title>Cross Search</title>
+  <text>
+     <p>
+     Words typed here will be searched in all the DocDBs checked on the right.
+     The search on the local DocDB will be over all documents you can access.
+     The search in remote DocDBs will only cover publicly accessible documents.
+     </p><p>
+     If you would like another DocDB added to the list, ask your DocDB
+     administrator.
+     </p>
+  </text>
+ </entry>
+
+ <entry>
+  <key>quicksearch</key>
+  <title>Basic Search</title>
+  <text>
+   <p>
+    Enter one or more words to search for. These words will be searched for in
+    the contents of files, authors, topics, events, etc. as well as in text meta-data such as titles
+    and abstracts. The returned list of documents will be those that contain all of the specified words, ranked by the number and quality of matches.
+   </p>
+   <p>
+    For more targeted searches, use the advanced form below.
+   </p>
+  </text>
+ </entry>
+
+ <entry>
+  <key>groupperm</key>
+  <title>Group Permissions</title>
+  <text>
+ Select the permissions that you want to grant to the group. If you are modifying
+ a group, the checked permissions will be added, but unchecked ones will not be
+ deleted unless you also check the box labeled Remove Existing Permissions.
+  </text>
+ </entry>
+
+ <entry>
+  <key>groupentry</key>
+  <title>Group Name and Description</title>
+  <text>
+   Enter the name and description of the group. The name should be short and one
+   word. The description can be longer and multiple words.
+  </text>
+ </entry>
+
+ <entry>
+  <key>grouptutorial</key>
+  <title>Short tutorial on groups</title>
+  <text>
+Access to documents within the DocDB is controlled in several ways. A document
+may be tagged as accessible to a subset of groups. Additionally, each group may
+have a list of subordinate groups. Anything marked viewable by a subordinate is
+also viewable by its superior group. (This relationship does not extend to more
+than one generation, though.)<p/> Each group also has a flag determining
+whether that group is allowed to create new  or modify existing documents. If a
+group is in the list of those allowed to modify a  document, it can change that
+document (assuming they also have the create/modify flag set). These group
+names must match those in the <b>.htpasswd</b> file although the comparison is
+not case sensitive.
+  </text>
+ </entry>
+ <entry>
+  <key>child</key>
+  <title>Subordinate groups</title>
+  <text>
+   <p>Select the groups you want to be subordinates of this group. This means
+   that this group will be able to see and change all documents that
+   the subordinate groups can.</p>
+   <p>To change a group's dominant groups, you must change the subordinate
+   groups of the dominant group</p>
+  </text>
+ </entry>
+
+ <entry>
+  <key>parent</key>
+  <title>Group</title>
+  <text>
+Select the group you want to delete or modify. If you want to modify, fill out
+the names and permissions that you want to change.
+  </text>
+ </entry>
+
+ <entry>
+  <key>admaction</key>
+  <title>Administrative actions</title>
+  <text>
+Select the action you want to perform on the list. You can either modify an
+existing entry, create a new entry, or delete an entry. Then fill out the rest
+of form.
+  </text>
+ </entry>
+
+ <entry>
+  <key>instentry</key>
+  <title>Institution entry</title>
+  <text>
+Fill out both the short name, (i.e. Illinois) and the long name (i.e. University
+of Illinois) for the institution.
+  </text>
+ </entry>
+
+ <entry>
+<key>notifyauthor</key>
+<title>E-mail notification by author</title>
+  <text>
+Select which people you want to be notified about when they are listed as
+authors on documents.  Immediate notification will send you e-mail on each
+document as it is entered. Daily and weekly notifications send out lists of
+documents you are interested in every day or week.<p/>
+
+You can select any combination of authors for each of the three
+periods.
+  </text>
+ </entry>
+
+ <entry>
+<key>notifykeyword</key>
+<title>E-mail notification by keyword</title>
+  <text>
+Select the keywords that you want to be notified when they are entered on
+documents. The keywords are case insensitive, but otherwise must match
+<b>exactly</b>. Immediate notification will send you e-mail on each
+document as it is entered. Daily and weekly notifications send out lists of
+documents you are interested in every day or week.<p/>
+
+You can select any combination of keywords for each of the three
+periods.
+  </text>
+ </entry>
+
+ <entry>
+  <key>notifytopic</key>
+  <title>E-mail notification by topic</title>
+  <text>
+Select the topics that you want to be notified about for the selected time period.
+If you select a topic, you will receive notifications for its sub-topics as well.
+Immediate notification will send you e-mail on each document as it is entered. Daily
+and weekly notifications send out lists of documents you are interested in every day
+or week.<p/>
+
+You can select any combination of topics and sub-topics for each of the three
+periods.
+  </text>
+ </entry>
+
+ <entry>
+  <key>notifyevent</key>
+  <title>E-mail notification by event</title>
+  <text>
+Select the events and event groups for documents that you want to be notified about.
+If you select an event group, you will receive notifications for all events in that.
+Immediate notification will send you e-mail on each document as it is entered. Daily
+and weekly notifications send out lists of documents you are interested in every day
+or week.<p/>
+
+You can select any combination of groups and events for each of the three
+periods.
+  </text>
+ </entry>
+
+ <entry>
+  <key>notifydocument</key>
+  <title>E-mail notification for documents</title>
+  <text>
+   This is the list of documents you are watching. You can add to or remove from it
+   here. Only immediate notifications for documents are available.
+  </text>
+ </entry>
+
+ <entry>
+  <key>notifydoctype</key>
+  <title>E-mail notification by document type</title>
+  <text>
+    Select the types of documents about which you'd like to receive e-mail notifications.
+    Immediate notification will send you e-mail on the document(s) of the chosen type
+    as it is entered.  Daily and weekly notifications send out lists of documents
+    every day or week.
+  </text>
+ </entry>
+
+ <entry>
+  <key>notifyalldocs</key>
+  <title>E-mail notification for all documents</title>
+  <text>
+    Select time interval for receiving e-mail notification for <strong>all</strong>
+    documents being modified. Immediate notification will send you e-mail on each
+    document as it is entered.  Daily and weekly notifications send out lists of
+    documents every day of the week.
+  </text>
+ </entry>
+
+ <entry>
+<key>overdatepref</key>
+<title>Override submit date</title>
+  <text>
+Use this option if you want to (by default) be able to set the date and time
+for documents written in the past. This is useful mainly for those entering
+lots of old documents.
+  </text>
+ </entry>
+
+ <entry>
+<key>namepref</key>
+<title>Name</title>
+  <text>
+Select your name from the list. When you create a new document, you will be
+automatically selected as the submitter and author.
+  </text>
+ </entry>
+
+ <entry>
+<key>displaymode</key>
+<title>Sort by</title>
+  <text>
+This controls how the list of documents is sorted and what is shown on the
+one-line summary of the document. "By Date" is usually used for generic
+documents and "By Author" is useful for meetings.
+  </text>
+ </entry>
+
+ <entry>
+<key>filename</key>
+<title>File Name</title>
+  <text>
+When updating the database information on a document, you can't rename the
+files, but you can re-describe them. These are the names of the files in your
+document.
+  </text>
+ </entry>
+
+ <entry>
+<key>searchtopic</key>
+<title>Topics</title>
+  <text>
+You can select the topics and/or sub-topics for the
+document(s) you are searching for. The default is to search all sub-topics for
+a topic as well; you can turn this option off by checking the box. However, for
+searches of an <q>AND</q> of topics, this option is not available. E.g., a search
+for on documents with topics <q>Asia AND Europe</q> will not find documents with
+topics <q>Germany</q> and <q>China</q>.
+  </text>
+ </entry>
+
+ <entry>
+<key>beforeafterdate</key>
+<title>Any Version Modified Between</title>
+  <text>
+Use these two menus to select a date range for the document(s) you are looking
+for. You can leave either the start or end completely blank for an open ended
+search. <p/>
+You can also leave months and/or days blank on one or both menus to perform
+searches between the beginning and end of years and months (whichever is
+appropriate). Unpredictable
+results may occur if, for instance, you leave the month blank but select a day
+of the month.
+  </text>
+ </entry>
+
+ <entry>
+<key>doctypemulti</key>
+<title>Document Type</title>
+  <text>
+<table width="100%" border="0" cellpadding="0" cellspacing="8">
+
+<tr><td valign="top"><b>C-</b></td><td>
+Contractual or Procurement Related Documents (RFP/RFQ,
+Contracts, Correspondence or Email to/from vendors or subcontractors,
+Invoices, Quotations, Claims Release, End Item Data Packages)
+</td></tr>
+
+<tr><td valign="top"><b>D-</b></td><td>
+Engineering Drawings or Schematics
+</td></tr>
+
+<tr><td valign="top"><b>E-</b></td><td>
+Engineering Documents (Specifications, Bill of Materials, Travelers,
+FTIR Reports, Parts List)
+</td></tr>
+
+<tr><td valign="top"><b>F-</b></td><td>
+Forms or Templates
+</td></tr>
+
+<tr><td valign="top"><b>G-</b></td><td>
+Graphics (Presentation Viewgraphs, Multi-media, Newpaper Articles,
+Photos, Graphics/Logos)
+</td></tr>
+
+<tr><td valign="top"><b>L-</b></td><td>
+Letter of Correspondence, General Documents (Non-Contractual
+Correspondence, Incident Reports, Non-Contractual Minutes/Agendas,
+Invitations, Letters of Reference, Import/Export/Shipping
+Correspondence, Travel Files)
+</td></tr>
+
+<tr><td valign="top"><b>M-</b></td><td>
+Management or Policy Documents (Policies, Management Reports, NSF
+Reports, RODA's SOP's, Safety Documents, MOU's, CCB Minutes)
+</td></tr>
+
+<tr><td valign="top"><b>P-</b></td><td>
+Publications (Refereed Publications, Theses, Refereed Proceedings)
+</td></tr>
+
+<tr><td valign="top"><b>Q-</b></td><td>
+Quality Assurance Documents
+</td></tr>
+
+<tr><td valign="top"><b>R-</b></td><td>
+Operations Change Requests
+</td></tr>
+
+<tr><td valign="top"><b>S-</b></td><td>
+Serial Number (Electronic Travelers)
+</td></tr>
+
+<tr><td valign="top"><b>T-</b></td><td>
+Technical Documents (Informal Publications, Lab Notes, Surf Reports, LSC
+Author List)
+</td></tr>
+
+<tr><td valign="top"><b>X-</b></td><td>
+Safety Incident Reports
+</td></tr>
+
+</table>
+
+Select the types of documents you are looking for. Note that regardless of the
+setting of <b>Within Fields</b> this search will be performed with a logical
+OR.
+  </text>
+ </entry>
+
+ <entry>
+<key>requestersearch</key>
+<title>Submitter</title>
+  <text>
+Select the people who might have initially submitted or made a modification
+to the document you are looking for. Note that regardless of the setting of
+<b>Within Fields</b> this search will be performed with a logical OR.
+  </text>
+ </entry>
+
+ <entry>
+<key>wordsearch</key>
+<title>Text Searches</title>
+  <text>
+These fields allow you to search on the various text items in the database.
+The following modes are used to search for information:
+<ul>
+ <li><b>Any words as sub-string: </b>The information you enter is broken into
+ words (delimited by spaces) and the field you are searching in is required to
+ match one or more of these words as a sub-string (<i>lock</i> will match
+ <i>lock</i> and <i>block</i>).</li>
+ <li><b>All words as sub-string: </b>The information you enter is broken into
+ words (delimited by spaces) and the field you are searching in is required to
+ match all of these words as sub-strings (in any order).</li>
+ <li><b>Any or all words as words: </b>Like the searches above, but spaces are
+ require to delimit words (<i>lock</i> will not match <i>block</i>).</li>
+</ul>
+  </text>
+ </entry>
+
+<entry>
+ <key>contentsearch</key>
+ <title>File content search</title>
+ <text>
+  This field uses an external search engine to search for strings in the files
+  in the document. Whether it matches sub-strings or whole words is a function
+  of the external search engine. Note that not all document formats are
+  searchable. (Searches in text and HTML files will be most reliable.)
+  </text>
+ </entry>
+
+ <entry>
+<key>logictype</key>
+<title>Between Fields vs. Within Fields</title>
+  <text>
+Two types of logic can be used to refine your search. <p/>
+
+The setting for <b>Between Fields</b> lets you select AND or OR between
+elements on the form. For instance, if you select and Author and a Topic, you
+can either find documents by that author AND on that topic or by that author OR
+on that topic. AND is the default.<p/>
+
+The setting for <b>Within Fields</b> determines what happens when, for instance,
+you select two authors. You can either require that both authors are present on
+the paper (AND) or either author is present (OR). OR is the
+default. Note that this setting
+doesn't apply to text searches (since they use their own syntax). Also, for
+Submitter and Document Type, multiple settings on the document are not
+possible, so these searches are <b>always</b> done with an OR.
+  </text>
+ </entry>
+
+ <entry>
+<key>keywords</key>
+<title>Keywords</title>
+  <text>
+   Keywords are used to further classify documents below the sub-topic level.
+   Keywords should be separated by spaces. Compound words should use a dash or
+   under-score to connect words.
+  </text>
+ </entry>
+
+ <entry>
+<key>replacefiles</key>
+<title>Replace Duplicate Files</title>
+  <text>
+If you select this option, any files you add which duplicate file names of
+existing files will completely replace the old files (no backup will be kept).
+Do <strong>not</strong> use this option to avoid creating a new version of a
+document, even if only minor changes have been made. This option is, instead,
+intended for making minor fixes to presentation formats and the like.  Disk
+space is cheap, mistakes are not.
+<p/>
+Please use this option responsibly.
+  </text>
+ </entry>
+
+ <entry>
+  <key>authormanual</key>
+  <title>Ordered Author List</title>
+  <text>
+   <p>Type the names of the authors <strong>in order</strong> here. Put each
+   author on a new line. Use first names or initials and full last names. Each
+   author entered will checked against the database and a <b>unique</b> match
+   must be found for <strong>all</strong> authors before the document will be
+   added. Requiring a unique match means that for people who share a last name and initial,
+   the first name must be fully specified. Entered middle initials are
+   ignored.</p>
+   <p>This will create an ordered author list. If you normally enter authors
+   from  a selectable list and you instead see the text entry box, that means
+   the list was already ordered by someone else.</p>
+   <p>If you would prefer to select the author names from a list, click on
+   "Select from list" or choose "Selectable List" as the author selection mode
+   from the advanced form on the DocDB Changes page. Switching list styles
+   will not preserve changes just made and the list style will erase any
+   ordering of the authors.</p>
+      <p>The DCC recognizes both "Active" authors (current LSC/Virgo members) and "All"
+         authors (anyone who has authored a document in the DCC). You can select in the
+            "Preferences" page which list to be used, where you can choose which
+               list to use for searches, and which list to use for document metadata.</p>
+  </text>
+ </entry>
+
+ <entry>
+<key>startdate</key>
+<title>Start Date</title>
+  <text>
+Select the date of the start of the conference.
+  </text>
+ </entry>
+
+ <entry>
+<key>enddate</key>
+<title>End Date</title>
+  <text>
+Select the date of the end of the conference.
+  </text>
+ </entry>
+
+ <entry>
+  <key>location</key>
+  <title>Location &amp; Alternate</title>
+  <text>
+   <p>Enter the location of the conference, event, or session. This can be a
+   city, an institution, or a room number depending on the circumstances. The
+   alternate location might be video or teleconferencing instructions.</p>
+  </text>
+ </entry>
+
+ <entry>
+<key>confurl</key>
+<title>URL</title>
+  <text>
+Enter the URL for the conference's home page. Please include the http:// or
+https:// at the beginning.
+  </text>
+ </entry>
+
+ <entry>
+<key>oldnumber</key>
+<title>Old DCC Number</title>
+  <text>
+This is the identifier string (TYY####) of a document from the old DCC; where
+T is the one character Topic character, YY is the 2 digit year of the document,
+and #### is the 4 digit number of the document. For example, "M080351" is
+Managent document number 351 from 2008.
+  </text>
+ </entry>
+
+ <entry>
+<key>docnumber</key>
+<title>Document Number</title>
+  <text>
+This is the number (six digits or less) of the document you want to act on. If
+you can supply a version number, that is always in a separate field, don't type
+it here.
+  </text>
+ </entry>
+
+ <entry>
+<key>description</key>
+<title>Description</title>
+  <text>
+This is a short description of each file which will be displayed alongside the
+filename. This description will appear in the hyperlink in the document
+summary. For instance, you might describe a .ppt file as "PowerPoint of the
+conference talk" and a .ps file as "The proceedings for the conference." The
+description is optional, but recommended. If you don't type a description, the
+filename will be used by itself.
+<p/>
+To delete files which have been incorrectly uploaded to the system, please enter "Delete",
+"Ignore", or "Remove" in the description field for those files.   In order to undelete,
+please contact dcc-help@ligo.org.
+  </text>
+ </entry>
+
+ <entry>
+<key>localfile</key>
+<title>File</title>
+  <text>
+This is a file on your local computer. You can type in a full file name or press
+browse to go find the file.
+  </text>
+ </entry>
+
+ <entry>
+<key>remoteurl</key>
+<title>URL</title>
+  <text>
+In this box, enter a URL available on the web. The file will be fetched from
+this URL and stored on the server. The URL must be a full URL, with http:// at
+the beginning and a file name at the end (cannot end in "/"). The https and ftp
+protocols may also work.
+<p/>
+If the URL is protected, enter the username and password used to access the
+URL. The username and password are not saved.
+  </text>
+ </entry>
+
+ <entry>
+  <key>newfilename</key>
+  <title>New Filename</title>
+  <text>
+   Some files, especially those returned by scripts, may have unintelligible
+   names.  If you want the filename to be renamed after DocDB downloads it,
+   enter the new name here. Leave this blank if you want to use the same
+   filename as on the remote host.
+  </text>
+ </entry>
+
+ <entry>
+  <key>modifytypes</key>
+  <title>Modification Actions</title>
+  <text>
+There are five ways to modify a document:
+<ol>
+<li>Reserve a document #: Select this option if you want a number for a document
+you are going to write, but don't have a draft of the document.</li>
+<li>New document: You have a new document ready to be put into the database that
+has not been entered before.</li>
+<li>Update document: You have a new version of a document already in the
+database. You will also be able to change any of the information in the database
+about the document. You must supply a document number to modify.</li>
+<li>Update database information: The document hasn't changed, but the
+information about it has. For example, it's now published so you want to add that
+information. You must supply a document number to modify.</li>
+<li>Add/Replace files: You forgot a file that belongs with the document or
+something minor has changed in one of the files.<p/>Replacing files should be done
+with caution since no backup is kept. Please do not use this capability to
+avoid creating a new version of a document when that is more appropriate. Disk
+space is cheap, mistakes are not.</li>
+</ol>
+Select the type of modification appropriate to your situation
+  </text>
+ </entry>
+
+ <entry>
+  <key>uploadmethod</key>
+  <title>Upload Methods</title>
+  <text>
+You can upload documents by two different methods.
+<ol>
+<li>You can upload files from
+your local computer </li>
+<li>You can upload files by supplying a URL. In this case, the database
+system downloads the document from the location you specify. </li>
+</ol>
+In both cases the document is ultimately stored on the document database web server.
+  </text>
+ </entry>
+
+ <entry>
+  <key>uploadtype</key>
+  <title>Upload Types</title>
+  <text>
+You can upload three different types of documents.
+<ol>
+<li>You can upload a single file. This is the default. </li>
+<li>You can upload a document consisting of multiple files, such as PowerPoint
+and PDF by selecting "Multiple" and filling in the "# of files" option with the
+number of files you want to upload. </li>
+<li>You can upload an archive file containing all the files in your document.
+However, only one of those files will be directly accessible. For example, use
+this option to upload a group of linked web pages. You can upload files in
+.tar, .tar.gz, .tgz, or .zip format.</li>
+</ol>
+  </text>
+ </entry>
+
+ <entry>
+  <key>topicoption</key>
+  <title>Topic Selection</title>
+  <text>
+You can either select the subtopic(s) for your document from one long list or
+from a number of shorter lists split up by topic.
+  </text>
+ </entry>
+
+ <entry>
+  <key>authoroption</key>
+  <title>Author Selection</title>
+  <text>
+   <p>There are two methods of entering the authors for a document. The first is
+   selecting the authors from a list of all possible authors. The second is to
+   type the names of the authors into a form, which has an autocomplete capability.
+   For your document to be accepted, every author that you entered must successfully match an author
+   in the database.</p>
+   <p>The DCC recognizes both "Active" authors (current LSC/Virgo members) and "All"
+   authors (anyone who has authored a document in the DCC). You can select in the
+   "Preferences" page which list to be used, where you can choose which
+   list to use for searches, and which list to use for document metadata.</p>
+  </text>
+ </entry>
+
+ <entry>
+  <key>dateoverride</key>
+  <title>Overriding the submission date</title>
+  <text>
+Use this option to set the date and time for a document written in the past.
+Unless you are submitting a document from the old database or one written a long
+time ago, you should probably not check this. By default, new documents are
+entered with the current date and time.
+  </text>
+ </entry>
+
+ <entry>
+  <key>main</key>
+  <title>Main Files</title>
+  <text>
+Files that the database knows about are classified as "Main" or "Other." Main
+files are typically the ones you want people to look at. As an example, the
+top file of several linked HTML files is a "Main File," the others are "Other
+Files."
+  </text>
+ </entry>
+
+ <entry>
+  <key>overdate</key>
+  <title>Date and Time</title>
+  <text>
+Use these menus to set the date and time for a document written in the past.
+Unless you are submitting a document from the old database or one written a long
+time ago, you should not check "Override date" and you will not have to use this
+control. For your convenience, the date has been set to approximately the
+current time.
+  </text>
+ </entry>
+
+ <entry>
+  <key>title</key>
+  <title>Title</title>
+  <text>
+This is the initial title of of your document. This option must be supplied
+when placing a document into the database and when reserving a document number.
+  </text>
+ </entry>
+
+ <entry>
+  <key>requester</key>
+  <title>Submitter</title>
+  <text>
+This is the name of the person who is reserving the document number or placing
+the document in the database. In other words, this is you. This option must be
+supplied when reserving a document number, placing a document into the database,
+or updating a document.
+  </text>
+ </entry>
+
+ <entry>
+  <key>pubinfo</key>
+  <title>Publication Information</title>
+  <text>
+In this field, include any additional publication information that can't be
+placed in the boxes above. Valid URLs entered here will be linked for the user. This field is optional.
+<p/>
+If your document is in a journal or preprint archive that you feel should be
+added to the list in the DocDB, please contact an administrator.
+  </text>
+ </entry>
+
+ <entry>
+  <key>reference</key>
+  <title>Journal References</title>
+  <text>
+In this space, add any references to journals or archives for your
+document. If the journal or archive does not exist and you feel should be
+added to the list in the DocDB, please contact an administrator.
+<p/>
+If you already have more than one reference for your document, add the first one
+now. When the document is entered, select Change Metadata and add the other ones.
+Each time you "Change Metadata" you are given the chance to add one additional
+reference.
+  </text>
+ </entry>
+
+ <entry>
+  <key>abstract</key>
+  <title>Abstract</title>
+  <text>
+<p>
+Include here an abstract of your document. A short description of the topic(s)
+discussed. This is optional during the reservation stage, but required when
+adding or updating a document.</p>
+<p>For mathematical expressions, Latex snippets can be used, thanks to the MathJax library</p>
+ <a href="/cgi-bin/private/DocDB/DocDBHelp?term=whatismathjax">What is MathJax ?</a>
+  </text>
+ </entry>
+
+ <entry>
+  <key>fileupload</key>
+  <title>File upload</title>
+  <text>
+This field will upload a file from your local computer to the database server.
+Usually you will press the "Browse" button to select, from your local file
+system, the file to be uploaded. The base file name cannot contain a back slash
+"\" or a forward slash "/" to preserve compatibility with both Windows and
+Unix.
+<p/>
+You can also enter a short description of each file, which will appear in the
+summary of the document. The description is optional.
+<p/>
+If there are more upload boxes than you need, just leave the last ones blank.
+<p/>
+If you want to submit a URL rather than a local file, use the Customize
+Insert/Modify functions to select your type of upload.
+  </text>
+ </entry>
+
+ <entry>
+  <key>authorgeneric</key>
+  <title>Authors</title>
+  <text>
+   Select author(s) of your document. You can either choose from the list, or enter individual names by hand. For new or revised documents, you can select groups of authors instead of, or in addition to, individual names (eg, LSC).
+  </text>
+ </entry>
+
+ <entry>
+  <key>lastupdated</key>
+  <title>'Last Updated By' Search</title>
+  <text>
+  While the "Author" search finds documents according to authors, the "Last Updated By" search finds documents according to who made the most recent update, meaning a change of files or a change of metadata.
+  </text>
+ </entry>
+
+ <entry>
+  <key>authors</key>
+  <title>Individual Authors</title>
+  <text>
+   <p>If entering a new or revised document, select all the authors of the
+   document.  If you would prefer to type in the author names individually and
+   in order, me letters from the name where it says "type here" and it will autocomplete. </p>
+   <p> If searching for a document, select the authors appropriately for your
+   setting of <b>Within Fields</b>.</p>
+   <p> To select multiple authors either click or CTRL-click on the names, or just type the
+   author names.  If a document has multiple authors,use the text area ("type here")
+   to adjust the order.</p>
+      <p>The DCC recognizes both "Active" authors (current LSC/Virgo members) and "All"
+         authors (anyone who has authored a document in the DCC). You can select in the
+            "Preferences" page which list to be used, where you can choose which
+               list to use for searches, and which list to use for document metadata.</p>
+  </text>
+ </entry>
+
+ <entry>
+  <key>authorgroups</key>
+  <title>Author Groups</title>
+  <text>
+   <p>If entering a new or revised document, select any group(s) of authors for the document.
+   An author group can be added in addition to or instead of selecting individual authors.</p>
+   <p>To select multiple author groups either click or CTRL-click (depending on your
+   browser) on the names.  </p>
+   <p>More information on
+   <a href="ListAuthorGroups"> author group membership </a></p>
+  </text>
+ </entry>
+
+ <entry>
+  <key>topics</key>
+  <title>Topics</title>
+  <text>
+Select all the topics and subtopics for the document. To select multiple topics
+hold control or command (depending on your browser) and click on the topic
+names. You are not allowed to select topics in brackets (if any). Note that
+there are two ways to enter topics, either from one big long list or from
+several shorter lists. You can select the other mode from the customize form on
+the main page.
+<p>
+Some guidelines for use:
+</p>
+
+<table width="100%" border="0" cellpadding="0" cellspacing="8">
+
+<tr><td valign="top"><b>Activities</b></td><td>
+Most of these are keyed to phases in the development of a major upgrade (like Advanced LIGO). In particular, the options
+<br>Requirements</br>
+<br>Conceptual Design</br>
+<br>Preliminary Design</br>
+<br>Final Design</br>
+<br>Fabrication</br>
+<br>Incoming Inspection</br>
+<br>Assembly</br>
+<br>Installation</br>
+<br>Integration</br>
+<br>Subsystem Test</br>
+<br>System Test</br>
+<br>Commissioning</br>
+<br>form an ordered set of steps in designing and delivering the instrument. All Advanced LIGO Documents should carry at least one of these labels.
+</br>
+<p>The remaining entries are as follows </p>
+.Temporary Test Document -- to learn how to use DCC. not for documents you intend to save or share.
+<br>Education, Outreach for this domain</br>
+<br>Basic R &amp; D -- research not yet part of a baseline upgrade:  that means aLIGO at this point. Squeezing, 3rd generation, new interferometer readout topologies, etc. are good examples.</br>
+<br>Meeting -- to indicate that the document is principally targeted for use at a given meeting in or out of the Lab. Use 'Public Talk/Colloquium' instead for external presentations</br>
+<br>Modeling -- for this domain</br>
+<br>Operations -- for activities which focus on the Operation of our Laboratory and Observatories</br>
+<br>Public Talk/Colloquium -- for presentations made outside of our LIGO and Virgo collaborations, approved by the Publications and Presentations committee.</br>
+<br>Upgrades -- redundant with other topics; may be used for upgrades to detectors</br>
+
+</td></tr>
+
+<tr><td valign="top"><b>Data Analysis</b></td><td>
+Most of these are keyed to phases in the development of a major upgrade (like Advanced LIGO). In particular, the options
+</td></tr>
+
+<tr><td valign="top"><b>Detector</b></td><td>
+Subsystems in the instruments. All Advanced LIGO documents dealing with one or more subsystems should have the correct subsystem selected.
+</td></tr>
+<tr><td valign="top"><b>Management</b></td><td>
+Indicates the management role, if any, of a given document.
+<br>Advisory Boards (PAC/PAP) -- for the Program Advisory Committee and Project Advisory Panel </br>
+<br>Appointment -- for appointments to positions at Caltech or MIT </br>
+<br>Change Control -- for changes in the cost or schedule baseline </br>
+<br>Collaboration -- for management of the LSC </br>
+<br>Letters -- for letter-format directives </br>
+<br>MOU -- for Memoranda of Understading </br>
+<br>Memorandum -- for Memo-forma directives </br>
+<br>Operations Business -- for cost/schedule and procurement activities in the Operations activities of the LIGO Lab </br>
+<br>Organizational Relations -- for relationships between the LIGO Lab, LSC, and other entitites </br>
+<br>Policies -- for LIGO Laboratory internal Policies </br>
+<br>Procurements, Subcontracts -- for these activities for the LIGO Laboratory and its Projects </br>
+<br>Proposals -- for proposals to agencies in which the LIGO Laboratory takes part </br>
+<br>Public relations -- for contacts with the press and related endeavors for the Lab or LSC </br>
+<br>Quality Assurance -- for this domain </br>
+<br>Reports -- for reports to agencies, e.g., the NSF </br>
+<br>Reviews -- for formal reviews within the Laboratory or of the Laboratory by e.g., the NSF </br>
+<br>Risk Management -- for this domain </br>
+<br>Safety -- for this domain </br>
+<br>Security -- for cybersecurity and related issues </br>
+<br>Technical Review Board -- for LIGO Lab or Project actions taken by the relevant Technical Review Board </br>
+
+
+</td></tr>
+</table>
+  </text>
+ </entry>
+
+ <entry>
+  <key>security</key>
+  <title>View Groups - Hierarchichal</title>
+  <text>
+Select the hierarchical group which is allowed to access your document.   View access will be given to
+that group and all groups listed below.
+To make a document publicly accessible select "Public Pending" only. Once it has
+been certified by the DCC Librarian it will show up on the public website.
+<p>
+More information on the
+<a href="https://dcc.ligo.org/wiki/index.php/Onion">
+DCC Group Hierarchy</a>
+</p>
+  </text>
+ </entry>
+
+ <entry>
+  <key>viewspecific</key>
+  <title>View Groups - Specific</title>
+  <text>
+Select which specific groups are allowed to access your document.  Unlike the hierarchical groups,
+these groups have no implied relationships.   Each desired group should be selected individually.
+The <q>Authors</q> group refers to the full list of authors for this document.
+   <p>To select multiple groups either click or CTRL-click (depending on your
+   browser) on the names.  </p>
+  </text>
+ </entry>
+
+ <entry>
+  <key>doctype</key>
+  <title>Document Type</title>
+  <text>
+<table width="100%" border="0" cellpadding="0" cellspacing="8">
+
+<tr><td valign="top"><b>C-</b></td><td>
+Contractual or Procurement Related Documents (RFP/RFQ,
+Contracts, Correspondence or Email to/from vendors or subcontractors,
+Invoices, Quotations, Claims Release, End Item Data Packages)
+</td></tr>
+
+<tr><td valign="top"><b>D-</b></td><td>
+Engineering Drawings or Schematics
+</td></tr>
+
+<tr><td valign="top"><b>E-</b></td><td>
+Engineering Documents (Specifications, Bill of Materials, Travelers,
+FTIR Reports, Parts List)
+</td></tr>
+
+<tr><td valign="top"><b>F-</b></td><td>
+Forms or Templates
+</td></tr>
+
+<tr><td valign="top"><b>G-</b></td><td>
+Graphics (Presentation Viewgraphs, Multi-media, Newpaper Articles,
+Photos, Graphics/Logos)
+</td></tr>
+
+<tr><td valign="top"><b>L-</b></td><td>
+Letter of Correspondence, General Documents (Non-Contractual
+Correspondence, Incident Reports, Non-Contractual Minutes/Agendas,
+Invitations, Letters of Reference, Import/Export/Shipping
+Correspondence, Travel Files)
+</td></tr>
+
+<tr><td valign="top"><b>M-</b></td><td>
+Management or Policy Documents (Policies, Management Reports, NSF
+Reports, RODA's SOP's, Safety Documents, MOU's, CCB
+Minutes)
+</td></tr>
+
+<tr><td valign="top"><b>P-</b></td><td>
+Publications (Refereed Publications, Theses, Refereed Proceedings)
+</td></tr>
+
+<tr><td valign="top"><b>Q-</b></td><td>
+Quality Assurance Documents
+</td></tr>
+
+<tr><td valign="top"><b>R-</b></td><td>
+Operations Change Requests
+</td></tr>
+
+<tr><td valign="top"><b>S-</b></td><td>
+Serial Number (Electronic Travelers)
+</td></tr>
+
+<tr><td valign="top"><b>T-</b></td><td>
+Technical Documents (Informal Publications, Lab Notes, Surf Reports, LSC
+Author List)
+</td></tr>
+
+</table>
+  </text>
+ </entry>
+
+ <entry>
+  <key>shortdescription</key>
+  <title>Short Description of Subtopic or Event</title>
+  <text>
+This is the text that appears in the selectable boxes and in the ShowDocument
+script. It should a short version of the topic or event. For example, in a
+conference this should be the short name of the conference, like "High Energy
+6." while "The Sixth International Conference of Interactions at High Energy"
+should be entered as the  long description.
+  </text>
+ </entry>
+
+ <entry>
+  <key>longdescription</key>
+  <title>Long Description of Subtopic or Conference</title>
+  <text>
+This is a longer description of the topic, if needed. If not, it should be the
+same as the short description. While this isn't used now, it might be in the
+future.For example, in a conference this should be the full name of the
+conference, like "The Sixth International Conference of Interactions at High
+Energy."
+  </text>
+ </entry>
+
+ <entry>
+  <key>institution</key>
+  <title>Institution</title>
+  <text>
+The institution the author you are entering is associated with.
+  </text>
+ </entry>
+
+ <entry>
+  <key>authorentry</key>
+  <title>Entering the Author's Name</title>
+  <text>
+Fill in the fields for first and last name as well as the middle initials, if
+needed.
+  </text>
+ </entry>
+
+ <entry>
+  <key>httpupload</key>
+  <title>Upload by URL</title>
+  <text>
+Enter a URL for your document. The file will be fetched from this URL and
+stored on the server. The URL must be a full URL, with http:// at the beginning
+and a file name at the end (cannot end in "/"). The https and ftp protocols may
+also work.
+<p/>
+If the URL is password protected, enter the username and password for the URL
+here. The username and password are NOT saved. If you enter more than one  URL,
+the same username and password are used for each URL. If you need to fetch
+files with different authentications, just upload some now and use "Add Files"
+to add the other files later.
+<p/>
+You can also enter a short description of each file, which will appear in the
+summary of the document. The description is optional.
+  </text>
+ </entry>
+
+ <entry>
+  <key>doctypeentry</key>
+  <title>Document Type Entry</title>
+  <text>
+Enter a long and short name for the document type. Generally, only the short
+name (such as "Proceeding") is seen while the long name ("Conference
+Proceeding") is not used in the current software.
+  </text>
+ </entry>
+
+ <entry>
+  <key>resetpassword</key>
+  <title>New User Password</title>
+  <text>
+Type the user's new password here. The password is entered as clear text, so the
+user should reset the password as soon as you have given it to them.
+  </text>
+ </entry>
+
+ <entry>
+  <key>emailuser</key>
+  <title>Username</title>
+  <text>
+This is the username of someone who has signed up for a personal account.
+  </text>
+ </entry>
+
+ <entry>
+  <key>conference</key>
+  <title>Conference</title>
+  <text>
+Select the name of the conference.
+  </text>
+ </entry>
+
+ <entry>
+  <key>viewgroups</key>
+  <title>Groups who can view document</title>
+  <text>
+This is the list of groups who may view the document.
+  </text>
+ </entry>
+
+ <entry>
+  <key>modifygroups</key>
+  <title>Modify Groups - Hierarchical</title>
+  <text>
+<p>
+Select the hierarchical group which is allowed to modify your document.
+Modify access will be given to that group and all groups listed below.
+</p>
+<p>
+More information on the
+<a href="https://dcc.ligo.org/wiki/index.php?title=Onion">
+DCC Group Hierarchy</a>
+</p>
+  </text>
+ </entry>
+
+ <entry>
+  <key>viewgeneral</key>
+  <title>View Groups - General</title>
+  <text>
+<p>
+Set permissions on who can <em>view</em> your document.
+You can set <em>hierarchical</em> group access to allow all members of a given group and groups listed below, or <em>specific</em> group access by selecting individual groups unrelated to each other. To make a document publicly viewable, select "Public Pending" only. The DCC Librarian will certify it and make it publicly accessible.
+</p>
+  </text>
+ </entry>
+
+ <entry>
+  <key>modifygeneral</key>
+  <title>Modify Groups - General</title>
+  <text>
+<p>
+Set permissions on who can <em>modify</em> your document.
+By setting <em>hierarchical</em> group access, you are giving access to members of this group and all groups listed below. Selecting <em>specific</em> groups lets you grant access to individual groups without implied relationship between them.
+</p>
+  </text>
+ </entry>
+
+ <entry>
+  <key>modify</key>
+  <title>Modify Groups - Hierarchical</title>
+  <text>
+Select groups that will be allowed to modify the document.  Modify privileges will be given to this group and all groups listed below.
+  </text>
+ </entry>
+
+ <entry>
+  <key>modifyspecific</key>
+  <title>Modify Groups - Specific</title>
+  <text>
+Select which specific groups are allowed to modify your document.  Unlike the hierarchical groups,
+these groups have no implied relationships.   Each desired group should be selected individually.
+The <q>Authors</q> group refers to the full list of authors for this document.
+   <p>To select multiple groups either click or CTRL-click (depending on your
+   browser) on the names.  </p>
+  </text>
+ </entry>
+
+ <entry>
+  <key>adminlogin</key>
+  <title>Administrator login and password</title>
+  <text>
+Enter here the SQL username and password of the administrator account. This may
+or may not be the same as the web username and password.
+  </text>
+ </entry>
+
+ <entry>
+  <key>confpreamble</key>
+  <title>Meeting preamble</title>
+  <text>
+   You can put any text here that you would like to appear at the top of your
+   meeting listing. URLs entered here will be linked.
+  </text>
+ </entry>
+
+ <entry>
+  <key>confepilogue</key>
+  <title>Meeting epilogue</title>
+  <text>
+   You can put any text here that you would like to appear at the bottom of your
+   meeting listing, such as instructions for attending. URLs entered here will be linked.
+  </text>
+ </entry>
+
+ <entry>
+  <key>meetingorder</key>
+  <title>Order of Sessions in a Meeting</title>
+  <text>
+   Change the numbers here to reorder your sessions within a meeting. Using
+   floating point numbers like 2.5 will put this session between those
+   currently numbered 2 and 3.
+  </text>
+ </entry>
+
+ <entry>
+  <key>meetingseparator</key>
+  <title>Breaks and Events</title>
+  <text>
+   Check this box if your entry is a break between sessions. These
+   <q>sessions</q> cannot have talks or documents associated with them. You
+   might use such a separator between sessions to denote a coffee break, a
+   meal, or another activity.
+   <p/>
+   There are also separators you can use between <i>talks</i> to indicate
+   breaks in the agenda for lunch or coffee. (These are inserted as you
+   designate talks <i>within</i> a session.) Which type to use where depends
+   on the organization of your meeting. </text>
+ </entry>
+
+ <entry>
+  <key>sessioninfo</key>
+  <title>Session Information</title>
+  <text>
+   Fill out the location of the session, its starting date and time, a short
+   title for the session, and a longer note, such as instructions, in the
+   description field. URLs entered here will be linked.
+  </text>
+ </entry>
+
+ <entry>
+  <key>sessiondelete</key>
+  <title>Deleting a Session</title>
+  <text>
+   Check this box to delete the corresponding session or separator.
+  </text>
+ </entry>
+
+ <entry>
+  <key>meetpreepi</key>
+  <title>Meeting Preamble and Epilogue</title>
+  <text>
+   These blocks of text will be displayed at the beginning and end of the
+   meeting listing. You may wish to include a welcome message, talk submission
+   directions, etc. in this way. URLs entered here will be linked.
+  </text>
+ </entry>
+
+ <entry>
+  <key>meetshowall</key>
+  <title>Show All Talks for Meeting or Session</title>
+  <text>
+   <p> Checking this box for a whole meeting will also display all the sessions
+   for the meeting and all the talks within those sessions. If this is left
+   unchecked for a meeting, displaying the meeting will display <em>links</em>
+   to the individual sessions. It is suggested that this box be checked for
+   meetings with just a few sessions and left unchecked for meetings with many
+   sessions, especially parallel sessions.</p>
+   <p> Checking this box for a session in a meeting will display the talks for
+   this session in the view of the meeting but will not display the talks for
+   other sessions. You may want to check this box for plenary sessions but leave
+   it unchecked for parallel sessions.</p>
+  </text>
+ </entry>
+
+ <entry>
+  <key>sessions</key>
+  <title>Sessions</title>
+  <text>
+   Fill out the information for as many sessions as you need. If there are
+   not enough blank sessions, don't worry, you'll be able to add additional
+   sessions later. After this is done, you'll be able to populate each
+   session with talks.<p/>You can also create separators between sessions for
+   meals or activities.
+  </text>
+ </entry>
+
+ <entry>
+  <key>talkfromagenda</key>
+  <title>Talk from Agenda</title>
+  <text>
+   You are entering a document that is probably related to a meeting for
+   which an agenda has already been entered. Select your talk from the list.
+   Any title, topics, or authors listed are <i>guesses</i> by the
+   organizer(s) and need not be the same as what you enter.<p/> If you don't
+   find your agenda entry, just leave the selector on "Select your talk..."
+  </text>
+ </entry>
+
+ <entry>
+  <key>sessionorder</key>
+  <title>Order of Talks in a Session</title>
+  <text>
+   Change the numbers here to reorder the talks within a session. Using
+   floating point numbers like 2.5 will put this talk between those currently
+   numbered 2 and 3.
+  </text>
+ </entry>
+
+ <entry>
+  <key>talketc</key>
+  <title>Talk Options</title>
+  <text>
+   <p><strong>Confirm:</strong> Check this box if DocDB has guessed the talk
+   correctly based on the agenda information. Also check this box if you
+   manually enter a document number in the "Doc. #" box. If you fail to do
+   this, DocDB will try to guess again,  possibly erasing your change.</p>
+
+   <p><strong>Delete:</strong> Check this box to delete a talk from the agenda. A document associated with
+   the talk (if any) will <b>not</b> be deleted, just the agenda entry.</p>
+
+   <p><strong>Reserve:</strong> Check this box to create a new document based
+   on the  information entered in the agenda. The submitter of the document is
+   listed as the first author and the document is modifiable by anyone who can
+   <i>view</i> the meeting. You must supply at least one author for the
+   document.</p>
+
+   <p><strong>Break:</strong> Check this box to create a break (e.g. for coffee)
+   rather than a talk in the agenda.</p>
+  </text>
+ </entry>
+
+ <entry>
+  <key>talkdocid</key>
+  <title>Talk Document #</title>
+  <text>
+   <p>This field shows the document # matched with the agenda entry in DocDB.
+   If you know the corresponding document #, type it in and click
+   <strong>Confirm</strong> to the left. If you know there will not be a document
+   for a slot, or wish to prevent DocDB from guessing which document matches, enter
+   <strong>0</strong> and click <strong>Confirm</strong>.</p>
+  </text>
+ </entry>
+
+ <entry>
+  <key>talkinfo</key>
+  <title>Talk Information</title>
+  <text>
+   Fill out the title for the talk, and a note, if needed. This title will
+   be matched against the titles of documents in the database, so being
+   accurate helps.
+  </text>
+ </entry>
+
+ <entry>
+  <key>talktime</key>
+  <title>Talk Duration</title>
+  <text>
+   Select how long the talk is scheduled to last.
+  </text>
+ </entry>
+
+ <entry>
+  <key>authorhint</key>
+  <title>Talk Author Hints</title>
+  <text>
+   Select who will give the talk. Multiple authors can be selected if the
+   talk will be given by more than one person. Multiple authors can also be
+   selected  if the speaker is not known. In this case, select all the people
+   who may give the talk.
+  </text>
+ </entry>
+
+ <entry>
+  <key>topichint</key>
+  <title>Talk Topic Hints</title>
+  <text>
+   Select the topic of the talk. Multiple topics can be selected if the
+   talk will cover more than one topic. Multiple topics can also be
+   selected  if the exact topic is not known. In this case, select all the
+   topics which might be entered.
+  </text>
+ </entry>
+
+ <entry>
+  <key>revisionnote</key>
+  <title>Notes and Changes</title>
+  <text>
+   <p>
+   This field is for notes and changes from version to version of your document. When just updating
+   the database information, this information is filled in by default (but you can still change it). When
+   updating the document itself, this information is not pre-filled. If you want to preserve
+   the notes from the previous version, click on the link <q>Insert notes from previous version</q>.
+   </p>
+   <p>For mathematical expressions, Latex snippets can be used, thanks to the MathJax library</p>
+   <a href="/cgi-bin/private/DocDB/DocDBHelp?term=whatismathjax">What is MathJax ?</a>
+  </text>
+ </entry>
+
+ <entry>
+  <key>meetingviewgroups</key>
+  <title>Meeting Viewable by</title>
+  <text>
+   Select the groups you want to be able to view the meeting and the agendas
+   for the sessions in the meeting.  By default this is chosen to be the group
+   you logged into. Groups that have permission to view a subordinate groups'
+   documents will also be view  meetings viewable by that group.
+  </text>
+ </entry>
+
+ <entry>
+  <key>meetingmodifygroups</key>
+  <title>Meeting Viewable by</title>
+  <text>
+   Select the groups you want to be able to modify the meeting and the agendas
+   for the sessions in the meeting.  By default this is chosen to be the group
+   you logged into.
+  </text>
+ </entry>
+
+ <entry>
+  <key>signoffs</key>
+  <title>Signoff List</title>
+  <text>
+   <p>
+   This is the list of people who must sign the document in order for it to be approved. 
+   The final signer can decide to approve a document even if there are individual 
+   abstentions or rejections. 
+   </p>
+   <p>
+   Checking the Parallel? option creates a parallel signoff list where the signers may
+   approve the document in any order and not dependent on the previous signer.  
+   If the Parallel? option is not checked, the signers must sign in the order listed. 
+   </p>
+   <p>
+   You can enter the names either by selecting from the left hand widget, or by
+   typing part of the name into the right hand widget, which will autocomplete.
+   </p>
+  </text>
+ </entry>
+
+ <entry>
+  <key>filechar</key>
+  <title>Update File Characteristics</title>
+  <text>
+   You cannot change the files in the document, but you can enter new descriptions
+   and change which ones are listed as "Main."
+  </text>
+ </entry>
+
+ <entry>
+  <key>usergroups</key>
+  <title>Groups the user belongs to</title>
+  <text>
+   This is the list of groups the user belongs to. If you are using a user based
+   authentication method such as certificates, this controls which documents a
+   user is allowed to see, if they are allowed to create documents, or administer
+   the database. If you are using group or user authentication, it makes sure users
+   get e-mail only for documents they are allowed to access.
+  </text>
+ </entry>
+
+ <entry>
+  <key>reqgroups</key>
+  <title>Requested Groups</title>
+  <text>
+   Select all the groups whose documents you wish to have access to.
+   Your request will be checked and processed by an administrator.
+  </text>
+ </entry>
+
+ <entry>
+  <key>certnote</key>
+  <title>Note for access</title>
+  <text>
+   Enter a note to the administrator. Identify yourself and your reasons for
+   requesting access if you think you should, otherwise your request may be
+   rejected.
+  </text>
+ </entry>
+
+ <entry>
+  <key>xrefentry</key>
+  <title>Related Documents</title>
+  <text>
+   Enter the document #'s of documents which are referred to by or related to
+   this document. These documents will be listed in the display of this one,
+   and this document will be listed in the display of the entered documents. A
+   document # by itself will refer to all versions of that document, a document
+   ID like 123-v4 will refer only to the specified version. A document ID like
+   FOO-123-v4 will refer to version 4 of document 123 for project FOO. Consult
+   your DocDB admins  to find out what other projects' DocDBs you can link to
+   this way. <p/>
+   Document numbers can be separated by spaces or commas.
+  </text>
+ </entry>
+
+ <entry>
+  <key>limitgroups</key>
+  <title>Limit Groups</title>
+  <text>
+   Select which groups you would like to be considered a member of.
+   A cookie will be set for the duration you select to limit your membership
+   to the groups you specify. This can be useful to temporarily remove
+   administration permissions.
+  </text>
+ </entry>
+
+ <entry>
+  <key>events</key>
+  <title>Events</title>
+  <text>
+   Select which events (meetings, conferences, etc.) the document is associated with.
+  </text>
+ </entry>
+
+ <entry>
+  <key>admforce</key>
+  <title>Force Delete</title>
+  <text>
+   Checking this box will force DocDB to take the administration action
+   regardless of the consequences. Doing this may have unintended consequences
+   or leave the DB in an incoherent state. For instance, deleting a topic will
+   cause its sub-topics to also be deleted and may leave some documents without
+   any topics.
+  </text>
+ </entry>
+
+ <entry>
+  <key>extdocdb</key>
+  <title>External DocDB Information</title>
+  <text>
+   Fill in the information for any external DocDBs you want your users to be
+   able to reference in <q>Related Documents.</q> <q>Project</q> should be the short
+   project name, the description can be a longer description. The URLs should be
+   the public and private URLs where the scripts reside. Do not include a script name.
+   (I. e., they should be of the form: http://server.name.com/cgi-bin/DocDB/.)
+  </text>
+ </entry>
+
+ <entry>
+  <key>customlist</key>
+  <title>Customizing Document Lists</title>
+  <text>
+   For each document, select the fields you want displayed and their position.
+   For instance, column 2 row 1 will be to the right of column 1, row 1 while
+   column 1, row 2 will be displayed below. The Row(s) and Column(s) settings
+   allow larger fields to span several rows or  columns (these are equivalent to
+   rowspan and colspan in HTML.)  If not laid out correctly, this can
+   cause strange looking lists.
+  </text>
+ </entry>
+
+ <entry>
+  <key>certname</key>
+  <title>Certificate Common Name (CN)</title>
+  <text>
+   This is a unique identifier in the user's client certificate. It is usually
+   the user's name or login. It must be entered exactly or the user will not be
+   authenticated when they  present their client certificate to DocDB.
+  </text>
+ </entry>
+
+ <entry>
+<key>bulkupdate</key>
+<title>Bulk Document Update</title>
+  <text>
+    <p>
+         This tool allows you to make the same metadata changes to a batch of documents.
+    </p>
+    <p>
+        You can choose to update all the documents to a new version with the changes,
+        or incorporate the changes into the existing version. For all fields, you
+        can choose to entirely replace the documents' existing field contents,
+        or append to them. For appending, all new information is appended to the
+        end of existing information.
+    </p>
+    <p>
+        <i>You can only modify documents you already have permission to modify normally.</i>
+    </p>
+    <p>
+        Visit the <a href="https://dcc.ligo.org/wiki/index.php?title=Advanced_features#Updating_Multiple_Documents_at_Once">
+        wiki page</a> for more details.
+    </p>
+    Please use this option responsibly, as it is capable of bulk change.
+  </text>
+ </entry>
+
+ <entry>
+<key>bulkupdatedocuments</key>
+<title>Documents to Change</title>
+  <text>
+    <p>
+        Here you can enter the list of documents you would like to update,
+        separated by spaces (<i>e.g. G2000006 G2000007 G2000008</i>).
+        Please do not include version numbers, the latest
+        version of each document will automatically be selected for you.
+    </p>
+    <p>
+        If you try to update with typos in the document numbers or
+        documents you do not have permssion to modify, you will be taken to a new
+        page with an error statement listing the first incorrect document provided.
+        If you would like to go back and fix this mistake, please click the back arrow
+        in your browser.
+        All your previous entries and selections will be saved, so you can simply
+        fix the error and retry.
+    </p>
+    <p>
+        If you choose <i>Change Latest Version</i>, the document versions will remain
+        the same. The latest version will be modified in place. If you choose
+        <i>Make New Version</i>, all documents will be updated to a new version
+        <i>(e.g. G2000006-x0 to G2000006-v1, G2000007-v1 to G2000007-v2, etc.)</i>.
+    </p>
+  </text>
+ </entry>
+
+ <entry>
+<key>bulkupdatetitle</key>
+<title>Title</title>
+  <text>
+    <p>
+        This widget changes the document titles. If you select <i>Replace</i>
+        and add text to the text field, all document titles will change to that text.
+        If you select <i>Append</i>, a space will be added to the existing document
+        titles, followed by the text entered in the text field. It is important to note that
+        the initial, unique titles of the documents will remain; the new text is
+        simply added on at the end.
+    </p>
+  </text>
+ </entry>
+
+ <entry>
+<key>bulkupdateabstract</key>
+<title>Abstract</title>
+  <text>
+    <p>
+        This widget changes the document abstracts. If you select <i>Replace</i>
+        and add text to the text field, all document abstracts will change to that text.
+        If you select <i>Append</i>, a space will be added to the existing document
+        abstracts, followed by the text entered in the text field. It is important to note that
+        the initial, unique abstracts of the documents will remain; the new text is
+        simply added on at the end.
+    </p>
+  </text>
+ </entry>
+
+ <entry>
+<key>bulkupdatekeywords</key>
+<title>Keywords</title>
+  <text>
+    <p>
+        This widget changes the document keywords. If you select <i>Replace</i>
+        and add space-separated keywords to the text field, all document keywords
+        will change to that text.
+        If you select <i>Append</i>, the new keywords will simply be added to the existing
+        keywords.
+    </p>
+  </text>
+ </entry>
+
+ <entry>
+<key>bulkupdatenotes</key>
+<title>Notes and Changes</title>
+  <text>
+    <p>
+        This widget changes the document Notes and Changes. If you select <i>Replace</i>
+        and add text to the text field, all document abstracts will change to that text.
+        If you select <i>Append</i>, a new line will be added to the existing document
+        abstracts, followed by the text entered in the text field. It is important to note that
+        the initial, unique abstracts of the documents will remain; the new text is
+        simply added on at the end.
+    </p>
+  </text>
+ </entry>
+
+ <entry>
+<key>bulkupdaterelateddocuments</key>
+<title>Related Documents</title>
+  <text>
+      <p>
+      Here you can enter the list of documents you would like to add as related documents,
+      separated by spaces (<i>e.g. G2000009 G2000010 G2000011</i>).
+      Please do not include version numbers, the latest
+      version of each document will automatically be selected for you.
+  </p>
+  <p>
+      If you try to update with typos in the document numbers, you will be taken to a new
+      page with an error statement listing the first incorrect document provided.
+      If you would like to go back and fix this mistake, please click the back arrow
+      in your browser.
+      All your previous entries and selections will be saved, so you can simply
+      fix the error and retry.
+  </p>
+  <p>
+        Like the other widgets, if you select <i>Replace</i>
+        and add space-separated document numbers to the text field, all documents'
+        existing related documents
+        will be replaced with these.
+        If you select <i>Append</i>, the new related documents will simply be added to the
+        end of the existing list of related documents for each document.
+    </p>
+  </text>
+ </entry>
+
+ <entry>
+<key>bulkupdateauthors</key>
+<title>Authors</title>
+  <text>
+    <p>
+        This widget changes the document Authors. Be very careful with this because it
+        has the power to attribute work to someone else's name that is not yours.
+        If you select <i>Replace</i> and add authors, all authors of all the documents
+        will change to those provided.
+        If you select <i>Append</i>, these authors will be appended to the bottom of the list of
+        existing authors for each document.
+    </p>
+  </text>
+ </entry>
+
+
+ <entry>
+<key>relateddocumenttree</key>
+<title>Related Document Tree</title>
+  <text>
+    <p>
+         This tool allows you to view more than one level of related documents.
+    </p>
+    <p>
+        The default tree depth is 5, but can be changed. You can also customize the
+        tree to exclude certain types of documents from appearing in the
+        tree (e.g. Serial numbers).
+    </p>
+    <p>
+        Visit the <a href="https://dcc.ligo.org/wiki/index.php?title=Advanced_features#Viewing_Tree_of_Related_Documents">
+        wiki page</a> for more details.
+    </p>
+  </text>
+ </entry>
+
+ <entry>
+<key>relateddocumenttreedepth</key>
+<title>Tree Depth</title>
+  <text>
+    <p>
+         Specify how many levels of related documents should be present.
+         A depth of 1 prints the same result as this document's original related
+         documents list. A depth of 2 prints a hierarchical view of this
+         document's related documents as well as their related documents.
+    </p>
+    <p>
+        The lowest you can go is 1. Any numbers entered less than that will show
+        the same result as depth 1.
+    </p>
+    <p>
+        Please be aware that entering in large depths may cause the page to take longer
+        to load for certain documents with exceptionally large trees.
+    </p>
+  </text>
+ </entry>
+
+ <entry>
+<key>relateddocumenttreeexclude</key>
+<title>Excluding Document Types</title>
+  <text>
+    <p>
+         This widget allows you to exclude certain document types from appearing
+         in the tree. If a document type is excluded, any document of that type
+         as well as all its descendants will not appear in the tree.
+    </p>
+  </text>
+ </entry>
+
+
+ <entry>
+  <key>certemail</key>
+  <title>E-Mail Address for Certificate User</title>
+  <text>
+   This must be a valid e-mail address for the user. This e-mail address will
+   be used for notifications of changed documents and requests for signatures
+   (if enabled by the DocDB maintainer).
+  </text>
+ </entry>
+
+ <entry>
+  <key>frequentsearches</key>
+  <title>List of frequent searches</title>
+  <text>
+<ul>
+ <li><b>Author:</b> documents authored by the user logged in. To search for another author use the <b>Advanced</b> search option.</li>
+ <li><b>Title:</b> documents whose title contains all of the words specified.</li>
+ <li><b>Number:</b> specific document number with an optional version number</li>
+ <li><b>Recent Changes:</b> documents recently changed in the specified time interval</li>
+ <li><b>Basic:</b> documents which have an attached file or metadata field (title, abstract, authors, ...) that contain all of the specified words</li>
+ <li><b>Advanced:</b> full control of what to match for attached file contents and metadata searches</li>
+ <li><b>Signature Report:</b> signature signoff report for users that can sign documents</li>
+</ul>
+  </text>
+ </entry>
+
+ <entry>
+  <key>listdocuments</key>
+  <title>List documents by</title>
+  <text>
+<ul>
+ <li><b>Author:</b> list of all authors with links to their documents.</li>
+ <li><b>Topic:</b> list of all document topics with links to matching documents.</li>
+ <li><b>Group:</b> list of all access groups with links to members of each group and documents visible by each group.</li>
+ <li><b>Event:</b> lists of events grouped by category with links to individual events.</li>
+</ul>
+  </text>
+ </entry>
+
+ <entry>
+<key>duplicatemetadata</key>
+<title>Clone Metadata</title>
+  <text>
+If you select this option, all metadata (excluding files) will be copied to a new document. If you are cloning a
+later version of a document, all metadata in only that version will be copied to a new x0 document. No data from
+later versions of the document will be copied. No other versions will be created aside from an x0.
+<p/>
+Please use this option responsibly.
+  </text>
+ </entry>
+ <entry>
+<key>whatismathjax</key>
+<title>What is MathJax ?</title>
+  <text>
+<p>From the MathJax project documentation [1] :
+<q>MathJax is an open-source JavaScript display engine for LaTeX, MathML, and AsciiMath notation that works in all modern browsers. </q>
+</p>
+<p>
+It is an APi that is activated in the document pages of DCC, detects chunks of valid latex expression and renders them properly.
+For instance:<br /> \frac{1}{\Bigl(\sqrt{\phi \sqrt{5}}-\phi\Bigr) e^{\frac25 \pi}} \equiv 1+\frac{e^{-2\pi}} {1+\frac{e^{-4\pi}} {1+\frac{e^{-6\pi}} {1+\frac{e^{-8\pi}} {1+\cdots} } } }
+<br />
+will look something like this:
+</p>
+\[\frac{1}{\Bigl(\sqrt{\phi \sqrt{5}}-\phi\Bigr) e^{\frac25 \pi}} \equiv 1+\frac{e^{-2\pi}} {1+\frac{e^{-4\pi}} {1+\frac{e^{-6\pi}} {1+\frac{e^{-8\pi}} {1+\cdots} } } } \]
+
+<strong>How to create Math expression or Symbols in Latex</strong>
+
+<p>
+To insert LaTeX code:
+<ul>
+<li>
+inline with <code>\( .. \)</code>  \(
+\frac{1}{\Bigl(\sqrt{\phi \sqrt{5}}-\phi\Bigr) e^{\frac25 \pi}} \equiv 1+\frac{e^{-2\pi}} {1+\frac{e^{-4\pi}} {1+\frac{e^{-6\pi}} {1+\frac{e^{-8\pi}} {1+\cdots} } } }
+\)
+</li>
+<li>
+as block with <code>\[ .. \]</code> \[\frac{1}{\Bigl(\sqrt{\phi \sqrt{5}}-\phi\Bigr) e^{\frac25 \pi}} \equiv 1+\frac{e^{-2\pi}} {1+\frac{e^{-4\pi}} {1+\frac{e^{-6\pi}} {1+\frac{e^{-8\pi}} {1+\cdots} } } } \]
+</li>
+<li>
+<code> $ .. $ </code>  is not interpreted as LaTex:  $\frac{1}{\Bigl(\sqrt{\phi \sqrt{5}}-\phi\Bigr) e^{\frac25 \pi}} \equiv 1+\frac{e^{-2\pi}} {1+\frac{e^{-4\pi}} {1+\frac{e^{-6\pi}} {1+\frac{e^{-8\pi}} {1+\cdots} } } }$
+</li>
+</ul>
+
+</p>
+
+<p>At this time we have not installed mathjax extension or LaTex aliases. The recommended Latex code for the Solar Mass symbol it M_{\odot}</p>
+
+<p>StackExchange has an excellent summary <a href="https://math.meta.stackexchange.com/questions/5020/mathjax-basic-tutorial-and-quick-reference">
+    https://math.meta.stackexchange.com/questions/5020/mathjax-basic-tutorial-and-quick-reference</a></p>
+
+<p>A complete reference of tex as understood by MathJax is at <a href="http://docs.mathjax.org/en/latest/input/tex/index.html">http://docs.mathjax.org/en/latest/tex.html</a></p>
+
+[1] <a href="http://docs.mathjax.org/en/latest/basic/mathjax.html">http://docs.mathjax.org/en/latest/mathjax.html</a>
+  </text>
+ </entry>
+
+ <entry>
+  <key>numberoffiles</key>
+  <title>Maximum Number of Files to upload</title>
+  <text>
+      <p>
+      This variable controls how many file slots are displayed when adding or 
+      replacing files to a document revisions. </p>
+      <p>If changed on the <a href="/cgi-bin/private/DocDB/SelectPrefs">User Preference page</a>, the value is persistent in a browser cookie. 
+      If changed on AddFilesForm, the value is ephemeral </p> 
+      <p>File upload slots displayed in the File Addition page that do get assigned a file or a description 
+      are simply ignored</p>
+  </text>
+ </entry>
+
+
+</helpfile>

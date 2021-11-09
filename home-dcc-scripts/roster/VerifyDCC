@@ -1,0 +1,73 @@
+#! /usr/bin/env perl
+#
+
+use CGI;
+use DBI;
+use MIME::Lite;
+
+$query = new CGI;  # Global for subroutines
+
+
+my ($Sec,$Min,$Hour,$Day,$Mon,$Year) = localtime(time);
+++$Mon;
+$Year += 1900;
+$Mon = sprintf '%02d', $Mon;
+$Day = sprintf '%02d', $Day;
+my $TimeString = "$Year-$Mon-$Day";
+my $Filename = "./logs/verifyuser_$TimeString.log";
+
+open (VERIFY_LOG, ">>$Filename");
+
+$docdb_handle = DBI->connect('DBI:mysql:dcc_docdb:localhost', "docdbrw" , "*******");
+
+my ($EmployeeNumber, $EmailUserID, $AuthorID, $Username);
+my $email_list = $docdb_handle -> prepare(
+          "SELECT EmployeeNumber, EmailUser.EmailUserID, EmailUser.AuthorID, EmailUser.Username  from EmailUser RIGHT JOIN Author ON  EmailUser.AuthorID = Author.AuthorID where EmailUserID NOT IN (SELECT EmailUserID from UsersGroup) AND Author.Active = 1"
+           ); 
+$email_list-> execute();
+$email_list-> bind_columns(undef, \($EmployeeNumber, $EmailUserID, $AuthorID, $Username));
+
+#Search the EmailUser table using the AuthorID and EamilAddress
+print VERIFY_LOG "Emp#\tEmailID\tAuthorID\tUsername\n";
+while ($email_list-> fetch) {
+          print VERIFY_LOG "$EmployeeNumber\t$EmailUserID\t$AuthorID\t$Username\n";
+}
+
+my ($DocRevID, $DocumentID, $VersionNumber);
+my $doc_list = $docdb_handle -> prepare(
+            "SELECT DocRevID, DocumentRevision.DocumentID, VersionNumber  From DocumentRevision 
+             RIGHT JOIN Document ON Document.DocumentID = DocumentRevision.DocumentID 
+             WHERE DocumentRevision.DocRevID NOT IN (SELECT DocRevID From RevisionSecurity WHERE 1) AND  
+                   DocumentRevision.DocRevID IN (SELECT DocRevID From DocumentFile WHERE 1) AND  
+                   DocumentRevision.DocRevID IN (SELECT DocRevID from DocumentRevision WHERE QACheck=0 AND Obsolete = 0)"
+           ); 
+
+print VERIFY_LOG "DocRevID\tDocID\tVersionNumber\n";
+
+if ( $doc_list-> execute() ) {
+
+    $doc_list-> bind_columns(undef, \($DocRevID, $DocumentID, $VersionNumber));
+
+   while ($doc_list-> fetch) {
+      print VERIFY_LOG "$DocRevID\t$DocumentID\t$VersionNumber\n";
+   }
+}
+
+
+
+$message = MIME::Lite->new (
+    From    => 'root@dcc.ligo.org',
+    To      => 'araya_m@ligo.caltech.edu, pgrassia@ligo.caltech.edu',
+    Subject => 'DCC Verify',
+    Type    => 'TEXT',
+    Path    => "$Filename"
+);
+
+
+
+$message -> send;
+
+$docdb_handle -> disconnect;
+
+close(VERIFY_LOG);
+

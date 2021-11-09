@@ -1,0 +1,205 @@
+#! /usr/bin/env perl
+#
+# Description: An entry form to add files to an existing document 
+#
+#      Author: Eric Vaandering (ewv@fnal.gov)
+#    Modified: 
+#
+
+# Copyright 2001-2007 Eric Vaandering, Lynn Garren, Adam Bryant
+
+#    This file is part of DocDB.
+
+#    DocDB is free software; you can redistribute it and/or modify
+#    it under the terms of version 2 of the GNU General Public License 
+#    as published by the Free Software Foundation.
+
+#    DocDB is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+
+#    You should have received a copy of the GNU General Public License
+#    along with DocDB; if not, write to the Free Software
+#    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+
+use CGI qw(-nosticky);
+use DBI;
+
+use warnings;
+no warnings qw(once);
+
+use CGI::Carp qw(carp croak fatalsToBrowser);
+
+require "DocDBGlobals.pm";
+
+if ($UseDeadlyWarning == 1) {
+   # promote run-time warnings into exceptions
+   # # *unless* we're in an try block, in which 
+   # # case just generate a log entry instead
+   local $SIG{__WARN__} = sub {
+      if ($^S) { carp  "Trapped warning: @_" }
+      else     { croak "Deadly warning: @_"  }
+   };
+}
+
+require "Messages.pm";
+
+require "SecuritySQL.pm";
+require "DocumentSQL.pm";
+require "RevisionSQL.pm";
+require "SignoffSQL.pm";
+
+require "Security.pm";
+require "ResponseElements.pm";
+
+require "RevisionHTML.pm";
+require "FileHTML.pm";
+
+require "Cookies.pm";
+require "Defaults.pm";
+require "HTMLUtilities.pm";
+require "Scripts.pm";
+
+$query = new CGI;  # Global for subroutines
+$dbh   = DBI->connect('DBI:mysql:'.$db_name.':'.$db_host,$db_rouser,$db_ropass);
+
+&GetSecurityGroups;
+&GetPrefsCookie;
+
+%params = $query -> Vars;
+
+$DocumentID    = $params{docid} || 0;
+$Upload        = $params{upload};
+$NumberUploads = $params{numfile};
+$SignoffState  = '';
+#$Version done later
+
+# Set defaults
+
+&SetUploadMethod;
+&SetFileOptions;
+
+print $query -> header( -charset => $HTTP_ENCODING );
+&DocDBHeader("File Addition","",-scripts => ["prototype", "serverstatus", "PopUps", "ValidateForm"]);
+
+@ErrorStack = ();
+
+unless ($DocumentID) {
+  push @ErrorStack,"You are must supply a document number.";
+}  
+  
+&FetchDocument($DocumentID);
+
+if ($params{version} && $params{version} eq "0") {
+   $Version = 0;
+} elsif ($params{version}) {
+   $Version = $params{version};
+} elsif ($DocumentID > 0) {
+   $Version = $Documents{$DocumentID}{NVersions};
+} else {
+   $Version = 0;
+}
+my $DocRevID   = &FetchRevisionByDocumentAndVersion($DocumentID,$Version);
+
+@SecurityDefaults = GetRevisionSecurityGroups($DocRevID);
+@SecurityDefaults = Unique(@SecurityDefaults);
+
+my $UpdateLink = $DocumentAddForm."?mode=update;docid=$DocumentID";
+unless (&CanModify($DocumentID,$Version)) {
+  push @ErrorStack,"You are not authorized to modify this document.";
+}  
+unless ($DocRevID) {
+  push @ErrorStack,"This document does not exist.";
+}
+
+unless ($Version) {
+  unless (CanAdminister()) {
+      push @ErrorStack,"You cannot add files to a document that has only been
+      reserved. <a href=\"$UpdateLink\">Create a new version</a> instead. ";
+  }
+}
+
+# Warn the user if they are about to modify a controlled document
+
+if ($UseSignoffs) {
+  require "SignoffUtilities.pm";
+  my ($Status) = &RevisionStatus($DocRevID);
+  $SignoffState = $Status;
+  unless (($Status eq "Unmanaged") || ($Status eq "Ready")) {
+    push @WarnStack,$Msg_WarnModManaged;
+  }  
+}
+
+WarnPage(@WarnStack); @WarnStack = ();
+EndPage(@ErrorStack);
+
+
+print "<h4>You are adding files to a version of a document.<br/>\n";
+print "These should be files forgotten earlier or a new presentation format of
+       an existing document.<br/>\n";
+print "If these are files with updated information, 
+       <a href=\"$UpdateLink\">create a new version</a> instead.<br/>\n";
+print "If you aren't <span class=\"Warning\">absolutely sure</span> this is what 
+       you want to do, go back and read the help.</h4>\n";
+
+print "<h4>The current document information is reproduced below:</h4>\n";
+
+print "<hr/>\n";
+&PrintRevisionInfo($DocRevID,-hidebuttons => $TRUE, -hideversions => $TRUE);
+print "<hr/>\n";
+
+print $query -> start_multipart_form('POST', $AddFiles, 'id="documentadd"', onSubmit=>'="return validateForm(this);"');
+
+my $numberSigned = &NumberOfSigners($DocRevID);
+
+print "<div>\n";
+print $query -> hidden(-name => 'upload',  -default => 'file');
+print "\n";
+print $query -> hidden(-name => 'version', -default => $Version);
+print "\n";
+print $query -> hidden(-name => 'docid',   -default => $DocumentID);
+print "\n";
+print $query -> hidden(-name => 'public',    -default => @SecurityDefaults);
+print "\n";
+print $query -> hidden(-name => 'status',    -default => $SignoffState);
+print "\n";
+print $query -> hidden(-name => 'nsigned',    -default => $numberSigned);
+print "\n";
+print $query -> hidden(-name => 'mode',    -default => 'add');
+print "\n";
+print $query -> hidden(-name => 'reset', -id => 'reset', -default => '0');
+print "\n";
+print "</div>\n";
+
+print '<table class="HighPaddedTable CenteredTable">'."\n";
+print "<tr><td><strong>Files to add:</strong></td></tr>";
+
+print "<tr><td>\n";
+&FileUploadBox(-type => $Upload);
+print "</td></tr>";
+
+print "<tr><td>\n";
+print FormElementTitle(-helplink => "replacefiles", -helptext => "Replace duplicate files?", -nocolon => $TRUE, -nobreak => $TRUE);
+print $query -> checkbox(-name => "replace", -label => '(Check for yes.)', 
+                         -onclick => "helppopupwindow(\'DocDBHelp?term=replacefiles\');");
+print "</td></tr>";
+
+if ($Preferences{Options}{SubmitAgree}) {
+  print '<tr><td>';
+  print $Preferences{Options}{SubmitAgree};
+  print $query -> checkbox(-name  => 'submitagree', -label => "");
+  print "</td></tr>\n";
+}  
+
+print '<tr><td class="SubmitCell">'."\n";
+print $query -> submit (-value => "Add Files");
+print "</td></tr>";
+
+print "</table>";
+print $query -> end_multipart_form;
+
+&DocDBNavBar();
+&DocDBFooter($DBWebMasterEmail,$DBWebMasterName);
+
+exit;

@@ -1,0 +1,226 @@
+#! /usr/bin/env perl
+#
+#        Name: ShowTalkNote
+# Description: Usually called as a pop-up, this will look up the note for a talk
+#              and display it since it could get crowded in the normal table.
+#
+#      Author: Eric Vaandering (ewv@fnal.gov)
+#    Modified: 
+
+# Copyright 2001-2007 Eric Vaandering, Lynn Garren, Adam Bryant
+
+#    This file is part of DocDB.
+
+#    DocDB is free software; you can redistribute it and/or modify
+#    it under the terms of version 2 of the GNU General Public License 
+#    as published by the Free Software Foundation.
+
+#    DocDB is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+
+#    You should have received a copy of the GNU General Public License
+#    along with DocDB; if not, write to the Free Software
+#    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+
+# FIXME: XHTML
+
+use CGI qw(-nosticky);                                                                                      
+use DBI;
+
+require "DocDBGlobals.pm";
+require "Messages.pm";
+
+require "ResponseElements.pm";
+require "Security.pm";
+require "MeetingSecurityUtilities.pm";
+require "HTMLUtilities.pm";
+
+require "DocumentSQL.pm";
+require "RevisionSQL.pm";
+require "TalkSQL.pm";
+require "MeetingSQL.pm";
+require "TalkHintSQL.pm";
+require "TalkHintUtilities.pm";
+require "DocumentUtilities.pm";
+require "FormElements.pm";
+
+require "DocumentHTML.pm";
+require "TalkHTML.pm";
+require "AuthorHTML.pm";
+require "TopicHTML.pm";
+
+$query = new CGI;  
+%params = $query -> Vars;
+
+my $SessionOrderID = $params{sessionorderid};
+
+$dbh   = DBI -> connect('DBI:mysql:'.$db_name.':'.$db_host,$db_rouser,$db_ropass);
+
+unless ($dbh) {
+  push @ErrorStack,$Msg_NoConnect;
+}         
+EndPage();
+
+# FIXME: XHTML
+
+
+# Collect info
+my ($SessionTalkID,$TalkSeparatorID,$SessionID,$DocumentID,$Confirmed);
+my @TalkDefaultTopicHints;
+my @TalkDefaultAuthorHints;
+
+FetchSessionOrderByID($SessionOrderID);
+
+if ($SessionOrders{$SessionOrderID}{SessionTalkID}) {
+  $SessionTalkID     = $SessionOrders{$SessionOrderID}{SessionTalkID};
+  FetchSessionTalkByID($SessionTalkID);
+  $TalkDefaultConfirmed = $SessionTalks{$SessionTalkID}{Confirmed}  || "";
+  $TalkDefaultTime      = $SessionTalks{$SessionTalkID}{Time}       || "00:30";
+  $TalkDefaultTitle     = $SessionTalks{$SessionTalkID}{HintTitle}  || "";
+  $TalkDefaultNote      = $SessionTalks{$SessionTalkID}{Note}       || "";
+  $TalkDefaultDocID     = $SessionTalks{$SessionTalkID}{DocumentID} || "";
+  $DocumentID           = $SessionTalks{$SessionTalkID}{DocumentID};
+  $Confirmed            = $SessionTalks{$SessionTalkID}{Confirmed} ;
+  $SessionID            = $SessionTalks{$SessionTalkID}{SessionID};
+  # Get hints and convert to format accepted by scrolling lists
+  
+  my @TopicHintIDs = &FetchTopicHintsBySessionTalkID($SessionTalkID);
+  foreach my $TopicHintID (@TopicHintIDs) {
+    push @TalkDefaultTopicHints,$TopicHints{$TopicHintID}{TopicID};
+  }
+  my @AuthorHintIDs = &FetchAuthorHintsBySessionTalkID($SessionTalkID);
+  foreach my $AuthorHintID (@AuthorHintIDs) {
+    push @TalkDefaultAuthorHints,$AuthorHints{$AuthorHintID}{AuthorID};
+  }
+} elsif ($SessionOrders{$SessionOrderID}{TalkSeparatorID}) {
+  $TalkSeparatorID   = $SessionOrders{$SessionOrderID}{TalkSeparatorID};
+  FetchTalkSeparatorByID($TalkSeparatorID);
+  
+  $TalkDefaultConfirmed = "";
+  $TalkDefaultTime      = $TalkSeparators{$TalkSeparatorID}{Time}  || "00:30";
+  $TalkDefaultTitle     = $TalkSeparators{$TalkSeparatorID}{Title} || "";
+  $TalkDefaultNote      = $TalkSeparators{$TalkSeparatorID}{Note}  || "";
+  $SessionID            = $TalkSeparators{$TalkSeparatorID}{SessionID};
+}
+
+FetchSessionByID($SessionID);
+my $EventID = $Sessions{$SessionID}{ConferenceID};
+
+unless (CanAccessMeeting($EventID)) {
+  push @ErrorStack,$Msg_MeetNoAccess;
+}
+unless (CanModifyMeeting($EventID)) {
+  push @WarnStack,"You may view the agenda information, but you will not be able to modify it.";
+}
+
+my $DocRevID;
+my $DocumentAlias;
+
+if ($DocumentID) {
+  &FetchDocument($DocumentID);
+  $DocumentAlias = $Documents{$DocumentID}{Alias};
+  $DocRevID = &FetchRevisionByDocumentAndVersion($DocumentID,$Documents{$DocumentID}{NVersions});
+}
+
+my ($BestTitle, $UpdateLink);
+if ($Confirmed && $DocumentID) {
+  $BestTitle  = $DocRevisions{$DocRevID}{Title};
+  $UpdateLink = $DocumentAddForm."?mode=update&docid=$DocumentID";
+} else {
+  $BestTitle = $SessionTalks{$SessionTalkID}{HintTitle};    
+}
+ 
+# Start page
+
+print $query -> header( -charset => $HTTP_ENCODING );
+DocDBHeader("Notes for $BestTitle","",-nobody => $TRUE, -scripts => ["serverstatus", "PopUps"]);
+EndPage();
+
+print "<h5>Use this form to edit the agenda information for a single talk or break. 
+          This does not change the information for the associated document, if any. ";
+if ($UpdateLink) {
+  print "You may <a href=\"$UpdateLink\">change that info</a> also.";         
+}          
+print "</h5>\n";
+
+### Form to change Agenda Info 
+ 
+print $query -> start_multipart_form('POST',$EditTalkInfo);
+print '<table class="MedPaddedTable LeftHeader">';
+
+print "<tr>\n";
+print "<th>",FormElementTitle(-helplink => "talkinfo", -helptext => "Title"),"</th>\n";
+print '<td colspan="2">'; 
+$query -> param('sessionorderid',$SessionOrderID);
+print $query -> hidden(-name => 'sessionorderid', -default => $SessionOrderID),"\n";
+TalkTitle($TalkDefaultTitle);
+print "</td>\n";
+print "</tr><tr>\n";
+
+if ($SessionTalkID) {
+  print "<th>",FormElementTitle(-helplink => "talkdocid", -helptext => "Document #"),"</th>\n";
+  print '<td colspan="2">';
+  TextField(-name => "docid", -size => 8, -maxlength => 8, -default => $DocumentAlias); 
+  TalkConfirm($SessionOrderID);  
+  print "</td></tr><tr>\n";  
+}
+
+print "<th>",FormElementTitle(-helplink => "talktime", -helptext => "Time"),"</th>\n";
+print '<td colspan="2">'; 
+TalkTimePullDown();  
+print "</td>\n";
+print "</tr><tr>\n"; 
+
+print "<th>",FormElementTitle(-helplink => "talkinfo"     , -helptext => "Notes"),"</th>\n";
+print '<td colspan="2">';
+TextArea(-name => 'talknote', -columns => 50, -rows => 8, -default => $TalkDefaultNote); 
+print "</td>\n";
+print "</tr>\n";
+  
+if ($SessionTalkID) {
+  print "<tr><th>",FormElementTitle(-helplink => "authorhint", -helptext => "Author Hints", -nocolon => $TRUE);
+  print  " &amp; ",FormElementTitle(-helplink => "topichint"    , -helptext => "Topic Hints"),"</th>\n";
+
+  print "<td>\n"; AuthorScroll(-multiple => $TRUE, -default => \@TalkDefaultAuthorHints);   print "</td>\n";
+  print "<td>\n"; TopicScroll(-multiple => $TRUE,  -default => \@TalkDefaultTopicHints, -format => "full");    print "</td>\n";
+  print "</tr>\n";
+}
+
+print '<tr><td colspan="3" class="SubmitCell">';
+print $query -> submit (-value => "Change Agenda Information");
+print "</td></tr>\n";
+print "</table>\n";
+
+print $query -> endform;
+
+if ($SessionTalkID) { # Don't do this for seperators
+  if ($DocumentID) {
+    if ($Confirmed) {
+      print "<p><b>This talk is a confirmed match with this document:</b></p>\n";
+    } else {
+      print "<p><b>This talk has been matched (but not confirmed) with this document:</b></p>\n";
+    } 
+    my @DocumentIDs = ($DocumentID);
+    my %FieldList = PrepareFieldList(-fields => ["Title","Author","Topics","Files"]);
+    DocumentTable(-fieldlist => \%FieldList, -docids  => \@DocumentIDs);
+  } else {
+    print "<p><b>No document in the database has been matched to this talk.</b></p>\n"
+  }
+
+  if (CanModifyMeeting($ConferenceID)) {
+    my $SearchDays  = $TalkHintWindow;
+
+    my %CheckDocumentIDs = GetHintDocuments($SessionID,$SearchDays);
+    my @MatchedDocIDs    = TalkMatches($SessionTalkID,0,%CheckDocumentIDs);
+    if (@MatchedDocIDs) {
+      print "<p><b>The following documents are possible matches for this talk (best
+      first):</b></p>\n";
+      my %FieldList = PrepareFieldList(-fields => ["Title","Author","Topics","Confirm"]);
+      DocumentTable(-fieldlist => \%FieldList, -docids  => \@MatchedDocIDs, -talkid => $SessionTalkID);
+    }  
+  }
+}
+
+DocDBFooter($DBWebMasterEmail,$DBWebMasterName,-nobody => $TRUE);

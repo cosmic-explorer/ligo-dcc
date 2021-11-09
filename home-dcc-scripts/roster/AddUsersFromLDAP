@@ -1,0 +1,57 @@
+#! /usr/bin/env perl
+#
+
+use CGI;
+use DBI;
+
+
+$query = new CGI;  # Global for subroutines
+
+my ($Sec,$Min,$Hour,$Day,$Mon,$Year) = localtime(time);
+++$Mon;
+$Year += 1900;
+$Mon = sprintf '%02d', $Mon;
+$Day = sprintf '%02d', $Day;
+my $TimeString = "$Year-$Mon-$Day";
+
+open (ROSTER_LOG, ">>./logs/ldap_$TimeString.log");
+
+require "Source_MembersLDAP.pm";
+require "DocDB_UsersLDAP.pm";
+require "DocDB_HTDBM.pm";
+
+$VERIFY_USERS = 0;
+$KAGRA_UserGroup = 37;
+$KAGRA_Institution  = 173;
+
+
+#$ldap_server = 'gw-astronomy.org';
+#$ldap_server = 'gwastronomy-data.cgca.uwm.edu';
+$ldap_server = 'ldap.gw-astronomy.cilogon.org';
+$ldap = Net::LDAP->new ( $ldap_server, timeout=>4 ) or die "$@";
+
+$mesg = $ldap->bind;
+
+if ( $mesg->code ) { LDAPerror ("bind", $mesg) }
+
+&GetKAGRAMembersFromLDAP;
+
+$docdb_handle = DBI->connect('DBI:mysql:dcc_docdb:localhost', "docdbrw" , "*******");
+
+&DocDB_GetFormerGroupMembers($KAGRA_UserGroup);
+&DocDB_VerifyIfActive();
+&DocDB_RemoveUnverifiedMembers($KAGRA_UserGroup);
+
+DocDB_CheckIfExists();
+&DocDB_AddNewAuthors();
+&DocDB_AddNewEmailUsers();
+&DocDB_AddNewRemoteUsers();
+&DocDB_AddNewMemberships($KAGRA_UserGroup);
+
+&DocDB_GenerateHTDBMFiles();
+
+$docdb_handle -> disconnect;
+
+close(ROSTER_LOG);
+
+#system("/home/dcc/roster/dist_files");

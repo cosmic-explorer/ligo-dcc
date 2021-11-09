@@ -1,0 +1,243 @@
+#! /usr/bin/env perl
+#
+# Author:  Adam Bryant
+#
+
+# Copyright 2001-2007 Eric Vaandering, Lynn Garren, Adam Bryant
+
+#    This file is part of DocDB.
+
+#    DocDB is free software; you can redistribute it and/or modify
+#    it under the terms of version 2 of the GNU General Public License 
+#    as published by the Free Software Foundation.
+
+#    DocDB is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+
+#    You should have received a copy of the GNU General Public License
+#    along with DocDB; if not, write to the Free Software
+#    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+
+use CGI qw(-nosticky);
+use DBI;
+
+use warnings;
+
+no warnings qw(once);
+
+use CGI::Carp qw(carp croak fatalsToBrowser);
+
+require "DocDBGlobals.pm";
+
+if ($UseDeadlyWarning == 1) {
+   # promote run-time warnings into exceptions
+   # # *unless* we're in an try block, in which 
+   # # case just generate a log entry instead
+   local $SIG{__WARN__} = sub {
+      if ($^S) { carp  "Trapped warning: @_" }
+      else     { croak "Deadly warning: @_"  }
+   };
+}
+
+require "HTMLUtilities.pm";
+require "SecuritySQL.pm";
+require "Scripts.pm";
+require "ResponseElements.pm";
+require "Cookies.pm";
+require "FormElements.pm";
+require "Sorts.pm";
+require "AuthorSQL.pm";
+
+require "AuthorHTML.pm";
+require "SecurityHTML.pm";
+
+# Start page
+
+$query = new CGI;
+$dbh   = DBI->connect('DBI:mysql:'.$db_name.':'.$db_host,$db_rouser,$db_ropass);
+GetAuthors();
+print $query -> header( -charset => $HTTP_ENCODING );
+DocDBHeader("Select Preferences","",-scripts => ["serverstatus", "PopUps", "jQuery/jquery-1.8", "jQuery/jquery-ui", "auto","Autocompleters",  "prototype", "ScrollListSelector"]);
+
+print $query -> start_multipart_form('POST',$SetPrefs);
+
+$uploads{http}   = "HTTP submission";
+$uploads{file}   = "Local file upload";
+@uploads = ("file","http");
+
+#$archives{archive} = "Archive (.tar/.zip) upload";
+$archives{single}  = "Single file";
+$archives{multi}   = "Multiple files";
+@archives = ("single","multi");
+#@archives = ("single","multi","archive");
+
+$topicmodes{multi}  = "Multiple Topic Boxes";
+$topicmodes{single} = "Single Topic List";
+@topicmodes = ("multi","single");
+
+$authormodes{active} = "Active Authors Only";
+$authormodes{all}  = "All Authors";
+@authormodes = ("active", "all");
+
+$authormodes2{active} = "Active Authors Only";
+$authormodes2{all}  = "All Authors";
+@authormodes2 = ("active", "all");
+
+GetPrefsCookie();
+
+print qq{
+ <table class="MedPaddedTable CenteredTable LeftHeader">
+ <tr><td colspan="3">
+ Use this form to set your personalized defaults. When you are done press submit.<br/>
+ You must have your browser configured to accept cookies to use  this feature.<br/>
+ You can always use the advanced options to override these choices.<br/>
+ You can also <a href="$CustomListForm">change the appearance</a> of lists of documents shown by DocDB.
+ </td></tr>
+};
+
+print "<tr><td>\n";
+#print FormElementTitle(-helplink => "namepref", -helptext => "Default Authors");
+
+my $showall = 0; if($UserPreferences{AuthorMode2} eq 'all'){$showall = 1;}
+AuthorScroll(-showall  => $showall,
+             -required => $RequiredEntries{Author},
+             -helptext => "Select individual authors",
+             -helplink => "authors",
+             -multiple => $TRUE,
+             -name     => "authors",
+             -onchange => "packValues(event, 'authors','authormanual');",
+             -onblur   => "unfocus();",
+             -default  => \@AuthorDefaults);
+
+ print "   </td>\n";
+
+my @authorIDs = 0;
+if ($PrefAuthorID) {
+    @authorIDs = split(';', $PrefAuthorID);
+}
+
+AuthorJSList(2);
+print "<td id=\"AuthorText\"><div id=\"authormanualdiv\"> \n";
+AuthorTextEntry({ -required => $RequiredEntries{Author},
+                         -default    => \@authorIDs,
+                          -extratext => "(will autocomplete)" });
+print "</div>";
+print "<br/><div id=\"AuthorTextError\"></div>";
+print "</td></tr>\n";
+
+print "<tr><th>\n";
+print FormElementTitle(-helplink => "security", -helptext => "Default Read Access <br>for New Documents");
+print "</th>\n";
+
+print "<td>\n";
+my @readGroupIDs = &GetReadGroupACLsCookie();
+
+SecurityScroll(-addpublic => $TRUE,
+               -name      => 'security',
+               -helplink  => 'security',
+               -helptext  => "Hierarchical",
+               -hierarchy => $TRUE,
+               -multiple  => $TRUE, 
+               -default   => \@readGroupIDs);
+
+print "</td>\n";
+
+print "<td>\n";
+SecurityScroll(-name      => 'security',
+               -helplink  => 'viewspecific',
+               -helptext  => "Specific",
+               -hierarchy => $FALSE,
+               -multiple  => $TRUE,
+               -default   => \@readGroupIDs);
+print "</td></tr>\n";
+
+print "<tr><th>\n";
+print FormElementTitle(-helplink => "modify", -helptext => "Default Write Access <br>for New Documents");
+print "</th>\n";
+
+
+print "<td>\n";
+my @writeGroupIDs = &GetWriteGroupACLsCookie();
+
+SecurityScroll(-addpublic => $FALSE,
+               -name      => 'modify',
+               -helplink  => 'modify',
+               -helptext  => "Hierarchical",
+               -hierarchy => $TRUE,
+               -multiple  => $TRUE, 
+               -default   => \@writeGroupIDs);
+
+print "</td>\n";
+
+print "<td>\n";
+SecurityScroll(-addpublic => 'false',
+               -name      => 'modify',
+               -helplink  => 'viewspecific',
+               -helptext  => "Specific",
+               -hierarchy => $FALSE,
+               -multiple  => $TRUE,
+               -default   => \@writeGroupIDs);
+print "</td></tr>\n";
+
+
+print "<tr><th>\n";
+print FormElementTitle(-helplink => "uploadtype", -helptext => "Upload type");
+print "</th>\n";
+print "<td>\n";
+print $query -> radio_group(-name => "archive", -values => \@archives, -default => $UploadTypePref, -labels
+                            => \%archives, -columns => 1);
+print "</td><td>\n";
+print $query -> textfield(-name => "numfile", -default => $NumFilesPref, -size => 2, -maxlength => 2);
+print "<b># of files</b>\n";
+print "</td></tr>\n";
+
+print "<tr><th>\n";
+print FormElementTitle(-helplink => "uploadmethod", -helptext => "Upload method");
+print "</th>\n";
+print "<td colspan=\"2\">\n";
+print $query -> radio_group(-name => "upload", -values => \@uploads, -default => $UploadMethodPref, -labels => \%uploads);
+print "</td></tr>\n";
+
+print "<tr><th>\n";
+print FormElementTitle(-helplink => "topicoption", -helptext => "Topics");
+print "</th>\n";
+print "<td colspan=\"2\">\n";
+print $query -> radio_group(-name => "topicmode", -values => \@topicmodes, -default => $TopicModePref, -labels => \%topicmodes);
+print "</td></tr>\n";
+
+my $default = $AuthorModePref || 'all';
+
+print "<tr><th>\n";
+print FormElementTitle(-helplink => "authoroption", -helptext => "Authors for Searches");
+print "</th>\n";
+print "<td colspan=\"2\">\n";
+print $query -> radio_group(-name => "authormode", -values => \@authormodes, -default => $AuthorModePref, -labels => \%authormodes);
+print "</td></tr>\n";
+
+print "<tr><th>\n";
+print FormElementTitle(-helplink => "authoroption", -helptext => "Authors for Metadata");
+print "</th>\n";
+print "<td colspan=\"2\">\n";
+print $query -> radio_group(-name => "authormode2", -values => \@authormodes2, -default => $AuthorModePref2, -labels => \%authormodes2);
+print "</td></tr>\n";
+
+print "<tr><th>\n";
+print FormElementTitle(-helplink => "overdatepref", -helptext => "Override submit date");
+print "</th>\n";
+print "<td colspan=\"2\">\n";
+print $query -> radio_group(-name => "overdate", -values => ['No','Yes'],
+                            -default => $DateOverridePref);
+print "</td></tr>\n";
+
+print '<tr><td colspan="3" class="SubmitCell">';
+print $query -> submit (-value => "Set Preferences");
+print "</td></tr>\n";
+
+print "</table><br>\n";
+
+print $query -> endform;
+
+DocDBNavBar();
+DocDBFooter($DBWebMasterEmail,$DBWebMasterName);

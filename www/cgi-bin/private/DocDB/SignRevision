@@ -1,0 +1,182 @@
+#! /usr/bin/env perl
+#
+# Description: Change preferences for what/when to be notified of document
+#              changes in e-mail.
+#
+#      Author: Eric Vaandering (ewv@fnal.gov)
+#    Modified: 
+#
+
+# Copyright 2001-2007 Eric Vaandering, Lynn Garren, Adam Bryant
+
+#    This file is part of DocDB.
+
+#    DocDB is free software; you can redistribute it and/or modify
+#    it under the terms of version 2 of the GNU General Public License 
+#    as published by the Free Software Foundation.
+
+#    DocDB is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+
+#    You should have received a copy of the GNU General Public License
+#    along with DocDB; if not, write to the Free Software
+#    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+
+use CGI;    
+use DBI;
+
+use warnings;
+
+no warnings qw(once);
+
+use CGI::Carp qw(carp croak fatalsToBrowser);
+
+require "DocDBGlobals.pm";
+
+if ($UseDeadlyWarning == 1) {
+   # promote run-time warnings into exceptions
+   # # *unless* we're in an try block, in which 
+   # # case just generate a log entry instead
+   local $SIG{__WARN__} = sub {
+      if ($^S) { carp  "Trapped warning: @_" }
+      else     { croak "Deadly warning: @_"  }
+   };
+}
+
+require "HTMLUtilities.pm";
+require "Scripts.pm";
+
+require "ResponseElements.pm";
+
+require "NotificationSQL.pm";
+require "SignoffSQL.pm";
+require "SecuritySQL.pm";
+require "RevisionSQL.pm";
+require "RevisionHTML.pm";
+require "EmailSecurity.pm";
+require "CertificateUtilities.pm";
+
+$query = new CGI;  # Global for subroutines
+$dbh   = DBI->connect('DBI:mysql:'.$db_name.':'.$db_host,$db_rwuser,$db_rwpass);
+
+%params = $query -> Vars;
+
+# Collect parameters
+
+my $Action      = $params{sign_action};
+my $Value       = $params{value};
+my $EmailUserID = $params{emailuserid};
+my $SignatureID = $params{signatureid};
+my $Password    = $params{"password-$EmailUserID"} || '';
+
+$Password =~ s/\s+//g;
+
+$myDEBUG = 0;
+
+if ($myDEBUG) {
+open (DEBUG, ">>/tmp/debug.mca");
+print DEBUG "Value $Value\n";
+print DEBUG "Action $Action\n";
+
+}
+# Start the page
+   
+#print $query -> header( -charset => $HTTP_ENCODING );
+#&DocDBHeader("Document Signature","",-scripts => ["prototype", "serverstatus", "PopUps", "Signatures"]);
+
+&GetSecurityGroups;
+
+# Check for valid user
+
+# Fetch mail user by ID, set username, and validate
+# Convoluted just because ValidateEmailUser wants a name, not an ID
+
+&FetchEmailUser($EmailUserID);
+my $UserName = $EmailUser{$EmailUserID}{Username};
+$EmailUserID = 0;
+
+if ($Password) { 
+  $EmailUserID = &ValidateEmailUser($UserName,$Password);
+} 
+
+if ($UserValidation eq "certificate") {
+  $EmailUserID = FetchEmailUserIDByCert();
+}
+elsif ($UserValidation eq "kerberos") {
+  $EmailUserID = FetchEmailUserIDFromRemoteUser();
+}
+
+if ($myDEBUG) { print DEBUG "FinalApproval :$FinalApproval EmailUserID: $EmailUserID\n"; }
+
+unless ($EmailUserID) {
+  push @ErrorStack,"The password you entered or the certificate you supplied is invalid.";
+}
+
+# Check Signature Status
+
+&FetchSignature($SignatureID);
+
+my $Signer = $Signer = $Signatures{$SignatureID}{EmailUserID} || 0;
+
+unless ($Signer == $EmailUserID) {
+  push @ErrorStack,"You are not authorized to sign in this slot.";
+}  
+
+if ($myDEBUG) { print  DEBUG "Action: $Action \n"; }
+
+#if ($Action eq "sign" && $Signatures{$SignatureID}{Signed}) {
+#   $Action = "unsign";
+#}  
+#if ($Action eq "unsign" && !$Signatures{$SignatureID}{Signed}) {
+#   $Action = 'sign';
+#}  
+#if ($Action ne "unsign" && $Action ne "sign") {
+#  push @ErrorStack,"The action is not recognized. Must be either sign or unsign.";
+#}  
+  
+# Standard warnings/errors on exit
+
+#EndPage();
+
+# Sign or unsign Document
+#
+my $DBValue = $SignoffDBValues{$Action};
+
+if ($myDEBUG) { print  DEBUG "Database value to be updated: $DBValue \n"; }
+
+my $SignatureUpdate = $dbh -> prepare("update Signature set Signed=? where SignatureID=?");
+$SignatureUpdate -> execute($DBValue, $SignatureID);
+
+
+#print "<b>You have $SignMessage the document. The new document information is shown below:</b><p/>\n<hr/>\n"; 
+
+#
+# Disgusting, dirty hack! Should be done by making the signing block use AJAX.
+# 2021-04-20 : PGA Wholeheartedly agree this is Disgusting and Dirty !!!
+# 
+my $magicscript = '<script>window.location = "/'.&FetchDocumentAlias($params{docid}).'-v'.$params{version}.'";</script>';
+my $otherscript = '<script src=/Static/js/prototype.js></script><script src=/Static/js/scriptaculous/scriptaculous.js></script><script src=/Static/js/Signatures.js></script>';
+print "Content-Type: text/html\n\n".$otherscript.$magicscript;
+
+# Get revision number and print updated info
+
+my $SignoffID = $Signatures{$SignatureID}{SignoffID};
+&FetchSignoff($SignoffID);
+
+&ClearSignatures;
+
+my $DocRevID  = $Signoffs{$SignoffID}{DocRevID};
+
+&PrintRevisionInfo($DocRevID);
+
+if ($MailInstalled) {
+  &NotifySignatureSignees($DocRevID, $DBValue);
+}
+
+#&DocDBNavBar;
+#&DocDBFooter($DBWebMasterEmail,$DBWebMasterName);
+#
+if ($myDEBUG) { close (DEBUG);}
+

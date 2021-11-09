@@ -1,0 +1,12 @@
+cgi-bin/private/philstatus.sh
+.direnv
+.envrc
+/.idea
+.vstags
+/builds/
+.htaccess
+deployment/pull_code_from_usr1
+.*sw?
+*.sav*
+
+.DS_Store
