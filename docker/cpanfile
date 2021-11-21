@@ -1,0 +1,42 @@
+requires 'CAM::PDF' ;
+requires 'CGI';
+# CGI::Untaint is a formal dependency of docdb
+# however v 1.26 fails tests at install
+requires 'CGI::Untaint';
+requires 'CGI::Log';
+requires 'Config::Tiny';
+requires 'DateTime';
+requires 'DBI';
+requires 'DBD::mysql';     # for DCC 3.3.0, 3.3.1, 3.4.0
+requires 'DBD::SQLite';    # for automated tests / CI/CD ?
+requires 'DBD::MariaDB';   # future ?
+requires 'Digest::SHA1';
+requires 'Email::Simple';
+requires 'Email::Sender';
+requires 'Email::Sender::Simple';
+requires 'Font::TTF';
+requires 'HTML::Parser';
+requires 'IO::String';
+requires 'Params::Validate';
+# will want to use perl5lib in the future
+requires 'perl5lib';
+# for the indexing job queue
+# requires 'Redis';
+# testing ?
+# requires 'Redis::SQLite';
+requires 'Sys::Syslog';
+requires 'Text::PDF';
+requires 'Test::Simple';
+requires 'Test::Compile';
+# XML::Grove fails test but runs fine. Installed in Dockerfile with --notest
+requires 'XML::Grove';
+requires 'XML::Grove::AsString';
+requires 'XML::Grove::AsCanonXML';
+requires 'XML::LibXML';
+requires 'XML::Parser::PerlSAX';
+requires 'XML::Twig';
+
+on 'test' => sub {
+    requires 'Test::More';
+    requires 'UNIVERSAL::require';
+};
