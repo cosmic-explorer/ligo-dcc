@@ -1,0 +1,66 @@
+<VirtualHost *:80>
+    RewriteEngine On
+    RewriteCond %{REQUEST_URI} !^/\.well\-known/acme\-challenge/
+    RewriteRule ^(.*)$ https://%{HTTP_HOST}$1 [R=301,L]
+</VirtualHost>
+
+<VirtualHost *:443>
+    SetEnv PERL5LIB {{ PERL5LIB }}
+    DocumentRoot  {{ DOCDB_HTML_DIR }}
+    ScriptAlias /cgi-bin {{ DOCDB_CGI_DIR }}
+    RewriteEngine On
+
+    LogLevel warn
+
+    #   SSL Engine Switch:
+    #   Enable/Disable SSL for this virtual host.
+    SSLEngine on
+
+    SSLCertificateFile /etc/ssl/certs/apache-selfsigned.crt
+    SSLCertificateKeyFile  /etc/ssl/private/apache-selfsigned.key
+
+
+    SSLVerifyClient none
+
+    <Files ~ "\.(cgi|shtml|phtml|php3?)$">
+        SSLOptions +StdEnvVars
+    </Files>
+
+    # yes ! > 15min some scripts take a LOOOOOONNNNNNGGGGG time
+    Timeout 1000
+
+    DefineExternalGroup dccauth environment {{ DOCDB_CGI_DIR }}/private/DocDB/RemoteUserHasAccess
+     <Directory "{{  DOCDB_HTML_DIR }}/DocDB">
+         #FIXME : some auth and matching suff
+#        AuthType shibboleth
+#        AuthName "This content is viewable by only LIGO/Virgo personnel. Please enter your LIGO Directory name, e.g. albert.einstein, and password to continue."
+#        ShibRequireAll On
+#        AuthzShibAuthoritative Off
+#        ShibRequestSetting requireSession 1
+#        GroupExternal dccauth
+#        Require group foobar
+     </Directory>
+
+     ScriptAlias /dcc  {{ DOCDB_CGI_DIR }}/private/DocDB/DocumentDatabase
+     ScriptAlias /pub  {{ DOCDB_CGI_DIR }}/DocDB/DocumentDatabase
+
+    <Directory "{{ DOCDB_CGI_DIR }}/private/DocDB">
+#        AuthType shibboleth
+#        ShibRequireAll On
+#        AuthzShibAuthoritative On
+#        ShibRequestSetting requireSession 1
+#        require valid-user
+    </Directory>
+
+    <Directory "{{ DOCDB_HTML_DIR }}/public">
+        Options +Indexes +FollowSymLinks +IncludesNoExec
+    </Directory>
+
+</VirtualHost>
+
+
+# intermediate configuration
+SSLProtocol             all -SSLv3 -TLSv1 -TLSv1.1
+SSLCipherSuite          ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384
+SSLHonorCipherOrder     off
+SSLSessionTickets       off

@@ -1,6 +1,6 @@
 /***********************************************************
  *
- * The $ object used to manupulate DOM is NOT FROM JQUERY
+ * The $ object used to manipulate DOM is NOT FROM JQUERY
  *
  * it is from PROTOTYPE.JS 
  *
@@ -33,14 +33,6 @@ function ShowMathJaxButton() {
        );
    }
 
-//   var mjx_lnk =$("MathJax_Toggle");
-//   if (mjx_lnk) {
-//     if (MathJax.Hub.config.menuSettings.renderer == 'PlainSource') {
-//         mjx_lnk.update("Enable");
-//     } else {
-//         mjx_lnk.update("Disable");
-//     } 
-//   }
    var mjx_chk=$("MathJax_Check");
    if (mjx_chk) { 
       mjx_chk.checked = (MathJax.Hub.config.menuSettings.renderer != 'PlainSource') ;

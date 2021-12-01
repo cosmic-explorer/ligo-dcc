@@ -58,18 +58,16 @@
  $public_root = "/usr1/www/html/public/";
 
  # Places in local filesystem where XMLUpload can get files
- @LocalUploadDirectories = ( "/usr1/www/E-Traveler/html/data", "/tmp" );
+ @LocalUploadDirectories = ( "/tmp", );
 
- # Gives us "hostname" from $HOSTNAME
- use Sys::Hostname;
- #
+ # Let's use relative URLs
  $host_name = "/";
  #
  $web_root        = $host_name."DocDB/";
  $wiki_root       = $host_name."wiki/index.php";
  $cgi_root        = $host_name."cgi-bin/private/DocDB/";
  $Public_cgi_root = $host_name."cgi-bin/DocDB/";
- $secure_root     = $host_name."private/DocDB";
+ $secure_root     = $host_name."cgi-bin/private/DocDB/";
  #
  $DocDBHome = $host_name."/wiki/index.php/Main_Page";
  $KAGRAHome = "https://gwdoc.icrr.u-tokyo.ac.jp/";
