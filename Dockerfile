@@ -24,7 +24,7 @@ ENV MARIADB_PASSWORD2=${MARIADB_PASSWORD2}
 SHELL ["/bin/bash", "-l", "-c"]
 
 RUN apt update && apt upgrade -y &&\
-    apt install -y apache2 supervisor build-essential \
+    apt install -y apache2 apache2-utils supervisor build-essential \
                    libexpat1-dev libapache2-mod-authnz-external libapache2-mod-auth-openidc \
                    default-libmysqlclient-dev libmariadb-dev-compat mariadb-client \
                    tmux vim curl ksh tcl openssl &&\
@@ -53,15 +53,34 @@ RUN chown -R www-data. ${DOCDB_HTML_DIR}/ &&\
     a2ensite docdb.conf && \
     a2enconf short_url.conf &&\
     a2dissite 000-default && \
-    a2enmod cgid proxy proxy_http rewrite ssl authnz_external &&\
+    a2enmod cgid proxy proxy_http rewrite ssl authnz_external include &&\
     apache2ctl -t
+
+
+# create user base
+COPY docker/DCCTesters /tmp
+RUN htpasswd -cb /etc/apache2/passwords admin admin && \
+    xargs -a /tmp/DCCTesters -t -n 2 htpasswd -b /etc/apache2/passwords &&\
+    chown www-data:www-data /etc/apache2/passwords &&\
+    chmod 0660 /etc/apache2/passwords
+
 
 # RUN echo "export PATH=\"$PATH\"">> /etc/apache2/envvars
 COPY www/html ${DOCDB_HTML_DIR}
+
+#FIXME: public website does not work as expected
+#FIXME: hypothesis: PERL5LIB forces to load the wrong SiteConfig.pm
+# copy the private site code on the public site location
+COPY www/cgi-bin/private/DocDB/* ${DOCDB_CGI_DIR}/DocDB/
+# copy the private site code on the the private site location
+# AND overwrite the public site location with public site specific code
 COPY www/cgi-bin ${DOCDB_CGI_DIR}
+# Create a few empty dirs as needed (/public/Static is probably not needed here)
+RUN mkdir -p ${DOCDB_HTML_DIR}/DocDB/0000 ${DOCDB_HTML_DIR}/public/Static ${DOCDB_HTML_DIR}/public/0000
 COPY www/ /tmp/www/
 COPY deployment/ /tmp/deployment
 
+#gimme that template
 COPY docker/SiteConfig.j2 /tmp
 #FIXME: public siteconfig.pm probably needs its own j2 templates
 RUN j2 /tmp/SiteConfig.j2 | tee ${DOCDB_CGI_DIR}/private/DocDB/SiteConfig.pm| sed 's!/private/!/!' >  ${DOCDB_CGI_DIR}/DocDB/SiteConfig.pm &&\
@@ -73,12 +92,12 @@ COPY docker/www/test.sh ${DOCDB_CGI_DIR}
 #FIXME: needs glimpse
 RUN apt install -y glimpse
 
-#FIXME: full apache configuration
 
 COPY docker/supervisord.conf /etc/supervisord.conf
 
 # CGI removed from perl core at 5.22: startform -> start_form, endform -> end_form
 # https://github.com/ericvaandering/DocDB/issues/12
-RUN  find ${DOCDB_CGI_DIR}/private/DocDB -type f | xargs sed -i 's/startform/start_form/; s/endform/end_form/'
+RUN  find ${DOCDB_CGI_DIR}/DocDB ${DOCDB_CGI_DIR}/private/DocDB -type f | xargs sed -i 's/startform/start_form/; s/endform/end_form/' && \
+     chown -R www-data ${DOCDB_HTML_DIR}
 
 CMD [ "/usr/bin/supervisord" ]

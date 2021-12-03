@@ -19,42 +19,96 @@
     SSLCertificateFile /etc/ssl/certs/apache-selfsigned.crt
     SSLCertificateKeyFile  /etc/ssl/private/apache-selfsigned.key
 
+    <Location />
+        DirectoryIndex index.html index.cgi index.php /dcc
+        AuthName "openDCC admin/admin or user[123]/password. demo only not for production use"
+        AuthType  Basic
+        AuthBasicProvider  file
+        AuthUserFile   /etc/apache2/passwords
+        Require    valid-user
+        #XbitHack on
+    </Location>
 
-    SSLVerifyClient none
+    <LocationMatch "^/[A-za-z0-9_\-\.]+\.(gif|jpe?g|png|ico|js|css)$">
+        Require all granted
+    </LocationMatch>
 
-    <Files ~ "\.(cgi|shtml|phtml|php3?)$">
-        SSLOptions +StdEnvVars
-    </Files>
+    <Location "/login">
+        Require all granted
+        Options +Includes
+    </Location>
 
-    # yes ! > 15min some scripts take a LOOOOOONNNNNNGGGGG time
-    Timeout 1000
+    <LocationMatch "^/(Static|public|backgrounds|icon|site-logos)">
+        Require all granted
+    </LocationMatch>
 
-    DefineExternalGroup dccauth environment {{ DOCDB_CGI_DIR }}/private/DocDB/RemoteUserHasAccess
-     <Directory "{{  DOCDB_HTML_DIR }}/DocDB">
-         #FIXME : some auth and matching suff
-#        AuthType shibboleth
-#        AuthName "This content is viewable by only LIGO/Virgo personnel. Please enter your LIGO Directory name, e.g. albert.einstein, and password to continue."
-#        ShibRequireAll On
-#        AuthzShibAuthoritative Off
-#        ShibRequestSetting requireSession 1
-#        GroupExternal dccauth
-#        Require group foobar
-     </Directory>
+     # yes ! > 15min some scripts take a LOOOOOONNNNNNGGGGG time
+     #Timeout 1000
+     Timeout 10
 
-     ScriptAlias /dcc  {{ DOCDB_CGI_DIR }}/private/DocDB/DocumentDatabase
-     ScriptAlias /pub  {{ DOCDB_CGI_DIR }}/DocDB/DocumentDatabase
+     DefineExternalGroup dccauth environment {{ DOCDB_CGI_DIR }}/private/DocDB/RemoteUserHasAccess
+     Alias "/DocDB" "/usr1/www/html/DocDB"
 
-    <Directory "{{ DOCDB_CGI_DIR }}/private/DocDB">
-#        AuthType shibboleth
-#        ShibRequireAll On
-#        AuthzShibAuthoritative On
-#        ShibRequestSetting requireSession 1
-#        require valid-user
-    </Directory>
+     <Location "/DocDB/">
+         LogLevel info authnz_external:debug authz_core:debug
+         AuthType Basic
+         AuthBasicProvider file external
+         AuthName "openDCC admin/admin or user[123]/password. demo only not for production use"
+         AuthUserFile /etc/apache2/passwords
+         GroupExternal dccauth
+         <RequireAll>
+             Require external-group foobar
+             Require valid-user
+         </RequireAll>
+     </Location>
 
-    <Directory "{{ DOCDB_HTML_DIR }}/public">
-        Options +Indexes +FollowSymLinks +IncludesNoExec
-    </Directory>
+   #
+   #  where the private version of the dcc code lives
+   #  using the alias and Location should make the move away
+   #  from /usr1 easier.
+   #
+   Alias /cgi-bin/private/DocDB /usr1/www/cgi-bin/private/DocDB
+   ScriptAlias /dcc  {{ DOCDB_CGI_DIR }}/private/DocDB/DocumentDatabase
+   ScriptAlias /pub  {{ DOCDB_CGI_DIR }}/DocDB/DocumentDatabase
+
+    <Location "/cgi-bin/private/DocDB">
+        Options +ExecCGI +Indexes
+        DirectoryIndex DocumentDatabase
+        SetHandler cgi-script
+    </Location>
+
+    #####################################################################
+    ##
+    ##
+    ##
+    ##  Public DCC ( /cgi-bin/DocDB urls)
+    ##
+    ##
+    ##
+    #####################################################################
+
+   Alias "/pub" "/usr1/www/cgi-bin/DocDB"
+   Alias /cgi-bin/DocDB {{ DOCDB_CGI_DIR }}/DocDB
+
+   <Location "/cgi-bin/DocDB">
+           Require all granted
+           Options +ExecCGI +Indexes +FollowSymlinks
+           DirectoryIndex DocumentDatabase
+           SetHandler cgi-script
+   </Location>
+
+   Alias /public /usr1/www/html/public
+
+   <LocationMatch "/public/Static/(js|css|img)/">
+       Require all granted
+   </LocationMatch>
+
+   <LocationMatch "^/public">
+       Options +Indexes +FollowSymLinks +IncludesNoExec +ExecCGI
+       DirectoryIndex "https://${DCC_INSTANCE}/cgi-bin/DocDB/DocumentDatabase"
+       Require all granted
+   </LocationMatch>
+
 
 </VirtualHost>
 
@@ -64,3 +118,11 @@ SSLProtocol             all -SSLv3 -TLSv1 -TLSv1.1
 SSLCipherSuite          ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384
 SSLHonorCipherOrder     off
 SSLSessionTickets       off
+
+
+
+
+
+
+
+

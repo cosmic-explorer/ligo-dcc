@@ -5,7 +5,7 @@ body {
   background-position: left top, right top;
   background-repeat: no-repeat;
   font-family : arial, helvetica, sans-serif;
-  background-color: #def;
+  background-color: BlanchedAlmond;
 }
 
 input[type="text"]:focus, textarea:focus, select:focus {
