@@ -22,6 +22,7 @@ services:
   dcc:
     build:
       context: .
+      dockerfile: docker/Dockerfile
       args:
         MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD}
         MARIADB_DATABASE: ${MARIADB_DATABASE}

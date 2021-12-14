@@ -77,8 +77,8 @@ COPY www/cgi-bin/private/DocDB/* ${DOCDB_CGI_DIR}/DocDB/
 COPY www/cgi-bin ${DOCDB_CGI_DIR}
 # Create a few empty dirs as needed (/public/Static is probably not needed here)
 RUN mkdir -p ${DOCDB_HTML_DIR}/DocDB/0000 ${DOCDB_HTML_DIR}/public/Static ${DOCDB_HTML_DIR}/public/0000
-COPY www/ /tmp/www/
-COPY deployment/ /tmp/deployment
+COPY www /tmp/www/
+COPY deployment /tmp/deployment
 
 #gimme that template
 COPY docker/SiteConfig.j2 /tmp
@@ -91,7 +91,6 @@ COPY docker/www/test.sh ${DOCDB_CGI_DIR}
 
 #FIXME: needs glimpse
 RUN apt install -y glimpse
-
 
 COPY docker/supervisord.conf /etc/supervisord.conf
 

@@ -29,7 +29,7 @@ require "FSUtilities.pm";
 require "Security.pm";
 
 chomp(@stdin = <STDIN>);
-my $RemoteUser = $stdin[0];
+my $RemoteUser = $ENV{USER};
 
 
 
@@ -46,7 +46,7 @@ print DEBUG "\n";
 
 my $Filename = $web_root.&request_uri;
 
-$dbh   = DBI->connect('DBI:mysql:'.$db_name.':'.$db_host, $db_rwuser, $db_rwpass) or die(3);
+$dbh   = DBI->connect('DBI:mysql:'.$db_name.':'.$db_host, $db_rouser, $db_ropass) or die(3);
 
 my $DocRevID = DocRevIDFromFullFile($Filename);
 
