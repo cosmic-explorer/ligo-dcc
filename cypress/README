@@ -1,0 +1,55 @@
+https://blog.servmask.com/8-tricks-i-learned-from-cypress/
+https://stackoverflow.com/questions/56497146/submit-a-post-form-in-cypress-and-navigate-to-the-resulting-page
+https://ruleoftech.com/2019/notes-of-best-practices-for-writing-cypress-tests
+https://dev.to/walmyrlimaesilv/how-to-check-multiple-checkboxes-at-once-with-cypress-26jd
+PART1 https://www.youtube.com/watch?v=5XQOK0v_YRE
+PART2 https://www.youtube.com/watch?v=5FnalKRjpZk
+
+file upload (create v1 of document)
+https://stackoverflow.com/questions/47074225/how-to-test-file-inputs-with-cypress
+https://www.npmjs.com/package/cypress-file-upload
+https://dev.to/walmyrlimaesilv/how-to-upload-files-with-cypress-a6g
+
+https://docs.cypress.io/guides/continuous-integration/gitlab-ci
+
+goodness on cypress
+https://dev.to/walmyrlimaesilv/how-to-run-a-test-multiple-times-with-cypress-to-prove-it-is-stable-3c0k
+https://dev.to/walmyrlimaesilv/how-to-check-the-body-structure-of-a-json-scheme-with-cypress-1lj5
+https://dev.to/walmyrlimaesilv/how-to-protect-sensitive-data-with-cypress-44d3
+https://dev.to/walmyrlimaesilv/how-to-create-custom-commands-with-cypress-3102
+https://dev.to/walmyrlimaesilv/how-to-run-tests-in-headless-mode-with-cypress-3meo
+https://dev.to/walmyrlimaesilv/how-to-intercept-and-mock-the-response-of-an-http-request-with-cypress-4lc5
+https://dev.to/walmyrlimaesilv/how-to-change-the-baseurl-via-command-line-with-cypress-1olm
+https://dev.to/walmyrlimaesilv/how-to-perform-an-action-conditionally-with-cypress-4p72
+
+test email with mailhog and cypress
+https://medium.com/kreuzwerker-gmbh/e2e-testing-of-emails-in-mailhog-using-cypress-72ccb722bad7
+https://kreuzwerker.de/en/post/e2e-testing-of-emails-in-mailhog-using-cypress
+
+
+Drag and drop (not used at present in dcc)
+```
+describe("Drag and Drop", () => {
+
+  beforeEach(() => {
+    cy.visit('/ingredients/drag-and-drop');
+  });
+
+  it('should drag fried chicken to the order', () => {
+    const dataTransfer = new DataTransfer();
+
+    cy.get('#menu-fried-chicken').trigger('dragstart', {
+      dataTransfer
+    });
+
+    cy.get('#plate').trigger('drop', {
+      dataTransfer
+    });
+  });
+
+  it('should drag ice cream to the order', () => {
+    cy.get('#menu-ice-cream').drag('#plate-items');
+  });
+
+});
+```

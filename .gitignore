@@ -10,3 +10,5 @@ deployment/pull_code_from_usr1
 *.sav*
 shibboleth* 
 .DS_Store
+node_modules
+package-lock.json

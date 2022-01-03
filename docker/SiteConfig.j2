@@ -27,6 +27,12 @@
  # sendmail command
  $sendmail = '/usr/sbin/sendmail -ODeliveryMode=b -t';
 
+ # see https://metacpan.org/pod/Email::Sender::Manual::QuickStart#specifying-transport-in-the-environment
+ $ENV{EMAIL_SENDER_TRANSPORT}=SMTP;
+ $ENV{EMAIL_SENDER_TRANSPORT_host}='mailhog';
+ $ENV{EMAIL_SENDER_TRANSPORT_port}=25;
+
+
  # DB settings
 #       MARIADB_DATABASE: $ENV{MARIADB_DATABASE}
 #       MARIADB_USER: $ENV{MARIADB_USER}

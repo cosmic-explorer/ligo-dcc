@@ -1,0 +1,6 @@
+{
+  "baseUrl": "https://localhost/",
+  "reporter": "TAP",
+  "video": false,
+  "mailHogUrl": "http://localhost:8025"
+}

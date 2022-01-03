@@ -1,0 +1,87 @@
+{
+  "users": [
+    {
+      "firstname": "Admin",
+      "lastname": "Istrator",
+      "username": "admin",
+      "email": "admin@local",
+      "password": "admin",
+      "groups": [
+        "docdbadmin",
+        "LIGO_Lab"
+      ]
+    },
+    {
+      "firstname": "User",
+      "lastname": "One",
+      "username": "user1@local",
+      "email": "user1@local",
+      "password": "password",
+      "groups": [
+        "LIGO_Lab"
+      ]
+    },
+    {
+      "firstname": "User",
+      "lastname": "Two",
+      "username": "user2@local",
+      "email": "user2@local",
+      "password": "password",
+      "groups": [
+        "LSC"
+      ]
+    },
+    {
+      "firstname": "User",
+      "lastname": "Three",
+      "username": "user3@local",
+      "email": "user3@virgo",
+      "password": "password",
+      "groups": [
+        "Virgo"
+      ]
+    },
+    {
+      "firstname": "User",
+      "lastname": "Four",
+      "username": "user4@local",
+      "email": "user4@kagra",
+      "password": "password",
+      "groups": [
+        "KAGRA"
+      ]
+    },
+    {
+      "firstname": "first",
+      "lastname": "last5",
+      "username": "first.last5@local",
+      "email": "first.last5@local",
+      "password": "password",
+      "groups": []
+    },
+    {
+      "firstname": "first",
+      "lastname": "last6",
+      "username": "first.last6@local",
+      "email": "first.last6@local",
+      "password": "password",
+      "groups": []
+    },
+    {
+      "firstname": "first",
+      "lastname": "last7",
+      "username": "first.last7@local",
+      "email": "first.last7@local",
+      "password": "password",
+      "groups": []
+    },
+    {
+      "firstname": "first",
+      "lastname": "last8",
+      "username": "first.last8@local",
+      "email": "first.last8@local",
+      "password": "password",
+      "groups": []
+    }
+  ]
+}

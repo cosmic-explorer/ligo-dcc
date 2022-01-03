@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="windows-1252"?>
+<docdb href="https://dcc-dev.ligo.org/DocDB/" project="LIGO" shortproject="LIGO" version="3.4.0">
+  <control><mode>new</mode></control>
+  <document href="https://dcc-dev.ligo.org/cgi-bin/private/DocDB/ShowDocument?docid=164724" id="164724">
+    <docrevision docid="164724" href="https://dcc-dev.ligo.org/cgi-bin/private/DocDB/ShowDocument?docid=164724&amp;amp;version=1" modified="2020-12-14 13:24:06" version="1">
+      <dccnumber>G2100117</dccnumber>
+      <title><![CDATA[Testing Parallel Signoff]]></title>
+      <doctype id="5">
+        <name><![CDATA[G - Presentations (eg Graphics)]]></name>
+        <description><![CDATA[Viewgraphs for presentations, photos, multimedia, sketches, etc]]></description>
+      </doctype>
+      <viewgroup id="9">
+        <name><![CDATA[LIGO_Lab]]></name>
+        <description><![CDATA[Members of the LIGO Laboratory]]></description>
+      </viewgroup>
+      <modifygroup id="9">
+        <name><![CDATA[LIGO_Lab]]></name>
+        <description><![CDATA[Members of the LIGO Laboratory]]></description>
+      </modifygroup>
+      <submitter id="262">
+        <firstname>Melody</firstname>
+        <lastname>Araya</lastname>
+        <fullname>Melody Araya</fullname>
+        <employeenumber>763</employeenumber>
+      </submitter>
+      <author id="262">
+        <firstname>Melody</firstname>
+        <lastname>Araya</lastname>
+        <fullname>Melody Araya</fullname>
+        <employeenumber>763</employeenumber>
+      </author>
+      <topic id="26" parentid="2">
+        <name><![CDATA[System Test]]></name>
+        <description><![CDATA[System Test]]></description>
+      </topic>
+      <abstract><![CDATA[ dsfa dsfa]]></abstract>
+      <note><![CDATA[]]></note>
+      <publicationinfo><![CDATA[]]></publicationinfo>
+      <otherversions>
+        <docrevision docid="164724" href="https://dcc-dev.ligo.org/cgi-bin/private/DocDB/ShowDocument?docid=164724&amp;amp;version=0" modified="2020-12-14 07:03:25" version="0"/>
+        <docrevision docid="164724" href="https://dcc-dev.ligo.org/cgi-bin/private/DocDB/ShowDocument?docid=164724&amp;amp;version=1" modified="2020-12-14 13:24:06" version="1"/>
+      </otherversions>
+    </docrevision>
+  </document>
+</docdb>
+
