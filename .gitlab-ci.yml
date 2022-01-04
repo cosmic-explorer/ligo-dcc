@@ -6,6 +6,8 @@ stages:
 cypress_tests:
   image: debian:bullseye
   #is it enough to ensure clean up ?
+  artifacts:
+    - /root/.npm/_logs/*-debug.log
   after_script:
     - docker-compose down
   script:
@@ -18,9 +20,5 @@ cypress_tests:
     - docker-compose up -d
     - |
       cd cypress
-      pwd 
-      ls -l
-      npm help package.json
-      npm install cypress
       npm install --production=false
-      npm run cypress run --headless
+      npm run test
