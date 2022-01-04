@@ -4,8 +4,9 @@ stages:
   - deploy
 
 cypress_tests:
-  image: cypress/included:9.2.0
-  entrypoint: ["/bin/sh", "-c"]
+  image:
+    name: cypress/included:9.2.0
+    entrypoint: ["/bin/sh", "-c"]
   #is it enough to ensure clean up ?
   artifacts:
     expire_in: 1 week
