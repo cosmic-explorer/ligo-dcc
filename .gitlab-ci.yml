@@ -12,8 +12,9 @@ cypress_tests:
     - |
       apt update
       apt full-upgrade -y 
-      apt install -y docker.io docker-compose npm
-    - docker-compose build
+      apt install -y docker.io docker-compose npm chromium
+      apt install --fix-missing -y xvfb
+- docker-compose build
     - docker-compose up -d
     - | 
       cd cypress
