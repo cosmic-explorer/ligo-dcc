@@ -14,6 +14,7 @@ cypress_tests:
   after_script:
     - docker-compose down
   script:
+    - apt update
     - apt install -y docker.io docker-compose
     - docker-compose build
     - docker-compose up -d
