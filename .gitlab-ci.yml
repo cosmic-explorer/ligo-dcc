@@ -20,4 +20,4 @@ cypress_tests:
     - docker-compose up -d
     # yes there are better ways to wait for all the containers to be ready. this will do for now
     - sleep 30
-    - docker-compose exec -w /e2e dcc ./cypress-setup.sh
+    - docker-compose exec  -T -w /e2e dcc ./cypress-setup.sh
