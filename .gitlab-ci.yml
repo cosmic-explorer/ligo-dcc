@@ -16,7 +16,8 @@ cypress_tests:
       apt install --fix-missing -y xvfb
     - docker-compose build
     - docker-compose up -d
-    - | 
+    - |
+      docker ps -a
       cd cypress
       npm install 
-      npm run test
+      npm run cypress run --headless
