@@ -7,6 +7,9 @@ describe('private pages are served', () => {
       },
     })
     // check navbar links lead somewhere authorized
+  })
+
+  it('has all the expected links and buttons', () => {
     cy.contains('Administer').click()
     cy.contains('Reserve Number').click()
     cy.contains('Search').click()
@@ -45,14 +48,18 @@ describe('private pages are served', () => {
     cy.get('input[value="These Words "]')
     cy.get('input[value="Advanced search"]')
     cy.get('input[value="Signature Report"]')
+  })
 
+  it('has the right css and sponsor footer', () => {
     // check theme is correct
     cy.get('body').should('have.css', 'background-color', 'rgb(221, 238, 255)')
 
     // check nsf footer and background
     cy.contains('The LIGO Laboratory is supported by the National Science Foundation and operated jointly by Caltech and MIT. Any opinions, findings and conclusions or recommendations expressed in this material do not necessarily reflect the views of the National Science Foundation.')
     cy.get('body').should('have.css', 'background-image', 'url("https://localhost/site-logos/dcc-private-logo.png"), url("https://localhost/site-logos/NSF_4-Color_bitmap_Logo.png")')
+  })
 
+  it('checks the author autocomplete works', () => {
     // check author completion works
     // <li class="ui-menu-item" role="menuitem"><a class="ui-corner-all" tabindex="-1">One, User</a></li>
     cy.get('input[id=autocompleter').clear().type('On').wait(1000)

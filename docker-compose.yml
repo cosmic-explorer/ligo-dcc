@@ -1,7 +1,9 @@
-version: "3.5"
+version: "3.7"
 
 services:
   mariadb:
+    init: true
+    container_name: mariadb
     build:
       context: docker/mariadb
       args:
@@ -22,6 +24,8 @@ services:
       - 3306:3306
 
   dcc:
+    init: true
+    container_name: dcc
     build:
       context: .
       dockerfile: docker/Dockerfile
@@ -42,11 +46,15 @@ services:
     ports:
       - 80:80
       - 443:443
+    volumes:
+      - ./cypress:/e2e
     depends_on:
       - "mariadb"
 
   mailhog:
     # fake smtp server to receive all email traffic and test notifications.
+    init: true
+    container_name: mailhog
     image: mailhog/mailhog
     command: ["-smtp-bind-addr", "0.0.0.0:25"]
     user: root

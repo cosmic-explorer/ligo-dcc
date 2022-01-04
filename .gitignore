@@ -12,3 +12,5 @@ shibboleth*
 .DS_Store
 node_modules
 package-lock.json
+/cypress/cypress/screenshots
+/cypress/cypress/videos
