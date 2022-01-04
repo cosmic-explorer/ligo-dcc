@@ -20,5 +20,7 @@ cypress_tests:
       cd cypress
       pwd 
       ls -l
-      npm install 
+      npm help package.json
+      npm install cypress
+      npm install --production=false
       npm run cypress run --headless
