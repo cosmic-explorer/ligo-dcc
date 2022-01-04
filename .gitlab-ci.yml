@@ -1,0 +1,21 @@
+stages:
+  - build
+  - test
+  - deploy
+
+cypress_tests:
+  image: debian:bullseye
+  #is it enough to ensure clean up ?
+  after_script:
+    - docker-compose down
+  script:
+    - |
+      apt update
+      apt full-upgrade -y 
+      apt install -y docker.io docker-compose npm
+    - docker-compose build
+    - docker-compose up -d
+    - | 
+      cd cypress
+      npm install 
+      npm run test
