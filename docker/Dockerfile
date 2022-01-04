@@ -99,4 +99,6 @@ COPY docker/supervisord.conf /etc/supervisord.conf
 RUN  find ${DOCDB_CGI_DIR}/DocDB ${DOCDB_CGI_DIR}/private/DocDB -type f | xargs sed -i 's/startform/start_form/; s/endform/end_form/' && \
      chown -R www-data ${DOCDB_HTML_DIR}
 
+# for CI
+COPY cypress/* /e2e/
 CMD [ "/usr/bin/supervisord" ]

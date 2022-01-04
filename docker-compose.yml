@@ -46,8 +46,6 @@ services:
     ports:
       - 80:80
       - 443:443
-    volumes:
-      - ./cypress:/e2e
     depends_on:
       - "mariadb"
 
