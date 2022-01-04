@@ -7,7 +7,9 @@ cypress_tests:
   image: debian:bullseye
   #is it enough to ensure clean up ?
   artifacts:
-    - /root/.npm/_logs/*-debug.log
+    expire_in: 1 week
+    paths:
+      - /root/.npm/_logs/*-debug.log
   after_script:
     - docker-compose down
   script:
