@@ -4,9 +4,10 @@ stages:
   - deploy
 
 cypress_tests:
-  image:
-    name: cypress/included:9.2.0
-    entrypoint: ["/bin/sh", "-c"]
+#  image:
+#    name: cypress/included:9.2.0
+#    entrypoint: ["/bin/sh", "-c"]
+  image: debian:bullseye
   #is it enough to ensure clean up ?
   artifacts:
     expire_in: 1 week
@@ -25,4 +26,7 @@ cypress_tests:
     - docker-compose build
     - docker-compose up -d
     - sleep 30
-    - cd cypress && npm install --production=false && cypress run
+    - |
+      cd cypress
+      npm ci 
+      npm run test
