@@ -4,11 +4,7 @@ stages:
   - deploy
 
 cypress_tests:
-#  image:
-#    name: cypress/included:9.2.0
-#    entrypoint: ["/bin/sh", "-c"]
   image: debian:bullseye
-  #is it enough to ensure clean up ?
   artifacts:
     expire_in: 1 week
     paths:
@@ -18,8 +14,7 @@ cypress_tests:
   after_script:
     - docker-compose down
   script:
-    - |
-      apk add docker.io docker-compose
+    - apt install -y docker.io docker-compose
     - docker-compose build
     - docker-compose up -d
     # yes there are better ways to wait for all the containers to be ready. this will do for now
