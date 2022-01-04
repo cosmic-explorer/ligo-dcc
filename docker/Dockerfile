@@ -100,5 +100,5 @@ RUN  find ${DOCDB_CGI_DIR}/DocDB ${DOCDB_CGI_DIR}/private/DocDB -type f | xargs 
      chown -R www-data ${DOCDB_HTML_DIR}
 
 # for CI
-COPY cypress/* /e2e/
+COPY cypress/ /e2e/
 CMD [ "/usr/bin/supervisord" ]
