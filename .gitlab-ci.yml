@@ -17,7 +17,8 @@ cypress_tests:
     - docker-compose build
     - docker-compose up -d
     - |
-      docker ps -a
       cd cypress
+      pwd 
+      ls -l
       npm install 
       npm run cypress run --headless

@@ -18,6 +18,8 @@ services:
       MARIADB_PASSWORD: ${MARIADB_PASSWORD}
       MARIADB_USER2: ${MARIADB_USER2}
       MARIADB_PASSWORD2: ${MARIADB_PASSWORD2}
+    ports:
+      - 3306:3306
 
   dcc:
     build:
