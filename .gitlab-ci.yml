@@ -2,32 +2,36 @@ stages:
   - build
   - test
   - deploy
-
-cypress_tests:
-  image: debian:bullseye
-  artifacts:
-    expire_in: 1 week
-    paths:
-      - cypress/cypress/screenshots
-      - cypress/cypress/videos
-  after_script:
-    - docker-compose down  || true
-  script:
-    - apt update
-    - apt install -y docker.io docker-compose
-    - docker-compose build
-    - docker-compose up --force-recreate --exit-code-from e2e
+#
+#cypress_tests:
+#  image: debian:bullseye
+#  artifacts:
+#    expire_in: 1 week
+#    paths:
+#      - cypress/cypress/screenshots
+#      - cypress/cypress/videos
+#  after_script:
+#    - docker-compose down  || true
+#  script:
+#    - apt update
+#    - apt install -y docker.io docker-compose
+#    - docker-compose build
+#    - docker-compose up --force-recreate --exit-code-from e2e
 
 e2e_tests:
   image: docker/compose:1.29.2
+  artifacts:
+    expire_in: 1 week
+    paths:
+      - artifacts/screenshots
+      - artifacts/videos
   after_script:
-    - docker ps -a
-    -
-    - ls -lR artifacts
+    - docker cp e2e:/e2e/cypress/videos artifacts/
+    - docker cp e2e:/e2e/cypress/screenshots artifacts/
+    - docker cp e2e:/root/.npm/_logs/ artifacts/logs/
+    - ls -lR artifacts/logs
     - docker-compose down  || true
   script:
     - mkdir -p artifacts/screenshots artifacts/videos artifacts/logs
-    - pwd
-    - ls -l artifacts
     - docker-compose build
     - docker-compose up --force-recreate --exit-code-from e2e

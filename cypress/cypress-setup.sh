@@ -8,5 +8,4 @@ mkdir -p /root/.cache/Cypress
 chmod -R 777 /root
 
 npm install
-exec npm run test --spec cypress/integration/general/01-DocumentDatabase-admin.js
-
+exec npm run test
