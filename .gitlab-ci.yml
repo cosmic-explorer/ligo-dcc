@@ -8,11 +8,10 @@ cypress_tests:
   artifacts:
     expire_in: 1 week
     paths:
-      - /root/.npm/_logs
-      - cypress/screenshots
-      - cypress/videos
+      - cypress/cypress/screenshots
+      - cypress/cypress/videos
   after_script:
-    - docker-compose down
+    - docker-compose down  || true
   script:
     - apt update
     - apt install -y docker.io docker-compose
@@ -20,5 +19,4 @@ cypress_tests:
     - docker-compose up -d
     # yes there are better ways to wait for all the containers to be ready. this will do for now
     - sleep 30
-    - docker ps
     - docker-compose exec  -T -w /e2e dcc ./cypress-setup.sh
