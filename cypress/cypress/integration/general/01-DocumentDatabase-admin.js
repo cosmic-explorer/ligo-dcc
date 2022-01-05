@@ -56,7 +56,7 @@ describe('private pages are served', () => {
 
     // check nsf footer and background
     cy.contains('The LIGO Laboratory is supported by the National Science Foundation and operated jointly by Caltech and MIT. Any opinions, findings and conclusions or recommendations expressed in this material do not necessarily reflect the views of the National Science Foundation.')
-    cy.get('body').should('have.css', 'background-image', 'url("https://localhost/site-logos/dcc-private-logo.png"), url("https://localhost/site-logos/NSF_4-Color_bitmap_Logo.png")')
+    cy.get('body').should('have.css', 'background-image', 'url("'+Cypress.config().baseUrl+'/site-logos/dcc-private-logo.png"), url("'+Cypress.config().baseUrl+'/site-logos/NSF_4-Color_bitmap_Logo.png")')
   })
 
   it('checks the author autocomplete works', () => {
