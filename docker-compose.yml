@@ -63,3 +63,19 @@ services:
       - 8025:8025
     healthcheck:
       test: echo | telnet 127.0.0.1 25
+    depends_on:
+      - "mariadb"
+      - "dcc"
+
+  e2e:
+    build:
+      context: .
+      dockerfile: docker/e2e/Dockerfile
+    init: true
+    container_name: e2e
+    working_dir: /e2e
+    #command: [ "/bin/sleep", "1h"]
+    depends_on:
+      - "mariadb"
+      - "dcc"
+      - "mailhog"

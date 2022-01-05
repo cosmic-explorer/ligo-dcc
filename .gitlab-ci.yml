@@ -16,9 +16,4 @@ cypress_tests:
     - apt update
     - apt install -y docker.io docker-compose
     - docker-compose build
-    - docker-compose up -d
-    # yes there are better ways to wait for all the containers to be ready. this will do for now
-    - sleep 30
-    - curl http://mailhog:8025 || true
-    - curl telnet://mariadb:3306 || true
-    - cypress/cypress-setup.sh
+    - docker-compose up --force-recreate --exit-code-from e2e
