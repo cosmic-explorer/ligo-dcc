@@ -21,7 +21,8 @@ cypress_tests:
 e2e_tests:
   image: docker/compose:1.29.2
   after_script:
-    - docker-compose exec -T -w e2e e2e ls -lR cypress/screenshots cypress/videos || true
+    - docker ps -a
+    -
     - ls -lR artifacts
     - docker-compose down  || true
   script:
