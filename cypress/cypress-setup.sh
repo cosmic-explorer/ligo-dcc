@@ -1,6 +1,8 @@
 #!/bin/bash
 
-if [ -d /e2e ] ; then
+if [-d cypress ]; then
+  cd cypress
+elif [ -d /e2e ] ; then
   cd /e2e
 fi
 
