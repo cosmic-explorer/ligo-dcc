@@ -212,7 +212,7 @@ $(function() {
     });
 });
 
-function learit(){
+function clearit(){
 //    e = document.getElementById("autocompleter");
 //    e.value = "";
     document.getElementById("AuthorTextError").innerHTML = "";

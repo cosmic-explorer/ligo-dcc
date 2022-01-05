@@ -2,22 +2,9 @@ stages:
   - build
   - test
   - deploy
-#
-#cypress_tests:
-#  image: debian:bullseye
-#  artifacts:
-#    expire_in: 1 week
-#    paths:
-#      - cypress/cypress/screenshots
-#      - cypress/cypress/videos
-#  after_script:
-#    - docker-compose down  || true
-#  script:
-#    - apt update
-#    - apt install -y docker.io docker-compose
-#    - docker-compose build
-#    - docker-compose up --force-recreate --exit-code-from e2e
 
+# local test on dev machine (linux + docker + gitlab-runner installed) can be run with:
+# gitlab-runner exec docker --docker-volumes  /run/docker.sock:/run/docker.sock e2e_tests
 e2e_tests:
   image: docker/compose:1.29.2
   artifacts:
@@ -25,11 +12,15 @@ e2e_tests:
     paths:
       - artifacts/screenshots
       - artifacts/videos
+      - artifacts/logs
   after_script:
-    - docker cp e2e:/e2e/cypress/videos artifacts/
-    - docker cp e2e:/e2e/cypress/screenshots artifacts/
-    - docker cp e2e:/root/.npm/_logs/ artifacts/logs/
-    - ls -lR artifacts/logs
+    # this is after_script to execute even when the job fails
+    # recover artifacts produced by the e2e container and make them available
+    # || true to force success of step even if the src does not exist
+    # en ensure the docker-compose down step is reached and executed
+    - docker cp e2e:/e2e/cypress/videos artifacts/ || true
+    - docker cp e2e:/e2e/cypress/screenshots artifacts/ || true
+    - docker cp e2e:/root/.npm/_logs/ artifacts/logs/ || true
     - docker-compose down  || true
   script:
     - mkdir -p artifacts/screenshots artifacts/videos artifacts/logs

@@ -1,5 +1,5 @@
 {
-  "baseUrl": "https://localhost/",
+  "baseUrl": "https://localhost",
   "video": true,
   "mailHogUrl": "http://localhost:8025"
 }

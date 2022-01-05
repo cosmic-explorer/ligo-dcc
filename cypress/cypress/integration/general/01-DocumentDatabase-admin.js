@@ -53,7 +53,6 @@ describe('private pages are served', () => {
   it('has the right css and sponsor footer', () => {
     // check theme is correct
     cy.get('body').should('have.css', 'background-color', 'rgb(221, 238, 255)')
-
     // check nsf footer and background
     cy.contains('The LIGO Laboratory is supported by the National Science Foundation and operated jointly by Caltech and MIT. Any opinions, findings and conclusions or recommendations expressed in this material do not necessarily reflect the views of the National Science Foundation.')
     cy.get('body').should('have.css', 'background-image', 'url("'+Cypress.config().baseUrl+'/site-logos/dcc-private-logo.png"), url("'+Cypress.config().baseUrl+'/site-logos/NSF_4-Color_bitmap_Logo.png")')
