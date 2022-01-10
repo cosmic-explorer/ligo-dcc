@@ -1,0 +1,19 @@
+#
+
+#  Communities:LVC:LIGOLab:DCC:DCCTesters
+# dn: cn=DCCTesters,ou=DCC,ou=LIGOLab,ou=LVC,ou=Communities,ou=grouper,dc=ligo,dc=org
+# cn: DCCTesters
+# member: cn=admin,dc=ligo,dc=org
+# member: employeeNumber=1001,dc=ligo,dc=org
+# objectclass: groupOfNames
+# objectclass: top
+
+
+
+# gw-astronomy:KAGRA-LIGO:members
+# dn: cn=members,ou=KAGRA-LIGO,ou=gw-astronomy,dc=ligo,dc=org
+# member: cn=admin,dc=ligo,dc=org
+# member: employeeNumber=1001,dc=ligo,dc=org
+# cn: members
+# objectClass: groupOfNames
+# objectClass: top

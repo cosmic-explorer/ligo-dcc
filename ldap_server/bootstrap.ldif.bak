@@ -1,0 +1,294 @@
+#
+#
+# initial structure https://wiki.ligo.org/AuthProject/BootstrapLDAPMaster
+# https://wiki.ligo.org/AuthProject/DSPopulationOfLDAP
+# https://git.ligo.org/Auth/LDAP/ligo-ds2mysql2ldap/-/blob/master/DS2MySQLtoLDAP
+# https://wiki.ligo.org/AuthProject/ReplicatingGwAstronomyMasterLDAP
+#
+
+# Top Level
+dn: dc=ligo,dc=org
+description: LIGO
+dc: ligo
+o: LIGO
+objectClass: top
+objectClass: dcObject
+objectClass: organization
+
+
+# people OU
+dn: ou=people,dc=ligo,dc=org
+ou: people
+objectClass: organizationalUnit
+
+# group OU
+dn: ou=group,dc=ligo,dc=org
+ou: group
+objectClass: organizationalUnit
+
+#system OU (needed ?)
+dn: ou=system,dc=ligo,dc=org
+ou: system
+objectClass: organizationalUnit
+
+# dn: uid=syncrepl,ou=system,dc=ligo,dc=org
+# uid: syncrepl
+# ou:system
+# userPassword: secret
+# description: special account for SyncRepl
+# objectClass: account
+# objectClass: simpleSecurityObject
+# 
+# dn: uid=grouper,ou=system,dc=ligo,dc=org
+# uid: grouper
+# ou: system
+# userPassword: secret
+# description: special account for Grouper
+# objectClass: account
+# objectClass: simpleSecurityObject
+# 
+# dn: uid=ldappc,ou=system,dc=ligo,dc=org
+# uid: ldappc
+# ou: system
+# userPassword: secret
+# description: special account for Grouper LDAPPC
+# objectClass: account
+# objectClass: simpleSecurityObject
+# 
+# dn: uid=myligo,ou=system,dc=ligo,dc=org
+# uid: myligo
+# ou: system
+# userPassword: secret
+# description: special account for MyLIGO
+# objectClass: account
+# objectClass: simpleSecurityObject
+
+
+# Users
+#dn: cn=developer,dc=ligo,dc=org
+#changetype: add
+#objectclass: inetOrgPerson
+#cn: developer
+#givenname: developer
+#sn: Developer
+#displayname: Developer User
+#mail: developer@ligo.org
+#userpassword: password
+#
+#dn: cn=maintainer,dc=ligo,dc=org
+#changetype: add
+#objectclass: inetOrgPerson
+#cn: maintainer
+#givenname: maintainer
+#sn: Maintainer
+#displayname: Maintainer User
+#mail: maintainer@ligo.org
+#userpassword: password
+#
+#dn: cn=admin_gh,dc=ligo,dc=orgUsers
+#changetype: add
+#objectclass: inetOrgPerson
+#cn: admin_gh
+#givenname: admin_gh
+#sn: AdminGithub
+#displayname: Admin Github User
+#mail: admin_gh@ligo.org
+#userpassword: password
+#
+#
+### Organizational units
+#dn: ou=Groups,dc=ligo,dc=org
+#changetype: add
+#objectclass: organizationalUnit
+#ou: Groups
+#
+#dn: ou=people,dc=ligo,dc=org
+#changetype: add
+#objectclass: organizationalUnit
+#ou: people
+#
+###groups
+#dn: cn=Admins,ou=Groups,dc=ligo,dc=org
+#changetype: add
+#cn: Admins
+#objectclass: groupOfUniqueNames
+#uniqueMember: cn=admin_gh,dc=ligo,dc=org
+#
+#dn: cn=Maintainers,ou=Groups,dc=ligo,dc=org
+#changetype: add
+#cn: Maintainers
+#objectclass: groupOfUniqueNames
+#uniqueMember: cn=maintainer,dc=ligo,dc=org
+#uniqueMember: cn=developer,dc=ligo,dc=org
+
+
+dn: employeeNumber=1,ou=people,dc=ligo,dc=org
+x-LIGO-TWikiName: Administrator
+telephoneNumber: +1 555 123 4567
+cn: Administrator
+facsimileTelephoneNumber: +1 555 123 4567
+x-LIGO-TWikiLoginName: Administrator
+description: /DC=org/DC=LIGO/OU=People/CN=Administrator
+uidNumber: 40001
+gidNumber: 40001
+eduPersonAffiliation: CIT
+sn: Istrator
+homeDirectory: /home/administrator
+uid: admin
+userPassword: password
+mail: admin@ligo.org
+krbPrincipalName: admin@LIGO.ORG
+givenName: Admin
+employeeNumber: 1
+postalCode: 12345
+postalAddress: Some Place$Somewhere$USA$State$12345$Earth616
+l: Somewhere
+st: ST
+employeeType: Admin
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+objectClass: eduPerson
+objectClass: posixAccount
+objectClass: krbPrincipalAux
+objectClass: eduMember
+objectClass: x-LIGO-TWikiObject
+street: Somewhere
+
+dn: employeeNumber=4574,ou=people,dc=ligo,dc=org
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+objectClass: eduPerson
+objectClass: posixAccount
+objectClass: krbPrincipalAux
+objectClass: eduMember
+objectClass: x-LIGO-TWikiObject
+objectClass: qmailUser
+objectClass: gridCertificateUser
+objectClass: x-LIGO-LDG-Account
+objectClass: ldapPublicKey
+employeeNumber: 4574
+uid: philippe.grassia
+givenName: Philippe
+sn: Grassia
+cn: Philippe Grassia
+uidNumber: 44574
+gidNumber: 44574
+homeDirectory: /home/philippe.grassia
+krbPrincipalName: philippe.grassia@LIGO.ORG
+x-LIGO-TWikiName: PhilippeGrassia
+x-LIGO-TWikiLoginName: philippegrassia
+description: /DC=org/DC=LIGO/OU=People/CN=Philippe Grassia
+l: Pasadena
+st: CA
+postalCode: dn: employeeNumber=4574,ou=people,dc=ligo,dc=org91125
+gridX509subject: /DC=org/DC=cilogon/C=US/O=LIGO/CN=Philippe Grassia philippe.grassia@ligo.org
+x-LIGO-uid: philippe.grassia
+loginShell: /bin/bash
+street: 1200 E California Blvd$M/S 100-36
+employeeType: Scientist / Engineer
+postalAddress: 1200 E California Blvd$M/S 100-36$Pasadena$CA$91125$US
+telephoneNumber: +626 395 8517
+eduPersonAffiliation: LIGO - Caltech
+eduPersonAffiliation: LIGO - California Institute of Technology
+isMemberOf: Communities:LVC:LSC:LDG:CIT:LDGCITUsers
+isMemberOf: Communities:LVC:LSC:MOU:LIGOLab:LIGOLabGroupMembers
+isMemberOf: Communities:LVC:LSC:LDG:UWM:LDGUWMUsers
+isMemberOf: Communities:LVC:LSC:LDG:IUCAA:LDGIUCAAUsers
+isMemberOf: Communities:LVC:LSC:MOU:LIGOLab:CIT:CITGroupMembers
+isMemberOf: Communities:LVC:LSC:LDG:LHO:LDGLHOUsers
+isMemberOf: Communities:LVC:LIGOLab:CIT:CITGroupMembers
+isMemberOf: Communities:LVC:NDS2:NDS2AuthZ
+isMemberOf: Communities:LVC:LSC:LSCGroupMembers
+isMemberOf: Communities:LVC:LIGOLab:LIGOLabGroupMembers
+isMemberOf: Communities:LVC:LSC:LDG:LDGUsers
+isMemberOf: Communities:LVC:LVCGroupMembers
+isMemberOf: Communities:LSCVirgoLIGOGroupMembers
+isMemberOf: Communities:LVC:LSC:LDG:LLO:LDGLLOUsers
+isMemberOf: Communities:LVC:SympaLists:Testing:Testing
+isMemberOf: Communities:LVC:LSC:LDGSysAdmin:LDGSupport:LDGSupportSubscribers
+isMemberOf: Communities:LVC:LSC:LDGSysAdmin:LDGSysAdminMail
+isMemberOf: Communities:LVC:LSC:CompComm:AuthProject:AuthProjectGroupMembers
+isMemberOf: Communities:LVC:LSC:CompComm:CertificateAuthority:SAMLCA:SAMLCAuse
+ rs
+isMemberOf: Communities:LVC:LSC:CompComm:CertificateAuthority:HostServiceCA:Ho
+ stServiceCAUsers
+isMemberOf: Communities:LVC:SympaLists:JupyterHub:JupyterHubModerators
+isMemberOf: Communities:LVC:SympaLists:JupyterHub:JupyterHubSubscribers
+isMemberOf: Communities:LVC:LSC:DASWG:DASWGGroupMembers
+isMemberOf: Communities:LVC:SympaLists:lalinference-devel:lalinference-develSu
+ bscribers
+isMemberOf: Communities:LVC:SympaLists:LALDiscuss:LALDiscussSubscribers
+isMemberOf: Communities:LVC:SympaLists:gstlalDiscuss:gstlalDiscussSubscribers
+isMemberOf: Communities:LVC:SympaLists:LIGORefOS:LIGORefOSSubscribers
+isMemberOf: Communities:LVC:SympaLists:MachineLearning:mlaSubscribers
+isMemberOf: Communities:LVC:LSC:DAC:CBC:PyCBC-Discuss:PyCBC-Discuss-Subscriber
+ s
+isMemberOf: Services:LigoDV:authorized
+isMemberOf: Services:LigoDV:eligible_factor
+isMemberOf: Services:MailingLists:Testing:authorized
+isMemberOf: Services:MailingLists:Testing:eligible_factor
+isMemberOf: Communities:LVC:LIGOLab:ComputerSecurity:ligolab-seccomSubscribers
+isMemberOf: Communities:LVC:SympaLists:DCCDevel:DCCDevelSubscribers
+isMemberOf: Communities:LVC:TokenAuthenticators:TokenAuthenticators
+isMemberOf: Services:TokenAuthentication:TokenAuthenticatorsMasterList:TokenAuthenticatorsLLO:LDAS:authorized
+isMemberOf: Services:TokenAuthentication:TokenAuthenticatorsMasterList:TokenAuthenticatorsLLO:authorized
+isMemberOf: Services:TokenAuthentication:TokenAuthenticatorsMasterList:authorized
+isMemberOf: Communities:LVC:TokenAuthenticators:LHO:CDS:TokenAuthenticatorsLHOCDS
+isMemberOf: Services:MailingLists:KDCAdmins:KDCAdminsModerators:authorized
+isMemberOf: Services:TokenAuthentication:TokenAuthenticatorsMasterList:TokenAuthenticatorsLHO:CDS:authorized
+isMemberOf: Services:TokenAuthentication:TokenAuthenticatorsMasterList:TokenAuthenticatorsLHO:authorized
+isMemberOf: Communities:LVC:TokenAuthenticators:LLO:CDS:TokenAuthenticatorsLLOCDS
+isMemberOf: Communities:LVC:TokenAuthenticators:TokenAuthenticatorsLLO
+isMemberOf: Services:TokenAuthentication:TokenAuthenticatorsMasterList:TokenAuthenticatorsLLO:CDS:authorized
+isMemberOf: Communities:LVC:SympaLists:LIGOMac:LIGOMacSubscribers
+isMemberOf: Communities:LVC:LSC:CompComm:CompCommGroupMembers
+isMemberOf: Communities:LVC:LSC:WebComm:WebCommMembers
+isMemberOf: Communities:LVC:SympaLists:BeginnersGuide:BeginnersGuideSubscribers
+isMemberOf: Communities:LVC:SympaLists:GraceDBDiscuss:GraceDBDiscussSubscribers
+isMemberOf: Communities:LVC:SympaLists:MatAppsDiscuss:MatAppsDiscussSubscribers
+isMemberOf: Communities:LVC:SympaLists:NDSDiscuss:NDSDiscussSubscribers
+isMemberOf: Communities:LVC:SympaLists:gwpy:gwpySubscribers
+isMemberOf: Communities:LVC:SympaLists:slp-help:slp-helpSubscribers
+isMemberOf: Communities:LVC:SympaLists:LVCComputing:lvccomputingSubscribers
+isMemberOf: Communities:LVC:SympaLists:ligo-cert-renew:ligo-cert-renewSubscribers
+isMemberOf: Communities:LVC:LSC:LOSC:LOSCDevelopment:LOSCDevelopers
+isMemberOf: Communities:LVC:LSC:LDG:CDF:LDGCDFUsers
+isMemberOf: Communities:LVC:LIGOLab:DCC:DCCTesters
+isMemberOf: Communities:LVC:LSC:ElectionsAdmin:ElectionsAdministrators
+isMemberOf: Communities:LVC:LSC:CompComm:AuthProject:VoteAdmin:VoteAdminModerators
+isMemberOf: Communities:LVC:LSC:CompComm:AuthProject:VoteAdmin:VoteAdminSubscribers
+isMemberOf: Communities:LVC:LSC:PubPresentationComm:pnp-admin-list:pnp-adminModerators
+isMemberOf: Communities:LVC:LIGOLab:LabSympaLists:dcc-help-test:dcc-help-testModerators
+isMemberOf: Communities:LVC:LIGOLab:LabSympaLists:dcc-help-test:dcc-help-testSubscribers
+isMemberOf: Communities:LVC:LSC:PubPresentationComm:pnp-admin-list:pnp-adminSubscribers
+isMemberOf: Communities:LVC:SympaLists:pnp-devel-list:pnp-devel-subscribers
+isMemberOf: Communities:LVC:LSC:LDG:CIT:LDGCITAdmins
+isMemberOf: Communities:LVC:SympaLists:DCCHelp:DCCHelpModerators
+isMemberOf: Communities:LVC:SympaLists:DCCHelp:DCCHelpSubscribers
+isMemberOf: Communities:LVC:SympaLists:DCCDevel:DCCDevelModerators
+mailAlternateAddress: grassiap@gmail.com
+mail: philippe.grassia@ligo.org
+mailForwardingAddress: pgrassia@caltech.edu
+
+
+#dn: employeeNumber=4574,ou=people,dc=ligo,dc=org
+#objectClass: top
+#objectClass: inetOrgPerson
+#objectClass: posixAccount
+#employeeNumber: 4574
+#uid: philippe.grassia
+#givenName: Philippe
+#sn: Grassia
+#cn: Philippe Grassia
+#uidNumber: 44574
+#gidNumber: 44574
+#homeDirectory: /home/philippe.grassia
+#krbPrincipalName: philippe.grassia@LIGO.ORG
+#eduPersonAffiliation: LIGO - Caltech
+#isMemberOf: Communities:LVC:LIGOLab:DCC:DCCTesters
+#isMemberOf: Communities:LSCVirgoLIGOGroupMembers
+#isMemberOf: gw-astronomy:KAGRA-LIGO:members

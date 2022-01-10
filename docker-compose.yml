@@ -1,6 +1,33 @@
 version: "3.7"
 
 services:
+  ldap_server:
+    build:
+      context: .
+      dockerfile: ldap_server/Dockerfile
+      args:
+        LDAP_ADMIN_PASSWORD: ${LDAP_ADMIN_PASSWORD}
+        LDAP_BASE_DN: ${LDAP_BASE_DN}
+        LDAP_ORGANISATION: ${LDAP_ORGANISATION}
+        LDAP_DOMAIN: ${LDAP_DOMAIN}
+    environment:
+      LDAP_ADMIN_PASSWORD: ${LDAP_ADMIN_PASSWORD}
+      LDAP_BASE_DN: ${LDAP_BASE_DN}
+      LDAP_ORGANISATION: ${LDAP_ORGANISATION}
+      LDAP_DOMAIN: ${LDAP_DOMAIN}
+    command: [ "--loglevel", "debug" ]
+    ports:
+      - 389:389
+
+  ldap_admin:
+    image: osixia/phpldapadmin
+    ports:
+      - 8090:80
+    environment:
+      PHPLDAPADMIN_LDAP_HOSTS: ldap_server
+      PHPLDAPADMIN_HTTPS: 'false'
+
+
   mariadb:
     init: true
     container_name: mariadb

@@ -1,0 +1,71 @@
+# eduMember definition
+
+dn: cn={12}eduMember,cn=schema,cn=config
+objectClass: olcSchemaConfig
+cn: {12}eduMember
+olcAttributeTypes: {0}( 1.3.6.1.4.1.5923.1.5.1.1
+    NAME 'isMemberOf'
+    DESC 'Identifiers for groups to which containing entity belongs'
+    EQUALITY caseExactMatch SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )
+olcAttributeTypes: {1}( 1.3.6.1.4.1.5923.1.5.1.2
+    NAME 'hasMember'
+    DESC 'Identifiers for entities that are members of the group'
+    EQUALITY caseExactMatch SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )
+olcObjectClasses: {0}( 1.3.6.1.4.1.5923.1.5.2
+    NAME 'eduMember'
+    DESC 'eduMember for Groups'
+    AUXILIARY MAY ( isMemberOf $ hasMember ) )
+
+
+# bootstrap base OUs: groups and users#
+
+# group OU
+#  ou=grouper,dc=ligo,dc=org
+dn: ou=grouper,dc=ligo,dc=org
+objectclass: organizationalUnit
+ou: grouper
+
+dn: ou=Communities,ou=grouper,dc=ligo,dc=org
+objectclass: organizationalUnit
+ou: Communities
+
+dn: ou=LVC,ou=Communities,ou=grouper,dc=ligo,dc=org
+objectclass: organizationalUnit
+ou: LVC
+
+dn: ou=LIGOLab,ou=LVC,ou=Communities,ou=grouper,dc=ligo,dc=org
+objectclass: organizationalUnit
+ou: LIGOLab
+
+dn: ou=DCC,ou=LIGOLab,ou=LVC,ou=Communities,ou=grouper,dc=ligo,dc=org
+objectclass: organizationalUnit
+ou: DCC
+
+
+
+#isMemberOf: Communities:LVC:LIGOLab:DCC:DCCTesters
+#isMemberOf: Communities:LSCVirgoLIGOGroupMembers
+
+
+# -------------------------------------------------------
+# option to support KAGRA like users in the same ldap
+#
+# comment out if makes trouble
+# -------------------------------------------------------
+# 
+#isMemberOf: gw-astronomy:KAGRA-LIGO:members
+dn: ou=gw-astronomy,dc=ligo,dc=org
+objectclass: organizationalUnit
+ou: gw-astronomy
+
+dn: ou=KAGRA-LIGO,ou=gw-astronomy,dc=ligo,dc=org
+objectclass: organizationalUnit
+ou: KAGRA-LIGO
+
+
+
+# people OU
+dn: ou=people,dc=ligo,dc=org
+ou: people
+objectClass: organizationalUnit
+
