@@ -27,18 +27,15 @@ function ShowMathJaxButton() {
      $("MathJaxInsert").insert(
        "<p style='margin-left:2em;'>\n"+
        "<a href='Javascript:helppopupwindow(\"/cgi-bin/private/DocDB/DocDBHelp?term=whatismathjax\");'><img src='https://www.mathjax.org/badge/logo_60x12.gif' /></a>: \n" +
-/*       "<button onclick='Toggle_Renderer();' id='MathJax_Toggle'></button>\n"+ */
        "<input type='checkbox' id='MathJax_Check' onclick='Toggle_Renderer();' >" +
        "</p>\n"
        );
    }
-
    var mjx_chk=$("MathJax_Check");
    if (mjx_chk) { 
       mjx_chk.checked = (MathJax.Hub.config.menuSettings.renderer != 'PlainSource') ;
    }
 }
-
 
 document.addEventListener('DOMContentLoaded', (event) => {
     MathJax.Hub.Config({  

@@ -4,6 +4,14 @@
     RewriteRule ^(.*)$ https://%{HTTP_HOST}$1 [R=301,L]
 </VirtualHost>
 
+<AuthnProviderAlias file test_file>
+    AuthName "password file"
+    AuthBasicProvider  file
+    AuthUserFile   /etc/apache2/passwords
+</AuthnProviderAlias>
+
+
+
 <VirtualHost *:443>
     SetEnv PERL5LIB {{ PERL5LIB }}
     DocumentRoot  {{ DOCDB_HTML_DIR }}
@@ -23,8 +31,7 @@
         DirectoryIndex index.html index.cgi index.php /dcc
         AuthName "openDCC admin/admin or user[123]/password. demo only not for production use"
         AuthType  Basic
-        AuthBasicProvider  file
-        AuthUserFile   /etc/apache2/passwords
+        AuthBasicProvider  test_file
         Require    valid-user
         #XbitHack on
     </Location>
@@ -105,10 +112,14 @@
 
    <LocationMatch "^/public">
        Options +Indexes +FollowSymLinks +IncludesNoExec +ExecCGI
-       DirectoryIndex "https://${DCC_INSTANCE}/cgi-bin/DocDB/DocumentDatabase"
+       DirectoryIndex "/cgi-bin/DocDB/DocumentDatabase"
        Require all granted
    </LocationMatch>
 
+
+    <Location /ldap>
+        SetHandler ldap-status
+    </Location>
 
 </VirtualHost>
 
@@ -120,6 +131,11 @@ SSLHonorCipherOrder     off
 SSLSessionTickets       off
 
 
+LDAPSharedCacheSize 500000
+LDAPCacheEntries 1024
+LDAPCacheTTL 600
+LDAPOpCacheEntries 1024
+LDAPOpCacheTTL 600
 
 
 

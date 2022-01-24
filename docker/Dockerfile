@@ -53,9 +53,10 @@ RUN chown -R www-data. ${DOCDB_HTML_DIR}/ &&\
     a2ensite docdb.conf && \
     a2enconf short_url.conf &&\
     a2dissite 000-default && \
-    a2enmod cgid proxy proxy_http rewrite ssl authnz_external include &&\
+    a2enmod cgid proxy proxy_http rewrite ssl authnz_external include ldap authnz_ldap &&\
     apache2ctl -t
 
+#    a2enmod ldap authnz_ldap &&\
 
 # create user base
 COPY docker/DCCTesters /tmp
@@ -88,6 +89,8 @@ RUN j2 /tmp/SiteConfig.j2 | tee ${DOCDB_CGI_DIR}/private/DocDB/SiteConfig.pm| se
     mv ${DOCDB_HTML_DIR}/public/Static/css/LIGODocDB.css.dcc-public ${DOCDB_HTML_DIR}/public/Static/css/LIGODocDB.css
 
 COPY docker/www/test.sh ${DOCDB_CGI_DIR}
+COPY docker/www/test.sh ${DOCDB_HTML_DIR}/app/test.sh
+COPY docker/www/index.html ${DOCDB_HTML_DIR}/app/index.html
 
 #FIXME: needs glimpse
 RUN apt install -y glimpse

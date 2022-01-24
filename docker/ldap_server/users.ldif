@@ -1,27 +1,5 @@
 # bootstrap users
 
-dn: employeeNumber=1000,ou=people,dc=ligo,dc=org
-cn: developer
-employeenumber: 1000
-employeetype: Engineer
-gidnumber: 1000
-givenname: Philippe
-homedirectory: /home/developer
-objectclass: inetOrgPerson
-objectclass: organizationalPerson
-objectclass: person
-objectclass: posixAccount
-objectclass: top
-objectclass: eduMember
-objectclass: eduPerson
-ou: people
-sn: Developer
-ismemberof: Communities:LVC:LIGOLab:DCC:DCCTesters
-isMemberOf: Communities:LSCVirgoLIGOGroupMembers
-ismemberof: gw-astronomy:KAGRA-LIGO:members
-uid: developer
-uidnumber: 41000
-userpassword: password
 
 dn: employeeNumber=1001,ou=people,dc=ligo,dc=org
 cn: user1
@@ -42,7 +20,7 @@ sn: User1
 ismemberof: Communities:LVC:LIGOLab:DCC:DCCTesters
 isMemberOf: Communities:LSCVirgoLIGOGroupMembers
 ismemberof: gw-astronomy:KAGRA-LIGO:members
-uid: user1
+uid: philippe.user1
 uidnumber: 41001
 userpassword: password
 
@@ -65,7 +43,7 @@ sn: User2
 ismemberof: Communities:LVC:LIGOLab:DCC:DCCTesters
 isMemberOf: Communities:LSCVirgoLIGOGroupMembers
 ismemberof: gw-astronomy:KAGRA-LIGO:members
-uid: user2
+uid: philippe.user2
 uidnumber: 41002
 userpassword: password
 
@@ -88,7 +66,7 @@ sn: User3
 ismemberof: Communities:LVC:LIGOLab:DCC:DCCTesters
 isMemberOf: Communities:LSCVirgoLIGOGroupMembers
 ismemberof: gw-astronomy:KAGRA-LIGO:members
-uid: user3
+uid: philippe.user3
 uidnumber: 41003
 userpassword: password
 
@@ -111,6 +89,6 @@ sn: User4
 ismemberof: Communities:LVC:LIGOLab:DCC:DCCTesters
 isMemberOf: Communities:LSCVirgoLIGOGroupMembers
 ismemberof: gw-astronomy:KAGRA-LIGO:members
-uid: user4
+uid: philippe.user4
 uidnumber: 41004
 userpassword: password

@@ -1,5 +1,6 @@
 {
   "baseUrl": "https://localhost",
   "video": true,
-  "mailHogUrl": "http://localhost:8025"
+  "mailHogUrl": "http://localhost:8025",
+  "ignoreTestFiles": ["**/00_Open_Bugs/*.js", "**/01-placeholder.js"]
 }

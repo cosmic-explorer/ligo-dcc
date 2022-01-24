@@ -11,6 +11,8 @@ chmod -R 777 /root
 rm -rf node_modules
 
 npm install
+npx browserslist@latest --update-db
+
 wait-for-it mariadb:3306 -- echo "mariadb ready"
 wait-for-it mailhog:8025 -- echo "mailhog ready"
 wait-for-it dcc:443      -- echo "dcc ready"

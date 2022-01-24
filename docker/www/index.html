@@ -1,13 +1,11 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Document</title>
-</head>
-<body>
-<h1>Hello World In html file</h1>
+#!/usr/bin/perl
 
-</body>
-</html>
+print "Content-Type:text/html\n\n";
+print "<h4>Hello World!</h4>\n";
+
+print "<pre>\n";
+
+foreach $key (sort keys(%ENV)) {
+  print "$key = $ENV{$key}\n";
+}
+print "</pre>\n";

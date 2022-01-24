@@ -13,6 +13,9 @@ describe('Check DocumentAddForm page', () => {
    //FIXME: needs actual checks if it makes sense
  }) //it()
 
+
+  var docid
+
   it('Reserves a document number for a temporary test document', () => {
     cy.get('input[name=title]').type('First Doc')
     cy.get('textarea[name=abstract]').type('this is my abstract, FIXME: add some tex expression to test that later')
@@ -33,22 +36,27 @@ describe('Check DocumentAddForm page', () => {
 
     // there is probably a better way e.g. https://stackoverflow.com/questions/56497146/submit-a-post-form-in-cypress-and-navigate-to-the-resulting-page
     // public:"" IS needed, otherwise it leads to misleading error message of no group allowed to view document
+    cy.get('b').contains('LIGO-').then( (elm) => {
+        docid= elm.get(0).outerText
+        cy.log(docid)
+    })
+
   }) //it()
 
-// FIXME: this check is disabled because the XML output gites a text/html content-type
-//  it('Checks xml output', () => {
-//       cy.get('button.pda2bl').contains('Go To New Document')
-//         .should('be.visible')
-//         .click()
-//       cy.location().then((loc) => {
-//             cy.log(loc['href'])
-//             cy.visit(loc['href']+'?outformat=XML', {
-//                                                        auth: {
-//                                                          username: 'admin',
-//                                                          password: 'admin',
-//                                                        },
-//             }) //cy.visit
-//       })  // then
-//   })// it()
+// FIXME: this check is disabled because the XML output gives a text/html content-type
+  it.skip('Checks xml output', () => {
+       cy.get('button.pda2bl').contains('Go To New Document')
+         .should('be.visible')
+         .click()
+       cy.location().then((loc) => {
+             cy.log(loc['href'])
+             cy.request(loc['href']+'?outformat=XML', {
+                auth: {
+                  username: 'admin',
+                  password: 'admin',
+                },
+             }) //cy.visit
+       })  // then
+   })// it()
 
 }) // describe()

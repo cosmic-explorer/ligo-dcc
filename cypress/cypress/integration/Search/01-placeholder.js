@@ -1,5 +1,5 @@
 describe("Placeholder for indexing and search checks", () => {
-  it('', () => {
+  it.skip('', () => {
   })
 
 })

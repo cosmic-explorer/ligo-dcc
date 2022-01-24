@@ -42,6 +42,10 @@ objectclass: organizationalUnit
 ou: DCC
 
 
+# people OU
+dn: ou=people,dc=ligo,dc=org
+ou: people
+objectClass: organizationalUnit
 
 #isMemberOf: Communities:LVC:LIGOLab:DCC:DCCTesters
 #isMemberOf: Communities:LSCVirgoLIGOGroupMembers
@@ -64,8 +68,4 @@ ou: KAGRA-LIGO
 
 
 
-# people OU
-dn: ou=people,dc=ligo,dc=org
-ou: people
-objectClass: organizationalUnit
 
