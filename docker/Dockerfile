@@ -27,7 +27,7 @@ RUN apt update && apt upgrade -y &&\
     apt install -y apache2 apache2-utils supervisor build-essential \
                    libexpat1-dev libapache2-mod-authnz-external libapache2-mod-auth-openidc \
                    default-libmysqlclient-dev libmariadb-dev-compat mariadb-client \
-                   tmux vim curl ksh tcl openssl &&\
+                   tmux vim curl ksh tcl openssl cmake rsync &&\
     mkdir -p ${DOCDB_CGI_DIR} ${DOCDB_HTML_DIR}
 
 
@@ -85,11 +85,11 @@ COPY deployment /tmp/deployment
 COPY docker/SiteConfig.j2 /tmp
 #FIXME: public siteconfig.pm probably needs its own j2 templates
 RUN j2 /tmp/SiteConfig.j2 | tee ${DOCDB_CGI_DIR}/private/DocDB/SiteConfig.pm| sed 's!/private/!/!' >  ${DOCDB_CGI_DIR}/DocDB/SiteConfig.pm &&\
-    ls -l  ${DOCDB_HTML_DIR}/Static/css/  &&\
-    cp ${DOCDB_HTML_DIR}/Static/css/LIGODocDB.css ${DOCDB_HTML_DIR}/public/Static/css/LIGODocDB.css
+    cp -r  /tmp/www/html/public/Static ${DOCDB_HTML_DIR}/public/ &&\
+    ls -l  ${DOCDB_HTML_DIR}/Static/css/
 #    mv ${DOCDB_HTML_DIR}/Static/css/LIGODocDB.css.dcc-private ${DOCDB_HTML_DIR}/Static/css/LIGODocDB.css &&\
-RUN stat ${DOCDB_HTML_DIR}/Static/css/LIGODocDB.css && \
-    stat ${DOCDB_HTML_DIR}/public/Static/css/LIGODocDB.css \
+RUN stat ${DOCDB_HTML_DIR}/Static/css/LIGODocDB.css
+RUN stat ${DOCDB_HTML_DIR}/public/Static/css/LIGODocDB.css
 
 COPY docker/www/test.sh ${DOCDB_CGI_DIR}
 COPY docker/www/test.sh ${DOCDB_HTML_DIR}/app/test.sh

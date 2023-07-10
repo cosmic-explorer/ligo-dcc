@@ -1,1 +1,253 @@
-LIGODocDB.css.dcc-dev-private
+body {
+  margin: 1em;
+  background-image: url('/site-logos/dcc-dev-private-logo.png'), url('/site-logos/NSF_4-Color_bitmap_Logo.png');
+  background-size: 125px,  65px; 
+  background-position: left top, right top;
+  background-repeat: no-repeat, no-repeat;
+  font-family : arial, helvetica, sans-serif;
+  background-color: #dff7dc;
+  color: #333;
+}
+
+.NSFFooter {
+    font-size: 65%;
+    width: 75%;
+    color: #444;
+    text-align: center;
+    margin-top: 1em;
+    margin-left: 13%;
+    margin-right: 12%;
+    display: block;
+}
+
+/* 03-28-13 */
+a {
+   outline: none;
+}
+
+input[type=button] {
+    -webkit-appearance: default-button;
+    -webkit-border-radius: 3px;
+    border: thin solid #888;
+    background-color: #EEE;
+}
+
+input[type="button"]:hover {
+   box-shadow: 0 2px 3px 0 rgba(0,0,0,0.24), 0 7px 10px 0 rgba(0,0,0,0.19);
+   background-color: #CCC;
+}
+
+
+input[type="text"]:focus, textarea:focus, select:focus {
+   border: 2px solid #36c;
+}
+
+#Modifiable ul, #Viewable ul {
+  margin-top: 0;
+}
+
+
+*.publicwm {
+  background-image: url('/site-logos/dcc-dev-public-logo.png');
+  background-color: #fee;
+}
+
+.DocDBNavBar {
+ padding-left: 8em;
+ padding-bottom: 1em;
+}
+
+.showdocSignoffs {
+   font-weight: bold;
+}
+
+/* Any padding or border will show up on the page
+   even when there is no status message */
+.serverstatus {
+   width: 80%;
+   margin: auto;
+   background-color: #696;
+   color: #FFF;
+   font-weight: bold;
+}
+
+#LeftColumn3ColFront {
+  background: #dff7dc; /*#fee;*/
+  width: 8em; 
+  padding: 0.5em;
+  padding-left: 1em;
+}
+
+/* List styling 02.26.13 */
+ul.nav,
+ul.topnav {
+   font-size: 1em;
+}
+ul.nav li {
+   list-style: none;
+   /*margin-left: 0;*/
+   padding: .3em 0;
+   text-indent: -2em;
+}
+ul.nav li a {
+   color: #333;
+   text-decoration: none;
+   border-bottom: 1px solid #333;
+   padding: 0;
+   margin: .5em 0;
+}
+ul.nav li a:hover {
+   color: #777;
+   border-bottom: 1px solid #777;
+}
+/* end list styling */
+
+/* List styling 02.27.13 */
+ul.topnav {
+   display: inline; 
+}
+ul.topnav li {
+   list-style: none;
+   padding: 0 .3em;
+   display: inline;
+   font-weight: bold;
+}
+ul.topnav a {
+   text-decoration: none;
+   color: #333;
+   border-bottom: 1px solid #555;
+}
+ul.topnav a:hover {
+   color: #333;
+   border-bottom: 3px solid #555;
+}
+/* end list styling */
+
+#LeftColumn3Col {
+  background: #dff7dc; /*#fee;*/
+  width: 15em;
+  padding: 0.5em;
+  padding-left: 1em;
+}
+
+#RightColumn3Col {
+  background: #dff7dc; /*#fee;*/
+  width: 15em;
+  padding: 0.5em;
+  padding-left: 1em;
+}
+
+#UpdateButtons input[name=".submit"] {
+   width: 15em;
+}
+
+#DocNotifySignup input[name=".submit"] {
+   width: 15em;
+}
+/* Move the main column over to match the left column */
+#MainColumn3ColFront {
+	padding-left: 14em;
+   background-color: #dff7dc; /*#feb;*/
+}
+#MainColumn3Col {
+	padding-left: 17em;
+   background-color: #dff7dc; /*#feb;*/
+}
+
+#OtherVersionTable tr {
+   background-color: #dff7dc;
+}
+
+/* Change alternating <li> environments */
+li.Odd {
+  background-color: #dff7dc;
+}
+
+li.Even {
+  background-color: white;
+}
+
+/* Change alternating <tr> environments */
+
+tr.alt {
+  background-color: #fff;
+}
+
+/* The sortable columns environment */
+/* th.CanSign added, VK 10-2013 */
+th.Docid, th.Title, th.Events, th.Author, th.Topics, th.Updated, th.TalkTime, th.TalkLength, th.Files, th.Edit, th.CanSign {
+  background-color: #ded;
+}
+
+/* Main table styling */
+td.main {
+   padding: 0 2em .6em 0;
+}
+/*
+td.hdr {
+   background-color: #def;
+   border-top: 2px solid #36c;
+   border-bottom: 2px solid #36c;
+   padding: .2em 0 .2em .1em;
+}
+*/
+td.hdr {
+   background-color: #36c;
+   color: #fff;
+   padding: .2em 0 .2em .1em;
+}
+
+*.slink {
+  background-color: #ded;
+  color: #33e;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+hr  {
+	color: #000000;
+}
+	
+.smalltext  {
+	font-size : 70%;
+}
+
+.stdtext  {
+        font-size: 100%;
+}
+
+.lgtext  {
+	font-size : 130%;
+}
+
+ul#searchinputs {
+   margin: 0px;
+   margin-top: -1em;
+   padding-top: 0em;
+   padding-left: 1em;
+}
+
+.hover-comment {
+   font-size : 70%;
+   background-color: #eee;
+}
+
+.hover-comment:hover {
+   background-color: #fff;
+}
+
+td.Docid {
+  min-width: 8em;
+}
+
+/* Error message styling (currenly used only for author autocomplete) */
+.warn {
+   font-size: .75em;
+   color: #ff0000;
+}
+/* Hint styling */
+.hint {
+   font-size: .75em;
+   color: #777;
+   font-style: italic;
+}

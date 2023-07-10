@@ -1,4 +1,4 @@
-FROM debian:bullseye
+FROM debian:bookworm-slim
 
 ENV CYPRESS_mailHogUrl=http://mailhog:8025 \
     CYPRESS_baseUrl=https://dcc
