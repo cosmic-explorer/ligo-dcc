@@ -31,6 +31,8 @@ use CGI::Carp qw(carp croak fatalsToBrowser);
 
 require "DocDBGlobals.pm";
 
+use DBUtilities;
+
 if ($UseDeadlyWarning == 1) {
    # promote run-time warnings into exceptions
    # # *unless* we're in an try block, in which 
@@ -92,7 +94,10 @@ unless ($DocumentID) {
    bailOutOfShowDocument();
 }  
 
-$dbh = DBI->connect('DBI:mysql:'.$db_name.':'.$db_host,$db_rouser,$db_ropass);
+#$dbh = DBI->connect('DBI:mysql:'.$db_name.':'.$db_host,$db_rouser,$db_ropass);
+#$dbh = DBI->connect('DBI:mysql:database='.$db_name.':host='.$db_host,$db_rouser,$db_ropass);
+$dbh   =  CreateConnection(-type => "ro");
+
 
 GetSecurityGroups();
 
@@ -146,7 +151,9 @@ if ($Mode eq 'qacheck') {
    if ($CurrentState == 1) { $NewState = 0 }
 
    &UpdateRevisionQAState($DocRevID, $NewState);
-   $dbh   = DBI->connect('DBI:mysql:'.$db_name.':'.$db_host,$db_rwuser,$db_rwpass);
+   #$dbh   = DBI->connect('DBI:mysql:'.$db_name.':'.$db_host,$db_rwuser,$db_rwpass);
+   $dbh   =  CreateConnection(-type => "rw");
+
    &UpdateRevisionPublicSecurity($DocumentID, $Version, $NewState);
 
    $DocRevisions{$DocRevID}{QAcheck} = $NewState;
@@ -211,8 +218,9 @@ if ($OutFormat eq 'XML') {
       $DocumentNumberWithVersion = "$Project Document $DocumentNumber-x$Version";
    } 
    DocDBHeader($PageTitle, $DocumentNumberWithVersion,
-         -scripts => ["prototype", "ValidateForm","scriptaculous/scriptaculous", "Signatures", "serverstatus", "ICSLink", "PopUps", "MathJaxToggle"]);
-   
+#         -scripts => ["prototype", "ValidateForm","scriptaculous/scriptaculous", "Signatures", "serverstatus", "ICSLink", "PopUps", "MathJaxToggle"]);
+         -scripts => ["prototype", "ValidateForm", "Signatures", "serverstatus", "ICSLink", "PopUps", "MathJaxToggle"]);
+
    EndPage();
    PrintRevisionInfo($DocRevID, -showversions => 1);
    DocDBNavBar();

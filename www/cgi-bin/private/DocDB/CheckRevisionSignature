@@ -1,0 +1,78 @@
+#! /usr/bin/env perl
+#
+# Description: Change preferences for what/when to be notified of document
+#              changes in e-mail.
+#
+#      Author: Eric Vaandering (ewv@fnal.gov)
+#    Modified: 
+#
+
+# Copyright 2023 Philippe Grassia
+
+#    This file is part of DocDB.
+
+#    DocDB is free software; you can redistribute it and/or modify
+#    it under the terms of version 2 of the GNU General Public License 
+#    as published by the Free Software Foundation.
+
+#    DocDB is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+
+#    You should have received a copy of the GNU General Public License
+#    along with DocDB; if not, write to the Free Software
+#    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+
+use CGI;    
+use DBI;
+
+use warnings;
+
+no warnings qw(once);
+
+use CGI::Carp qw(carp croak fatalsToBrowser);
+use autodie;
+# apparently ```use 5.016``` implies ```use strict``` which, correctly, fails everything in DocDB code...
+#use 5.016;
+
+require "DocDBGlobals.pm";
+main() if not caller();
+
+sub main() {
+    my $query = new CGI; # Global for subroutines
+    my %params = $query->Vars;
+    my $Mode = $params{mode} || 'signordeny';
+    my $Action = $params{sign_action};
+
+   if($Mode eq 'ajax') {
+        my $SignatureID = $params{signatureid};
+        # TODO: actual logic to check the state of the SignatureID passed
+        # TODO: a bit more checks e.g. is the User really associated with this signature, is the signature itself yet to be done ?
+        if ($Action eq 'checkonly') {
+            my $status = CheckSignatureStatus($SignatureID) ? "open" : "closed";
+            print $query->header(-type => 'application/json');
+            print qq({
+                "status": "${status}",
+                "message": "you're welcome"
+                }
+            );
+        }
+   } else {
+        die("mode=${Mode} is not implemented yet\n");
+   }
+}
+
+sub CheckSignatureStatus($) {
+    use SignoffSQL;
+    use DBUtilities;
+
+    my $SignatureID = shift @_ ;
+    my $dbh = CreateConnection( -type => 'ro');
+
+    my $stmt = $dbh -> prepare('select Signoff.DocRevID as DocRevID from Signoff, Signature where  Signature.SignoffID = Signoff.SignoffID and Signature.SignatureID = ?;');
+    $stmt -> execute($SignatureID) or die('could not execute $stmt');
+    my $DocRevID=$stmt->fetchrow_array();
+
+    return isRevisionOpenforSignature($DocRevID);
+}

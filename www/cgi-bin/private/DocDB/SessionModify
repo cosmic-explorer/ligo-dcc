@@ -46,6 +46,7 @@ require "WebUtilities.pm";
 
 require "FormElements.pm";
 require "ResponseElements.pm";
+require "AuthorHTML.pm";
 require "MeetingHTML.pm";
 require "SecurityHTML.pm";
 
@@ -66,7 +67,7 @@ $query = new CGI;  # Global for subroutines
 $query -> delete_all(); # Stop program from caching variable from script to script
 
 my $SessionID          = $params{sessionid};
-my $SessionMode               = $params{mode};
+my $SessionMode        = $params{mode};
 my $SingleSession      = $params{singlesession};
 
 my $SessionTitle       = $params{sessiontitle};
@@ -154,9 +155,22 @@ if ($SingleSession && $SessionMode eq "new") {
     $ButtonTitle = "Modify Session and Talks";
   }
 }
-DocDBHeader($Title,"",-scripts => ["serverstatus", "PopUps"]);
-
+DocDBHeader($Title,"",-scripts => ["serverstatus", "PopUps", "jQuery/jquery-1.8", "jQuery/jquery-ui", "Autocompleters"]);
 EndPage();
+print qq(
+    <link rel=\"stylesheet\" href=\"/Static/css/jquery-ui.css\" type=\"text/css\">
+    <link rel="stylesheet" href="/Static/css/Autocompleters.css">
+);
+AuthorJSList(1);
+# just because awesome
+print qq(
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.1.0/css/all.css">
+    <style>
+        .fa {
+          color: darkgrey;
+        }
+    </style>
+);
 
 ### Check parameters
 
@@ -636,14 +650,19 @@ if ($SingleSession) {
   print "<tr>\n";
 
   print "<td>\n";
-  AuthorScroll(-multiple => $TRUE,        -default  => \@DefaultModeratorIDs,
-               -name     => "moderators", -helptext => "Moderators",
-               -helplink => "moderators",);
+  # AuthorScroll(-multiple => $TRUE,        -default  => \@DefaultModeratorIDs,
+  #              -name     => "moderators", -helptext => "Moderators",
+  #              -helplink => "moderators",);
+  #
+  AuthorTextBox(-multiple => $TRUE,        -default  => \@DefaultModeratorIDs,
+      -name     => "moderators", -helptext => "Moderators",
+      -helplink => "moderators" );
+
   print "</td>\n";
 
   print "<td colspan=\"2\">\n";
   TopicScroll({ -multiple => $TRUE,         -default => \@DefaultTopicIDs,
-                -helplink => "eventtopics", -itemformat => "short"});
+                -helplink => "eventtopics", -itemformat => "short",});
   print "</td>\n";
   print "</tr>\n";
 } else {
@@ -660,9 +679,12 @@ if ($SingleSession) {
   print "</td>\n";
 
   print '<td rowspan="2">';
-  AuthorScroll(-multiple => $TRUE,        -default  => \@DefaultModeratorIDs,
-               -name     => "moderators", -helptext => "Moderators",
-               -helplink => "moderators",);
+  # AuthorScroll(-multiple => $TRUE,        -default  => \@DefaultModeratorIDs,
+  #              -name     => "moderators", -helptext => "Moderators",
+  #              -helplink => "moderators",);
+  AuthorTextBox(-multiple => $TRUE,        -default  => \@DefaultModeratorIDs,
+      -name     => "moderators", -helptext => "Moderators",
+      -helplink => "moderators",);
   print "</td>\n";
 
   print '<td rowspan="2">';

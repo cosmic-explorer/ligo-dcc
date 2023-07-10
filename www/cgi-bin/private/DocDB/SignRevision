@@ -66,7 +66,7 @@ $dbh   = DBI->connect('DBI:mysql:'.$db_name.':'.$db_host,$db_rwuser,$db_rwpass);
 # Collect parameters
 
 my $Action      = $params{sign_action};
-my $Value       = $params{value};
+my $Value       = $params{value}|| 0;
 my $EmailUserID = $params{emailuserid};
 my $SignatureID = $params{signatureid};
 my $Password    = $params{"password-$EmailUserID"} || '';
@@ -108,7 +108,7 @@ elsif ($UserValidation eq "kerberos") {
   $EmailUserID = FetchEmailUserIDFromRemoteUser();
 }
 
-if ($myDEBUG) { print DEBUG "FinalApproval :$FinalApproval EmailUserID: $EmailUserID\n"; }
+if ($myDEBUG) { print DEBUG "SignRevision EmailUserID:$EmailUserID\n"; }
 
 unless ($EmailUserID) {
   push @ErrorStack,"The password you entered or the certificate you supplied is invalid.";

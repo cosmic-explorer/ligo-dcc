@@ -31,7 +31,7 @@
 $db_name       = "dcc_docdb";           # Database name
 $db_host       = "localhost";
 $db_rouser     = "docdbro";             # (for two different projects). Otherwise its probably
-$db_ropass     = "*******";        # best just to leave the names as-is.
+$db_ropass     = "ll_docdbro_G";        # best just to leave the names as-is.
 
 
 # Root directories and URLs

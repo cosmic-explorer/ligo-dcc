@@ -4,8 +4,7 @@ require "DocumentTree";
 
 open (DEBUG, ">", "/tmp/debug");
 use IO::Handle; DEBUG->autoflush(1);
-#$dbh   = dbi->connect('dbi:mysql:'.$db_name.':'.$db_host,$db_rouser,$db_ropass);
-$dbh   = DBI->connect('DBI:mysql:database='.$db_name.':host='.$db_host,$db_rouser,$db_ropass);
+$dbh   =  CreateConnection(-type => "ro");
 
 my $Twig = XML::Twig -> new();
 $query = new CGI;  # Global for subroutines
@@ -15,15 +14,14 @@ print $query -> header( -charset => $HTTP_ENCODING);
 my $FirstClick = $CGIParams{'firstclick'};
 my $DocumentID = $CGIParams{'docid'};
 my $Version   = $CGIParams{'version'};
-CreateConnection(-type => "rw");
 
-#my $Alias = FetchDocumentAlias($DocumentID);
+CreateConnection(-type => "ro");
+
+my $Alias = $DocumentID;
 if ($DocumentID =~ m/^\d+$/) {
-   my $Alias = FetchDocumentAlias($DocumentID);
-} elsif ($DocumentID =~ m/^[a-zA-Z]\d{6,8}$/) {
-   my $Alias = $DocumentID;
-  $DocumentID = GetDocumentIDByAlias($Alias);
+   $Alias = FetchDocumentAlias($DocumentID);
 }
+
 my $RevID = FetchRevisionByDocumentAndVersion($DocumentID,$Version);
 my $Title = '';
 if ($Version == 0) {

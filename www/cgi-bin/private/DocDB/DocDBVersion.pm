@@ -23,6 +23,6 @@
 #$DocDBVersion = "8.6.0";
 #$DocDBVersion = "3.2.2";
 #$DocDBVersion = "3.3.0";
-$DocDBVersion = GIT_COMPUTED_VERSION;
+$DocDBVersion = "3.4.2-rc1";
 
 1;

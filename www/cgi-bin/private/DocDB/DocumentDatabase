@@ -136,9 +136,12 @@ if (!$Public) {
    # print  "<br>\n";
    print  "<br>\n";
    print  "<li><b>Other DCC</b></li>\n";
+
    print  "<li><a href=\"$KAGRAHome\">KAGRA</a></li>\n";
    print  "<li><a href=\"$VirgoHome\">Virgo TDS</a></li>\n";
-
+   if (length $CosmicHome) {  # if  $CosmicHone defined
+       print  "<li><a href=\"$CosmicHome/\">Cosmic Explorer</a></li>\n";
+   }
 
 
    # DCC Stats link to be moved to footer or elsewhere:
@@ -204,6 +207,9 @@ if ($Public) {
 
 #if (!$Public)
 AuthorJSList(1);
+
+@WarnStack = ();
+
 print '
 <script language="javascript" type="text/javascript">
 $(function() {
@@ -375,7 +381,7 @@ if (!$Public) {
    print $query -> endform;
 }
 
-print "</td><td class=main>";
+print "</td><td class=main cy-data='SignatureReportForm'>";
 if (!$Public && CanSign($EmailUserID)) {
     print $query -> startform('GET',$SignatureReport);
     print $query -> submit (-value => "Signature Report");
@@ -388,6 +394,7 @@ if (!$Public && CanSign($EmailUserID)) {
     my @DocumentIDs = &GetSignoffDocumentIDs(-emailuserid => $EmailUserID);
     my @SignoffIDs = &GetSignoffIDs(-emailuserid => $EmailUserID);
     my @ReadyDocumentIDs = ();
+
     foreach my $SignoffID (@SignoffIDs) {
       $SignoffID = &FetchSignoff($SignoffID);
       if ($SignoffID) {
@@ -398,7 +405,7 @@ if (!$Public && CanSign($EmailUserID)) {
           my $DocumentID = $DocRevisions{$DocRevID}{DOCID};
           #print "DocID: $DocumentID\n";
           my $Status = &SignoffStatus($SignoffID);
-          if ($Status eq "Ready") {
+          if ($Status eq "Ready" && isRevisionOpenforSignature($DocRevID) == 1) {
             push @ReadyDocumentIDs,$DocumentID;
           }
         }
@@ -494,5 +501,6 @@ $EndTime  = new Benchmark;
 # Remove footer bar
 #DocDBNavBar();
 print "<br>";
+WarnPage();
+DebugPage();
 DocDBFooter($DBWebMasterEmail,$DBWebMasterName);
-

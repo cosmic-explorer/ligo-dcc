@@ -134,13 +134,18 @@ my %RequiredEntries = ();
    $RequiredEntries{EventGroup}       = $TRUE;
 
 print $query -> header( -charset => $HTTP_ENCODING );
+my $Title = 'Modify an Event';
 if ($SetMode eq "create") {
-  DocDBHeader("Create a New Event","",-scripts => ["serverstatus", "PopUps"]);
-} else {
-  DocDBHeader("Modify an Event","",-scripts => ["serverstatus", "PopUps"]);
+  $Title = "Create a New Event";
 }
+DocDBHeader($Title,"",-scripts => ["serverstatus", "PopUps", "jQuery/jquery-1.8", "jQuery/jquery-ui", "Autocompleters"]);
 
 EndPage(@ErrorStack);
+print qq(
+    <link rel=\"stylesheet\" href=\"/Static/css/jquery-ui.css\" type=\"text/css\">
+    <link rel="stylesheet" href="/Static/css/Autocompleters.css">
+);
+AuthorJSList(1);
 
 # Security checks
 
@@ -468,9 +473,13 @@ EventGroupSelect( {-required => $RequiredEntries{EventGroup},
 print "</div>\n";
 unless ($NoSessions) { # No moderators for external conferences
   print "<div>\n";
-  AuthorScroll(-multiple => $TRUE,        -default  => \@MeetingModeratorDefaults,
-               -name     => "moderators", -helptext => "Moderators",
-               -helplink => "moderators",);
+  # AuthorScroll(-multiple => $TRUE,        -default  => \@MeetingModeratorDefaults,
+  #              -name     => "moderators", -helptext => "Moderators",
+  #              -helplink => "moderators",);
+  AuthorTextBox(-multiple => $TRUE,        -default  => \@MeetingModeratorDefaults,
+      -name     => "moderators", -helptext => "Moderators",
+      -helplink => "moderators" );
+
   print "</div>\n";
 }
 print "</td>\n";

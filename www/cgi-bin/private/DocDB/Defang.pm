@@ -157,7 +157,7 @@ my $Executables = '([^@]\.com|'.
                   '.*\.(exe|cmd|bat|pif|scr|sys|sct|lnk|dll'.
                   '|vbs?|vbe|hta|shb|shs|hlp|chm|eml|wsf|wsh|js'.
                   '|asx|wm.|mdb|mht|msi|msp|cpl|lib|reg))';
-my $SrcBanStd      = qr/^([A-Za-z]*script|.*\&{|mocha|about|opera|mailto:|hcp:|\/(dev|proc)|\\|file|smb|cid:${Executables}(@|\?|$))/i;
+my $SrcBanStd      = qr/^([A-Za-z]*script|.*\&\{|mocha|about|opera|mailto:|hcp:|\/(dev|proc)|\\|file|smb|cid:${Executables}(@|\?|$))/i;
 
 my %Rules = 
 (
@@ -178,7 +178,7 @@ my %Rules =
   "form-method"  => qr/^(get|post)$/i,
   "frame"        => qr/^(void|above|below|hsides|vsides|lhs|rhs|box|border)$/i,
   # href: Not javascript, vbs or vbscript
-  "href"         => [ qr/(?i:^([a-z]*script\s*:|.*\&{|mocha|hcp|opera\s*:|about\s*:|smb|\/dev\/|<))|[^\x00-\x7f]/ ],
+  "href"         => [ qr/(?i:^([a-z]*script\s*:|.*\&\{|mocha|hcp|opera\s*:|about\s*:|smb|\/dev\/|<))|[^\x00-\x7f]/ ],
   "usemap-href"  => qr/^#[A-Za-z0-9_.-]+$/,  # this is not really a href at all!
   "input-size"   => qr/^(\d{1,4})$/, # some browsers freak out with very large widgets
   "input-type"   => qr/^(button|checkbox|file|hidden|image|password|radio|readonly|reset|submit|text)$/i,
@@ -204,7 +204,7 @@ my %Rules =
 #  "style"        => qr/expression|eval|script:|mocha:|\&{|\@import|(?<!background-)position:|background-image/i, # XXX there are probably a million more ways to cause trouble with css!
   "style"        => qr/^.*$/s,
 #kc In addition to this, we could strip all 'javascript:|expression|' etc. from all attributes(in attribute_cleanup())
-  "stylesheet"   => [ qr/expression|eval|script:|mocha:|\&{|\@import/i ], # stylesheets are forbidden if Embedded => 1.  css positioning can be allowed in an iframe.
+  "stylesheet"   => [ qr/expression|eval|script:|mocha:|\&\{|\@import/i ], # stylesheets are forbidden if Embedded => 1.  css positioning can be allowed in an iframe.
   # NB see also `process_stylesheet' below
   "style-type"   => [ qr/script|mocha/i ],
   "size"         => qr/^[\d.]+(px|%)?$/i,

@@ -86,7 +86,6 @@ my $ReportXML = XMLReport();
 $ReportXML -> paste(last_child => $DocDBXML);
 my $XMLTextString = GetXMLOutput();
 
-
 # This is where the XMLStringOutput gets the control block etc. added
 # Little ugly and hardcoded indices (sorry!) but works.
 # PGA : really dirty patchup replace 17 with 12+length($DocDBVersion)

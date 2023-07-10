@@ -10,13 +10,37 @@
 	<div id="main">
 
 		<h2>News</h2>
+		<a name="05-11-23"></a>
+
+		<h3>May 11, 2023</h3>
+
+		<p>DCC <strong>version 3.4.2</strong> which includes software fixes and enhanced functionality. Some of these functional enhancements include:
+
+		<ul>
+
+			<li>Fix XMLClone bug  (#461, # 542)</li>
+			<li>Bulk Modify needs a feature description
+				<a href="https://dcc.ligo.org/DocDB/0179/G2102146/001/BulkModify%20Documentation.pdf">
+					https://dcc.ligo.org/DocDB/0179/G2102146/001/BulkModify%20Documentation.pdf
+				</a> (#503)</li>
+			<li>Do not process signature after the final approver (#500)</li>
+			<li>Reduce emails spamming from signing (#511, #519)</li>
+			<!-- <li>	    email reminder cadence (need to find bugzilla ticket or delete)</li> -->
+
+			<li>Fixing number of documents to sign (from home page) (#532)</li>
+			<li>Add link to Cosmic Explorer DCC to LIGO DCC (#565)</li>
+			<li>Add author autocomplete widgets in Events(#517)</li>
+
+		</ul>
+
+		</p>
 
 		<a name="09-16-21"></a>
 		<h3>Sep 16, 2021</h3>
 		<p>DCC <strong>version 3.4.1</strong> which includes software fixes and enhanced functionality. Some of these functional enhancements include: 
 			<ul>
 				<li>
-					A <a href="https://dcc.ligo.org/bugzilla/show_bug.cgi?id=506">list of bug fixes</a> and code cleanup.</li>
+					A <a href="https://git.ligo.org/DCC/docdb/-/issues/506">list of bug fixes</a> and code cleanup.</li>
 				<li>
 					Operating System Patches</li>
 			</ul>

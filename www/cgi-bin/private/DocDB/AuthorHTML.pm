@@ -442,7 +442,7 @@ sub AuthorsTable {
 sub AuthorScroll (%) {
   require "AuthorSQL.pm";
   require "Sorts.pm";
-  
+
   my (%Params) = @_;
   
   my $All       =   $Params{-showall}   || 0;
@@ -457,9 +457,10 @@ sub AuthorScroll (%) {
   my $Name      =   $Params{-name}      || "authors";
   my $Size      =   $Params{-size}      || 10;
   my $Disabled  =   $Params{-disabled}  || "";
+  my $Hidden    =   $Params{-hidden}    || 0;
   my @Defaults  = @{$Params{-default}};
 
-  unless (keys %Author) {
+  unless (keys %Authors) {
     GetAuthors();
   }
     
@@ -469,12 +470,12 @@ sub AuthorScroll (%) {
   foreach my $ID (@AuthorIDs) {
     if ($Authors{$ID}{ACTIVE} || $All) {
       $AuthorLabels{$ID} = $Authors{$ID}{Formal};
-      push @ActiveIDs,$ID; 
-    } 
-  }  
+      push @ActiveIDs,$ID;
+    }
+  }
   if ($HelpLink) {
     my $ElementTitle = FormElementTitle(-helplink => $HelpLink, -helptext  => $HelpText,
-                                        -extratext => $ExtraText, );
+                                        -extratext => $ExtraText , );
 #                                        -required => $Required, -extratext => $ExtraText, );
     print $ElementTitle,"\n";                                     
   }
@@ -484,14 +485,122 @@ sub AuthorScroll (%) {
                                    -size => 10, -multiple => $Multiple,
                                    -default => \@Defaults, -disabled);
   } else {
-    print $query -> scrolling_list(-name => $Name, -id => $Name, 
-                                   -values => \@ActiveIDs, 
-                                   -onClick => $OnChange,
-                                   -onBlur => $OnBlur,
-                                   -labels => \%AuthorLabels,
-                                   -size => 10, -multiple => $Multiple,
-                                   -default => \@Defaults);
-  }                                   
+    if ( $Hidden )  {
+      print $query -> scrolling_list(-name => $Name, -id => $Name,
+          -values                          => \@ActiveIDs,
+          -onClick                         => $OnChange,
+          -onBlur                          => $OnBlur,
+          -labels                          => \%AuthorLabels,
+          -size                            => 10, -multiple => $Multiple,
+          -default                         => \@Defaults,
+          -style                           => "display: none;"
+      );
+    } else {
+      print $query -> scrolling_list(-name => $Name, -id => $Name,
+          -values                          => \@ActiveIDs,
+          -onClick                         => $OnChange,
+          -onBlur                          => $OnBlur,
+          -labels                          => \%AuthorLabels,
+          -size                            => 10, -multiple => $Multiple,
+          -default                         => \@Defaults
+      );
+    }
+  }
+}
+
+# autocompleted text box
+sub AuthorTextBox(%) {
+  my %Params = @_;
+  AuthorScroll ((%Params, ( -hidden => 1)));
+
+  my $All       =   $Params{-showall}   || 0;
+  my $Multiple  =   $Params{-multiple}  || 0;
+  my $HelpLink  =   $Params{-helplink}  || "";
+  my $HelpText  =   $Params{-helptext}  || "Individuals";
+  my $ExtraText =   $Params{-extratext} || "";
+  # RDW added this extra param for onchange
+  my $OnChange  =   $Params{-onchange}  || "";
+  my $OnBlur    =   $Params{-onblur}    || "";
+  my $Required  =   $Params{-required}  || 0;
+  my $Name      =   $Params{-name}      || "authors";
+  my $boxID     =   $Params{-boxid}     || $Name;
+  my $Size      =   $Params{-size}      || 10;
+  my $Disabled  =   $Params{-disabled}  || "";
+  my @Defaults  = @{$Params{-default}};
+
+
+  unless (keys %Authors) {
+    GetAuthors();
+  }
+
+  my @AuthorList = map($Authors{$_}{'Formal'} , @Defaults);
+
+  print $query -> textarea (-name    => "list_$Name", -id => "list_$Name",
+      -rows    => $Size+2, -placeholder => 'Author Name...',
+      -default =>  join("\n",@AuthorList) );
+
+  print  qq(
+    <script>
+      jQuery( function() {
+         autocomplete_textarea('$Name', 'list_$Name');
+      });
+    </script>
+  );
+
+}
+
+
+# autocompleted dynamic list
+sub AuthorBox(%) {
+  my %Params = @_;
+  my $All       =   $Params{-showall}   || 0;
+  my $Multiple  =   $Params{-multiple}  || 0;
+  my $HelpLink  =   $Params{-helplink}  || "";
+  my $HelpText  =   $Params{-helptext}  || "Individuals";
+  my $ExtraText =   $Params{-extratext} || "";
+  # RDW added this extra param for onchange
+  my $OnChange  =   $Params{-onchange}  || "";
+  my $OnBlur    =   $Params{-onblur}    || "";
+  my $Required  =   $Params{-required}  || 0;
+  my $Name      =   $Params{-name}      || "authors";
+  my $boxID     =   $Params{-boxid}     || $Name;
+  my $Size      =   $Params{-size}      || 10;
+  my $Disabled  =   $Params{-disabled}  || "";
+  my @Defaults  = @{$Params{-default}};
+
+  unless (keys %Author) {
+    GetAuthors();
+  }
+
+  my @AuthorIDs = sort byLastName keys %Authors;
+  my %AuthorLabels = ();
+  my @ActiveIDs = ();
+  foreach my $ID (@AuthorIDs) {
+    if ($Authors{$ID}{ACTIVE} || $All) {
+      $AuthorLabels{$ID} = $Authors{$ID}{Formal};
+      push @ActiveIDs,$ID;
+    }
+  }
+  if ($HelpLink) {
+    my $ElementTitle = FormElementTitle(-helplink => $HelpLink, -helptext => $HelpText,
+                                        -extratext => "<span class=\"fa fa-user-plus\" onclick=\"add_Autocomplete('${boxID}');\"></span>",
+    );
+
+    #                                        -required => $Required, -extratext => $ExtraText,
+    print $ElementTitle, "\n";
+  }
+  #FIXME: load present existing list
+  print qq(
+    <div id="list${boxID}" class='ui-widget icon-container'>
+    </div>
+    <script>
+      jQuery(function(){
+        add_Autocomplete("${boxID}");
+      });
+    </script>
+  );
+
+
 }
 
 # Phil Ehrens fixed this. April 28, 2011.

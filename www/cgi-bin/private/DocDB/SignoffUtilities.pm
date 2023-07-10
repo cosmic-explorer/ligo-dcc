@@ -124,24 +124,22 @@ sub SignoffStatus_Parallel ($) {
   # Check to see if there is already a signature for this signoff
   FetchSignoff($SignoffID);
 
-  my @SignatureIDs = &GetSignatures($SignoffID);
-  foreach my $SignatureID (@SignatureIDs) {  # Loop over signatures
-    &FetchSignature($SignatureID);
-    if ($Signatures{$SignatureID}{Signed}) { # See if signed
+  my $SignatureID = &GetSignature($SignoffID);
 
-      if ($Signatures{$SignatureID}{Signed} == $SignoffDBValues{disapprove}) { 
+  my $SignatureValue = $Signatures{$SignatureID}{Signed};
+
+  if ($SignatureValue > 0) { # See if signed
+
+      if ($SignatureValue == $SignoffDBValues{disapprove}) { 
          $Status = "Disapproved";
       }
       else {
          $Status = "Signed";
       }
-      return $Status;
     }
     else {
       $Status = "Ready";
-      return $Status;
     }
-  }
 
   return $Status;
 }
@@ -233,7 +231,9 @@ sub RevisionStatus_Parallel ($) {
      my @SignatureIDs = &GetSignatures($LastSignoffID);
      foreach my $SignatureID (@SignatureIDs) {  # Loop over signatures
         &FetchSignature($SignatureID);
-         if ($Signatures{$SignatureID}{Signed} == $SignoffDBValues{approve}) { # See if approved
+         my $SignatureValue = $Signatures{$SignatureID}{Signed};
+         if ($myDEBUG) { print DEBUG "RevisionStatus_Parallel: Value $SignatureValue \n";} 
+         if ($SignatureValue == $SignoffDBValues{approve}) { # See if approved
 
             if ($myDEBUG) {print DEBUG "RevisionStatus_Parallel: DocRevID: $DocRevID SignatureID($SignatureID) \n"; }
 
@@ -242,7 +242,7 @@ sub RevisionStatus_Parallel ($) {
 
             if ($myDEBUG) { print DEBUG "RevisionStatus_Parallel: DocRevID: $DocRevID Final Approval - approved \n"; }
             return ($Status, $Locked, $DocRevID); 
-         } elsif ($Signatures{$SignatureID}{Signed} == $SignoffDBValues{disapprove}) { # See if disapproved
+         } elsif ($SignatureValue == $SignoffDBValues{disapprove}) { # See if disapproved
             if ($myDEBUG) {print DEBUG "RevisionStatus_Parallel: DocRevID: $DocRevID SignatureID($SignatureID) \n"; }
 
             $Status = $Unapproved_RevisionStatus;
@@ -459,16 +459,17 @@ sub NotifySignatureSignees ($$) {
 
        &MailNotices(-docrevid => $DocRevID, -type => "disapproved");
    }
-   else {
-       NotifySignees($DocRevID);
-   }
+
+   NotifySignees($DocRevID);
 
 }
 
 
-sub NotifySignees ($) {
 
-   unless ($UseSignoffs) { return; }
+sub NotifySignees($) {
+
+  $myDEBUG = 0;
+  unless ($UseSignoffs) { return; }
 
   require "SignoffSQL.pm";
   require "MailNotification.pm";
@@ -478,22 +479,23 @@ sub NotifySignees ($) {
   my ($Status)     = &RevisionStatus($DocRevID);
   my @EmailUserIDs = &ReadySignatories($DocRevID);
 
-  if (@EmailUserIDs) {
-    
-    &MailNotices(-docrevid => $DocRevID, -type => "signature",
-                 -emailids => \@EmailUserIDs);
-  }
-
   if ($Status eq $Approved_RevisionStatus) {
+    if ($myDEBUG) { print DEBUG ">>>>>>>>>>>>>>>>>>>>>>>>>>>>NotifySignees approved $ApprovedRevisionStatus\n"; }
     &MailNotices(-docrevid => $DocRevID, -type => "approved");
-  }
-  if ($Status eq "Signed") {
+  } elsif ($Status eq "Signed") {
+    if ($myDEBUG) { print DEBUG ">>>>>>>>>>>>>>>>>>>>>>>>>>>>NotifySignees signed\n"; }
     &MailNotices(-docrevid => $DocRevID, -type => "signed");
-  }
+  } elsif ($Status ne "Unmanaged") {
 
-  if ($Status ne "Unmanaged") {
+    if ($myDEBUG) { print DEBUG "----------------------------NotifySignees approval status: $Status\n"; }
+
+      if (@EmailUserIDs) {
+         if ($myDEBUG) { print DEBUG ">>>>>>>>>>>>>>>>>>>>>>>>>>>>NotifySignees signature @EmailUserIDs\n"; }
+         &MailNotices(-docrevid => $DocRevID, -type => "signature", -emailids => \@EmailUserIDs);
+      }
     print "<b>Approval status: $Status</b><br>\n";
-  }
+  } 
+
 }
 
 sub ReadySignatories ($) {
@@ -604,7 +606,5 @@ sub CopyRevisionSignoffs { # CopySignoffs from one revision to another
       }
    }
 
-   return $FirstSignoffID; 
+   return $FirstSignoffID;
 }
-1;
-#

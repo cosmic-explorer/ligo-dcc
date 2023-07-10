@@ -131,3 +131,29 @@ span.counter {
   clear: both;
   display: table;
 }
+
+
+/* signature form */
+#Signoffs .WaitforSignature {
+    color: red;
+    font-weight: bold;
+}
+/* # https://stackoverflow.com/questions/2717480/css-selector-for-first-element-with-class */
+#Signoffs .WaitforSignature ~ .WaitforSignature {
+    font-weight: normal;
+}
+
+/* for the red gavel in the signature form */
+.hideRedGavelText {
+    display: none;
+    z-index: 999;
+}
+
+#gavel:hover + .hideRedGavelText {
+    display: block;
+    color: #333;
+    font-size: 70%;
+    margin-top: 1.5em;
+    margin-left: 12%;
+    padding: 0.5em;
+}

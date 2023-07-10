@@ -76,7 +76,7 @@ $query = new CGI;  # Global for subroutines
 
 # safeguard read only replica against undue modifications:
 if ($ReadOnly) {
-  CreateConnection(-type => "rw");
+  CreateConnection(-type => "ro");
   print $query -> header( -charset => $HTTP_ENCODING );
   my @Scripts = ("prototype","jQuery/jquery-1.8","serverstatus", "PopUps","InsertRevisionNote","AuthorMethodDisplay","ScrollListSelector", "auto", "Autocompleters","Throttle","SearchForm","Utilities", "Signatures", "ValidateForm");
   DocDBHeader("Bulk Document Update","$Project Bulk Document Update",-scripts => \@Scripts);
@@ -89,11 +89,13 @@ if ($ReadOnly) {
 
 
 my $Twig = XML::Twig -> new();
-$dbh   = DBI->connect('DBI:mysql:'.$db_name.':'.$db_host,$db_rwuser,$db_rwpass);
+#$dbh   = DBI->connect('DBI:mysql:'.$db_name.':'.$db_host,$db_rwuser,$db_rwpass);
+$dbh = CreateConnection(-type => "rw");
+
 %CGIParams = $query -> Vars;
 &GetAuthors;
 &SetAuthorMode();
-CreateConnection(-type => "rw");
+CreateConnection(-type => "rw"); # how many times do we need to open the d**n connection?
 &GetSecurityGroups;
 
 my @Scripts = ("prototype","jQuery/jquery-1.8","serverstatus", "PopUps","InsertRevisionNote","AuthorMethodDisplay","ScrollListSelector", "auto", "Autocompleters","Throttle","SearchForm","Utilities", "Signatures", "ValidateForm");
@@ -190,6 +192,7 @@ foreach $OldDocumentID (@OldDocumentIDs) {
                                    -version => $OldVersion,
                                    -display => \%XMLFields,
                                   } );
+
     if ($XMLText) {
       $XMLText -> paste(last_child => $DocDBXML);
     }
@@ -198,11 +201,14 @@ foreach $OldDocumentID (@OldDocumentIDs) {
     $ReportXML -> paste(last_child => $DocDBXML);
     my $XMLTextString = GetXMLOutput();
 
-
     # This is where the XMLStringOutput gets the control block etc. added
     # Little ugly and hardcoded indices (sorry!) but works.
     my $insert = "<control><mode>new</mode></control>\n";
-    substr($XMLTextString, index($XMLTextString, 'version') + 17, 0, $insert);
+    # really?
+    # from a list of post variables to an XML doc to a string that represents it
+    # then do string substitutions before rebuilding the doc then ... ?
+    # seriously ?
+    substr($XMLTextString, index($XMLTextString, 'version') + 12 + length($DocDBVersion), 0, $insert);
     substr($XMLTextString, index($XMLTextString, '<report/>'), 10) = "";
     #         my $header = "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n";
     my $header = "<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>\n";

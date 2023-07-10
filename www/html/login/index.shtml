@@ -8,9 +8,9 @@
                   id="loginbutton"
                 name="loginbutton"
                value=""
-             onclick="self.location='/cgi-bin/private/DocDB/DocumentDatabase'"
+             onclick="setVisibility('loginbox', 'inline');"
              onfocus="this.src='./images/enter-login-4-hover.png'"
-             onblur="this.src='./images/enter-login-4.png'" >
+              onblur="this.src='./images/enter-login-4.png'" > 
          &nbsp; 
 			<input type="image"
                  src="./images/enter-public-4.png"
@@ -18,10 +18,25 @@
                value=""
              onclick="self.location='/cgi-bin/DocDB/DocumentDatabase'"
              onfocus="this.src='./images/enter-public-4-hover.png'"
-             onblur="this.src='./images/enter-public-4.png'" >
-             <!-- BigRedButton disabled on purpose -->
+              onblur="this.src='./images/enter-public-4.png'" >
+
              <!-- include file="BigRedButton.shtml"-->
 
+			<div id="loginbox">
+				<div id="loginboxcloser">
+               <a onclick="document.getElementById('loginbox').style.display='';return false;"
+                     href="">[x] close</a>
+            </div>
+            <div id="idpSelect"></div>
+            <script src="./typeahead.js"        type="text/javascript"></script>
+            <script src="./idpselect_config.js" type="text/javascript"></script>
+            <script src="./idpselect.js"        type="text/javascript"></script>
+            <noscript>
+            <!--
+               Your browser does not support javascript.  Please use
+               <a href="http://federation.org/DS/DS?entityID=https%3A%2F%2FyourentityId.edu.edu%2Fshibboleth&return=https%3A%2F%2Fyourreturn.edu%2FShibboleth.sso%2FDS%3FSAMLDS%3D1%26target%3Dhttps%3A%2F%2Fyourreturn.edu%2F">this link</a>.    
+            -->
+            </noscript>
 			</div>
 
 		</div>
@@ -30,50 +45,60 @@
 
    <center>
       <div id=gwannounce>
+         <span id=GWTC-3>
+            <a href=/LIGO-P2000318/public><h1>GWTC-3: Compact Binary Coalescences Observed by LIGO and Virgo During the Second Part of the Third Observing Run</h1></a>
+            <br>
+            <a href=/LIGO-P2000318/public><img src="/GWTC3_BNS_VT.png" alt="GWTC-3: Compact Binary Coalescences Observed by LIGO and Virgo During the Second Part of the Third Observing Run"></a>
+         </span>
+<!--
+         <span id=NSBH>
+            <a href=/LIGO-P2000357/public><h2>Observation of gravitational waves from two neutron star-black hole coalescences</h2></a>
+            <br>
+            <a href=/LIGO-P2000357/public><img src="/NSBH_disruption.png" alt="Observation of gravitational waves from two neutron star-black hole coalescences"></a>
+         </span>
          <span id=GWTC-2>
             <a href=/LIGO-P2000061/public><h2>GWTC-2: Compact Binary Coalescences Observed by LIGO and Virgo During the First Half of the Third Observing Run</h2></a>
             <br>
             <a href=/LIGO-P2000061/public><img src="/GWTC-2-masses.png" alt="GWTC-2: Compact Binary Coalescences Observed by LIGO and Virgo During the First Half of the Third Observing Run link the scientific article"></a>
          </span>
-          <!--
-                   <span id=GW190521>
-                      <a href=/LIGO-P2000020/public><h3>GW190521: A Binary Black Hole Merger with a Total Mass of 150 Msun</h3></a>
-                      <br>
-                      <a href=/LIGO-P2000020/public><img src="/GW190521.png" alt="GW190521: A Binary Black Hole Merger with a Total Mass of 150 Msun link the scientific article"></a>
-                   </span>
-                   <span id=P190814>
-                      <a href=/LIGO-P190814/public><h3>GW190814: Gravitational Waves from the Coalescence of a 23 Msun Black Hole with a 2.6 Msun Compact Object</h3></a>
-                      <br>
-                      <a href=/LIGO-P190814/public><img src="/GW190814.png" alt="GW190814: Gravitational Waves from the Coalescence of a 23 Msun Black Hole with a 2.6 Msun Compact Object, link the scientific article"></a>
-                   </span>
-                   <span id=P190412>
-                      <a href=/LIGO-P190412/public><h2>GW190412: Observation of a Binary-Black-Hole Coalescence with Asymmetric Masses</h2></a>
-                      <br>
-                      <a href=/LIGO-P190412/public><img src="/GW190412.png"></a>
-                   </span>
-                   <span id=P190425>
-                      <a href=/LIGO-P190425/public><h3>GW190425: Observation of a Compact Binary Coalescence with Total Mass ~3.4 Msun</h3></a>
-                      <br>
-                      <a href=/LIGO-P190425/public><img src="/GW190425_waves.png"></a>
-                   </span>
-                   <span id=GWTC-1>
-                      <a href=/LIGO-P1800307/public><h3>GWTC-1: A Gravitational-Wave Transient Catalog of Compact Binary Mergers Observed by LIGO and Virgo during the First and Second Observing Runs</h3></a>
-                      <br>
-                      <a href=/LIGO-P1800307/public><img src="/GWTC-1-chirp.png"></a>
-                   </span>
-                   <span id=P150914>
-                      <a href=/LIGO-P150914/public/main><h3>Observation of Gravitational Waves from a Binary Black Hole Merger</h3></a>
-                      <br>
-                      <a href=/LIGO-P150914/public/main><img src="/prl_cover.png"></a>
-                   </span>
-                   <span id=P170817>
-                      <a href=/LIGO-P170817/public/main><h3>GW170817: Observation of Gravitational Waves from a Binary Neutron Star Inspiral</h3></a>
-                      <br>
-                      <a href=/LIGO-P170817/public/main><img height=361 width=300 src="/cv119016.png"></a>
-                      <p></p>
-                      <a href=https://papers.ligo.org><b>Detection Publications</b></a>
-                   </span>
-          -->
+         <span id=GW190521>
+            <a href=/LIGO-P2000020/public><h3>GW190521: A Binary Black Hole Merger with a Total Mass of 150 Msun</h3></a>
+            <br>
+            <a href=/LIGO-P2000020/public><img src="/GW190521.png" alt="GW190521: A Binary Black Hole Merger with a Total Mass of 150 Msun link the scientific article"></a>
+         </span>
+         <span id=P190814>
+            <a href=/LIGO-P190814/public><h3>GW190814: Gravitational Waves from the Coalescence of a 23 Msun Black Hole with a 2.6 Msun Compact Object</h3></a>
+            <br>
+            <a href=/LIGO-P190814/public><img src="/GW190814.png" alt="GW190814: Gravitational Waves from the Coalescence of a 23 Msun Black Hole with a 2.6 Msun Compact Object, link the scientific article"></a>
+         </span>
+         <span id=P190412>
+            <a href=/LIGO-P190412/public><h2>GW190412: Observation of a Binary-Black-Hole Coalescence with Asymmetric Masses</h2></a>
+            <br>
+            <a href=/LIGO-P190412/public><img src="/GW190412.png"></a>
+         </span>
+         <span id=P190425>
+            <a href=/LIGO-P190425/public><h3>GW190425: Observation of a Compact Binary Coalescence with Total Mass ~3.4 Msun</h3></a>
+            <br>
+            <a href=/LIGO-P190425/public><img src="/GW190425_waves.png"></a>
+         </span>
+         <span id=GWTC-1>
+            <a href=/LIGO-P1800307/public><h3>GWTC-1: A Gravitational-Wave Transient Catalog of Compact Binary Mergers Observed by LIGO and Virgo during the First and Second Observing Runs</h3></a>
+            <br>
+            <a href=/LIGO-P1800307/public><img src="/GWTC-1-chirp.png"></a>
+         </span>
+         <span id=P150914>
+            <a href=/LIGO-P150914/public/main><h3>Observation of Gravitational Waves from a Binary Black Hole Merger</h3></a>
+            <br>
+            <a href=/LIGO-P150914/public/main><img src="/prl_cover.png"></a>
+         </span>
+         <span id=P170817>
+            <a href=/LIGO-P170817/public/main><h3>GW170817: Observation of Gravitational Waves from a Binary Neutron Star Inspiral</h3></a>
+            <br>
+            <a href=/LIGO-P170817/public/main><img height=361 width=300 src="/cv119016.png"></a>
+            <p></p>
+            <a href=https://papers.ligo.org><b>Detection Publications</b></a>
+         </span>
+-->
       </div>
    </center>
 

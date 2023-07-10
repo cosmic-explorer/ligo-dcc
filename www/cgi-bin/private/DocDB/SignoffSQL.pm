@@ -487,6 +487,23 @@ sub GetPreSignoffs ($) {
   return @PreSignoffIDs;
 }
 
+sub GetSignature ($) {
+  my ($SignoffID) = @_;
+
+  my $SignatureID;
+
+  my $Signature = $dbh -> prepare("select SignatureID from Signature ".
+                                     "where SignoffID=?");
+
+  $Signature -> execute($SignoffID);
+  $Signature -> bind_columns(undef, \($SignatureID));
+  if ($Signature -> fetch) { 
+      &FetchSignature($SignatureID);
+  }
+
+  return $SignatureID;
+}
+
 sub GetSignatures ($) {
   my ($SignoffID) = @_;
 
@@ -642,6 +659,41 @@ sub isPendingSignature($$$) {
   }
   
   return 0;
+}
+
+#using POD syntax here
+=item isRevisionOpenforSignature($DocRevID)
+
+    Input: existing DocRevID
+    Returns: boolean true if all following conditions are met:
+
+   1- revision is NOT obsolete (i.e. this is the active rev in the document version)
+   2- a signature (serial or parallel) is defined for this revision
+   3-  the (final) approver has not signed the revision
+
+  returns false otherwise
+=cut
+sub isRevisionOpenforSignature($) {
+    my ($DocRevID)= @_;
+
+    use Data::Dumper;
+    #check 1- and 2- in one sql query
+    my $RevNotObsoleteAndHasSignatureQuery = $dbh -> prepare("SELECT UNIQUE(DocumentRevision.DocumentID) as DocumentID ".
+    "FROM DocumentRevision JOIN Signoff ON DocumentRevision.DocRevID = Signoff.DocRevID ".
+    "WHERE DocumentRevision.DocRevID = ? AND DocumentRevision.Obsolete = 0") or die $dbh->errstr;
+    $RevNotObsoleteAndHasSignatureQuery -> execute($DocRevID) or die('could not execute $RevNotObsoleteAndHasSignatureQuery');
+    # if query comes back empty either the rev is obsolete or there is no signature process
+    my $DocID=$RevNotObsoleteAndHasSignatureQuery->fetchrow_array();
+    unless ( defined($DocID) ) { return 0; }
+    # (Signed = 0 or Signed is NULL) because no default value in table definition
+    my $HasApproverAlreadySigned = $dbh -> prepare("SELECT Signature.Signed FROM Signature, Signoff ".
+     " WHERE Signature.SignoffID=Signoff.SignoffID ".
+         "AND Signoff.DocRevID = ? ORDER BY Signoff.SignoffID DESC limit 1 ;") or die $dbh->errstr;
+    $HasApproverAlreadySigned -> execute($DocRevID) or die('could not execute $HasApproverAlreadySigned'.
+      "\n statement : ".$HasApproverAlreadySigned-> {Statement});
+    my $Signed= $HasApproverAlreadySigned -> fetchrow_array();
+
+    return  ($Signed !=0 )  ? 0 : 1;
 }
 
 
@@ -818,18 +870,21 @@ sub SizeOfSignoffList($) {
 # Number of signers who have responded
 #
 sub NumberOfResponders($) {
-   my ($DocRevID) = @_;
+   my ($docrevid) = @_;
    my $N = 0;
 
-   my ($Signed) = (); 
-   my $query = $dbh->prepare("SELECT  Signed from Signature ".
-                             " RIGHT JOIN Signoff ON Signoff.SignoffID = Signature.SignoffID ".
+   my $query = $dbh->prepare("SELECT `Signed`, `SignatureID` from `Signature` ".
+                             " JOIN Signoff ON Signoff.SignoffID = Signature.SignoffID ".
                              " WHERE Signoff.DocRevID=? ");
-   $query->execute($DocRevID);
-   $query->bind_columns(undef, \($Signed));
-   while ($query->fetch) {
-      if ($myDEBUG) { print DEBUG "DocRevID $DocRevID  Signed: \"$Signed\"\n"; }
+
+   $query->execute($docrevid) or die ("Exec failed: $!");
+  
+   while (my @row = $query->fetchrow_array()){
+      my $Signed = $row[0];
+      my $SignatureID = $row[1];
+      if ($myDEBUG) { print DEBUG "NumberOfResponders DocRevID $docrevid  SignatureID: $SignatureID Signed: $Signed\n"; }
       unless ($Signed) {
+         if ($myDEBUG) { print DEBUG "unless signed $SignatureID \n"; }
       }
       else {
           if ($Signed >= 1) {
@@ -838,6 +893,7 @@ sub NumberOfResponders($) {
       }
    }
 
+   if ($myDEBUG) { print DEBUG "NumberOfResponders $N\n"; }
    return $N;
 
 }
@@ -918,11 +974,5 @@ sub NumberOfDaysSince($) {
  
    return abs($NumOfDays);
 }
-  
-
-
-
-  
-
 
 1;

@@ -1,4 +1,4 @@
-FROM debian:bullseye-slim as base
+FROM debian:bookworm-slim as base
 
 ARG PERL_TEST_OPTION="--notest"
 ARG MARIADB_ROOT_PASSWORD=changeme
@@ -85,8 +85,11 @@ COPY deployment /tmp/deployment
 COPY docker/SiteConfig.j2 /tmp
 #FIXME: public siteconfig.pm probably needs its own j2 templates
 RUN j2 /tmp/SiteConfig.j2 | tee ${DOCDB_CGI_DIR}/private/DocDB/SiteConfig.pm| sed 's!/private/!/!' >  ${DOCDB_CGI_DIR}/DocDB/SiteConfig.pm &&\
-    mv ${DOCDB_HTML_DIR}/Static/css/LIGODocDB.css.dcc-private ${DOCDB_HTML_DIR}/Static/css/LIGODocDB.css &&\
-    mv ${DOCDB_HTML_DIR}/public/Static/css/LIGODocDB.css.dcc-public ${DOCDB_HTML_DIR}/public/Static/css/LIGODocDB.css
+    ls -l  ${DOCDB_HTML_DIR}/Static/css/  &&\
+    cp ${DOCDB_HTML_DIR}/Static/css/LIGODocDB.css ${DOCDB_HTML_DIR}/public/Static/css/LIGODocDB.css
+#    mv ${DOCDB_HTML_DIR}/Static/css/LIGODocDB.css.dcc-private ${DOCDB_HTML_DIR}/Static/css/LIGODocDB.css &&\
+RUN stat ${DOCDB_HTML_DIR}/Static/css/LIGODocDB.css && \
+    stat ${DOCDB_HTML_DIR}/public/Static/css/LIGODocDB.css \
 
 COPY docker/www/test.sh ${DOCDB_CGI_DIR}
 COPY docker/www/test.sh ${DOCDB_HTML_DIR}/app/test.sh

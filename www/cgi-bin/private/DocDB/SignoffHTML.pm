@@ -157,6 +157,8 @@ sub SignoffBox {
    print "</tr></table></td>\n";
 };
 
+
+
 sub PrintRevisionSignoffInfo ($) { # FIXME: Handle more complicated topologies?
   require "SignoffSQL.pm";
   require "Security.pm";
@@ -174,13 +176,16 @@ sub PrintRevisionSignoffInfo ($) { # FIXME: Handle more complicated topologies?
 
   my @RootSignoffIDs = &GetRootSignoffs($DocRevID);
   if (@RootSignoffIDs) {
-    print "<div id=\"Signoffs\">\n";
-    print "<dl>\n";
-    print "<dt class=\"InfoHeader\"><span class=\"InfoHeader\">Signoffs:"; 
 
     require "SignoffSQL.pm";
 
-    GetAllEmails($DocRevID);
+    print "<div id=\"Signoffs\">\n";
+    print "<div data-cy=\"OpenForSig\">";
+    print "<div>\n";
+    print "<dl>\n";
+    print "<dt class=\"InfoHeader\"><span class=\"InfoHeader\">Signoffs:";
+
+      GetAllEmails($DocRevID);
     if (scalar(@AllAddresses) > 1) {
       require "DocumentSQL.pm"; # get alias
       my $DocAlias = FetchDocumentAlias($DocumentID);
@@ -196,28 +201,17 @@ sub PrintRevisionSignoffInfo ($) { # FIXME: Handle more complicated topologies?
     print "</span></dt>\n";
     my $ParallelSignoff    = $DocRevisions{$DocRevID}{ParallelSignoff};
 
-    # https://stackoverflow.com/questions/2717480/css-selector-for-first-element-with-class
-    my $waitforsignature_sibling_style = $ParallelSignoff ? '' :
-    qq(
-       #Signoffs .WaitforSignature ~ .WaitforSignature {
-          font-weight: normal;
-       }
-    );
-
-    print qq(
-    <style>
-       #Signoffs .WaitforSignature {
-          color: red;
-          font-weight: bold;
-       }
-       $waitforsignature_siblings_style
-    </style>
-    );
-    
     print "<ul>\n";
+
     foreach my $RootSignoffID (@RootSignoffIDs) {
-      &PrintSignoffInfo($RootSignoffID);
+        &PrintSignoffInfo($RootSignoffID);
     }
+    print qq(
+    <div id="signatureWarning" style="visibility: hidden;">
+            <dd>You should not see this!!!</dd>
+        </dl>
+    </div>
+    );
     print "</ul>\n";
 
     print "</dl>\n";
@@ -234,13 +228,16 @@ sub PrintSignoffInfo ($) {
   if ($Public) { return; }
 
   my @SubSignoffIDs = &GetSubSignoffs($SignoffID);
-  print "<li>";
+
+  print "<li data-cy=\"SignoffInfo\">";
   &PrintSignatureInfo($SignoffID);
+
   if (@SubSignoffIDs) {
     print "<ul>\n";
     foreach my $SubSignoffID (@SubSignoffIDs) {
-      &PrintSignoffInfo($SubSignoffID);
+        &PrintSignoffInfo($SubSignoffID);
     }
+
     print "</ul>\n";
   }
   print "</li>\n";
@@ -265,29 +262,15 @@ sub PrintSignatureInfo ($) {
 
   my $LastSignerID = GetLastSignerByDocRevID ($DocRevID);
 
-  # FIXME: put the style in a proper css file
   my $RedGavel = qq (
-     <style> 
-        .hideRedGavelText {
-            display: none;
-            z-index: 999;
-        }
-  
-        #gavel:hover + .hideRedGavelText {
-            display: block;
-            color: #333;
-            font-size: 70%;
-            margin-top: 1.5em;
-            margin-left: 12%;
-            padding: 0.5em;
-        }
-     </style>
      <img id="gavel" src="/Static/img/gavel-24.ico" alt="Red gavel" width="16" height="16" />
-     <div class="hideRedGavelText">When the final approver (last in signoff list) approves or disapproves, the signature process ends. 
+     <div class="hideRedGavelText">When the Final Approver (last in signoff list) approves or disapproves, the signature process ends.
         If the final approver clears their approval or disapproval, the signature process resumes.</div>
   );
  
   my $pendingSignatures= &NumberOfPendingSignatures($DocRevID);
+  if ($myDEBUG) {print  DEBUG "Pending Signatures $pendingSignatures for $DocRevID\n";}
+
 
   foreach my $SignatureID (@SignatureIDs) {
     my $SignatureIDOK = &FetchSignature($SignatureID);
@@ -308,37 +291,10 @@ sub PrintSignatureInfo ($) {
       if ($myDEBUG) {print  DEBUG "Status: $Status for $EmailUserID\n";}
 
       if ($Status eq "Ready" || $Status eq "Signed" || $Status eq "Approved" || $Status eq "Disapproved"){
-        # FIXME: move that javascript function outside of the loop or in Signature.js 
-        print "\n<script>\n
-        function setSignAction(i) {\n
-
-            if (i==0) \$('sign_action').value = \"unsign\";\n
-            if (i==1) \$('sign_action').value = \"approve\";\n
-            if (i==2) \$('sign_action').value = \"abstain\";\n
-            if (i==3) \$('sign_action').value = \"disapprove\";\n
-//            alert (document.getElementById(\"sign_action\").value);
-            
-            document.sign_form.submit()
-            }
-
-        function getValue() {\n
-            alert(document.sign_form.elements[1].value);\n
-            document.sign_form.submit()
-        }
-        
-        function setApproverSignAction(i) {\n
-            
-            if (confirm('Once the final approval is given, those who have not signed will not be able to sign. Do you want to proceed?')) {
-                setSignAction(i)
-            }
-        }
-  </script>\n";
-
 
         if ($UserValidation eq "kerberos") {
 
           if (FetchEmailUserIDFromRemoteUser() == $EmailUserID) {
-
 
             if ($EmailUserID == $LastSignerID) {
                if ($Status eq "Ready") {
@@ -365,13 +321,13 @@ sub PrintSignatureInfo ($) {
                    # FIXME: actually compute whether the approver is the last to sign
                    my $actuallyFinalSigner = ($pendingSignatures == 1);
                    my $SignActionFunction = $actuallyFinalSigner ? "setSignAction" : "setApproverSignAction";
-                   $SignatureText .= "<input class=\"approver\" type=\"button\" value=\"$FinalApproverButtons{approve}\"  onClick=\"${SignActionFunction}(1)\">\n";
-                   $SignatureText .= "<input type=\"button\" value=\"$FinalApproverButtons{disapprove}\" onClick=\"${SignActionFunction}(3)\">\n";
+                   $SignatureText .= "<input class=\"approver\" type=\"button\" value=\"$FinalApproverButtons{approve}\"  onClick=\"${SignActionFunction}(1)\" data-cy=\"ApproveButton\">\n";
+                   $SignatureText .= "<input type=\"button\" value=\"$FinalApproverButtons{disapprove}\" onClick=\"${SignActionFunction}(3)\" data-cy=\"DisapproveButton\">\n";
                    $SignatureText .= $RedGavel;
                } else {
                  
                   if ($ReadOnly == 0){
-                      $SignatureText .= "<input type=\"button\" value=\"$FinalApproverButtons{unsign}\"  onClick=\"setSignAction(0)\">\n";
+                      $SignatureText .= "<input type=\"button\" value=\"$FinalApproverButtons{unsign}\"  onClick=\"setSignAction(0)\" data-cy=\"ApproverUnSignButton\">\n";
                       #$SignatureText .= $RedGavel;
                   }
                }
@@ -396,10 +352,11 @@ sub PrintSignatureInfo ($) {
                $SignatureText .= "<div>\n";
                $SignatureText .= "<tr><td class=\"LeftHeader\">\n";
                $SignatureText .= "$SignatureLink ";
-               $SignatureText .= $query -> hidden(-name => 'docid',   -default => $DocumentID);
-               $SignatureText .= $query -> hidden(-name => 'version',   -default => $Version);
-               $SignatureText .= $query -> hidden(-name => 'signatureid',   -default => $SignatureID);
-               $SignatureText .= $query -> hidden(-name => 'emailuserid',   -default => $EmailUserID);
+                # prepend IDs with _ because I fear collisions
+               $SignatureText .= $query -> hidden(-name => 'docid',  -id => '_docid', -default => $DocumentID);
+               $SignatureText .= $query -> hidden(-name => 'version', -id => '_version',  -default => $Version);
+               $SignatureText .= $query -> hidden(-name => 'signatureid',  -id => '_signatureid', -default => $SignatureID);
+               $SignatureText .= $query -> hidden(-name => 'emailuserid',   -id => '_emailuserid', -default => $EmailUserID);
                $SignatureText .= $query -> hidden(-name => 'sign_action',   -id => 'sign_action', -default => $Action);
 
                my ($revision_status, $Locked, $LastDocRevID) = RevisionStatus($DocRevID); 
@@ -415,13 +372,20 @@ sub PrintSignatureInfo ($) {
                   
                   if ( ($Locked == 0) && ($ReadOnly ==0) ){
                      if (($Action eq "unsign") || ($Status eq "Ready")){
-                        $SignatureText .= "<input type=\"button\" value=\"$SignoffButtons{approve}\"    onClick=\"setSignAction(1)\">\n";
-                        $SignatureText .= "<input type=\"button\" value=\"$SignoffButtons{disapprove}\" onClick=\"setSignAction(3)\">\n";
-                        $SignatureText .= "<input type=\"button\" value=\"$SignoffButtons{abstain}\"    onClick=\"setSignAction(2)\">\n";
-                     }
-                     else {
-                        $SignatureText .= "<input type=\"button\" value=\"$SignoffButtons{unsign}\"     onClick=\"setSignAction(0)\">\n";
-                     }
+                         $SignatureText .= qq(
+                            <script>
+                                // not great, borderline bad: create javascript variable from perl to use \$cgi_root from SiteConfig.pm
+                                // and retrieve SignRevision path properly without hardcoding.
+                                var _cgi_root="${cgi_root}"
+                            </script>
+                            <input type="button" value="$SignoffButtons{approve}"    onClick="checkAndSign(this,1)"  data-cy="SignButton">
+                            <input type="button" value="$SignoffButtons{disapprove}" onClick="checkAndSign(this,3)"  data-cy="DenyButton">
+                            <input type="button" value="$SignoffButtons{abstain}"    onClick="checkAndSign(this,2)"  data-cy="AbstainButton">
+                            <div id="SignatureMessage"></div>
+                          );
+                    } else { # if $Action is "unsign"
+                         $SignatureText .= "<input type=\"button\" value=\"$SignoffButtons{unsign}\"     onClick=\"setSignAction(0)\"  data-cy=\"UnSignButton\">\n";
+                    }
                   }
                }
 
@@ -494,7 +458,6 @@ sub PrintSignatureInfo ($) {
 
   my $SignoffText = join ' or <br>',@SignatureSnippets;
   print "$SignoffText\n";
-
   if ($myDEBUG) { close (DEBUG);}
 }
 

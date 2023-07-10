@@ -218,8 +218,11 @@ sub SessionEntryForm (%) {
 
     if ($SessionType ne "Break") {
       print '<td rowspan="2">';
-      AuthorScroll(-helptext => "",    -name    => "moderators-$MeetingOrderID",
-                   -multiple => $TRUE, -default => \@DefaultModeratorIDs,);
+      # AuthorScroll(-helptext => "",    -name    => "moderators-$MeetingOrderID",
+      #              -multiple => $TRUE, -default => \@DefaultModeratorIDs,);
+      AuthorTextBox(-helptext => "",    -name    => "moderators-$MeetingOrderID",
+                    -multiple => $TRUE, -default => \@DefaultModeratorIDs,);
+
       print "</td>\n";
       print '<td rowspan="2">';
       TopicScroll({-itemformat => "short",                         -helplink => "",

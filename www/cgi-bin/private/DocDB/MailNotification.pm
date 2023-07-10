@@ -35,7 +35,9 @@ sub MailNotices (%) {
   my @EmailUserIDs = @{$Params{-emailids}};
   my $ReadyForApproval = 0;
   
-if ($myDEBUG) { print DEBUG "MailNotices $ReadyForApproval\n"; }
+$myDEBUG = 0;
+
+if ($myDEBUG) { print DEBUG "MailNotices ReadyForApproval:$ReadyForApproval\n"; }
 
   FetchDocRevisionByID($DocRevID);
   my $DocumentID = $DocRevisions{$DocRevID}{DOCID};
@@ -55,7 +57,7 @@ if ($myDEBUG) { print DEBUG "MailNotices $ReadyForApproval\n"; }
       my $NumOfPendingSigs  = NumberOfPendingSignatures($DocRevID);
       my $SizeOfSignoffList = SizeOfSignoffList($DocRevID);
 
-      if ($myDEBUG) { print DEBUG "NumOfResponses: $NumOfResponses  NumOfPendingSigs: $NumOfPendingSigs\n"; }
+      if ($myDEBUG) { print DEBUG "DocRevID $DocRevID  SizeOfSignoffList $SizeOfSignoffList NumOfResponses: $NumOfResponses  NumOfPendingSigs: $NumOfPendingSigs\n"; }
 
       if (($NumOfPendingSigs == 1) && ($NumOfResponses == 0))  {
           $ReadyForApproval = 1;
@@ -68,6 +70,7 @@ if ($myDEBUG) { print DEBUG "MailNotices $ReadyForApproval\n"; }
       if ($myDEBUG) { print DEBUG "Ready for Approval $ReadyForApproval\n";}
 
       if ($ReadyForApproval) {
+          if ($myDEBUG) { print DEBUG "Pending email address $EmailUserID \n"; }
           if (CanAccess($DocumentID, $Version, $EmailUserID)) {
               if (isPendingSignature($DocRevID, $EmailUserID, 1)) {
                   FetchEmailUser($EmailUserID);
@@ -88,6 +91,8 @@ if ($myDEBUG) { print DEBUG "MailNotices $ReadyForApproval\n"; }
           }
       }
   } elsif (($Type eq "approved") || ($Type eq "disapproved")) { 
+    $ReadyForApproval = 1;
+
     @Addressees = UsersToNotify($DocRevID,{-period => "Immediate"} );
     my %EmailUsers = ();
     my @SignoffIDs = GetAllSignoffsByDocRevID($DocRevID);
@@ -193,10 +198,23 @@ if ($myDEBUG) { print DEBUG "MailNotices $ReadyForApproval\n"; }
                   "has been signed.\n\n";
       $Feedback = "<b>Approval notification sent to: </b>";           
     } elsif ($Type eq "disapproved"){
-      $Subject  = "Disapproved $FullID: $Title";
-      $Message  = "The following document ".
-                  "in the $Project Document Database ".
-                  "has received a disapproval.\n\n";
+
+      require "SignoffSQL.pm";
+      my $myEmailUserID  = FetchEmailUserIDFromRemoteUser();
+      &FetchEmailUser ($myEmailUserID);
+      my $myEmailAddress = $EmailUser{$myEmailUserID}{EmailAddress};
+
+      if ($ReadyForApproval) {
+          $Subject  = "Disapproved $FullID: $Title";
+          $Message  = "The following document ".
+                      "in the $Project Document Database ".
+                      "has received a disapproval from $myEmailAddress.\n\n";
+      } else {
+          $Subject  = "Denial $FullID: $Title";
+          $Message  = "The following document ".
+                      "in the $Project Document Database ".
+                      "has received a denial from $myEmailAddress.\n\n";
+      }
       $Feedback = "<b>Signature(s) requested from: </b>";           
     }  
 

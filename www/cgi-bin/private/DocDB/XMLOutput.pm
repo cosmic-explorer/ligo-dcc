@@ -46,6 +46,9 @@ sub XMLHeader {
 sub GetXMLOutput {
   $XMLTwig -> set_pretty_print('indented');
   my $XMLText = $DocDBXML -> sprint();
+  # For #461, #542
+  # # Eliminate ASCII control characters that are not Valid in XML 1
+  $XMLText =~ tr/\x00-\x08\x0B\x0C\x0E-\x19//d;
   return $XMLText;
 }
 

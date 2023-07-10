@@ -79,6 +79,14 @@ print "<div id=\"DocDBHomeBody\">\n";
 print '
 <center>
 <div id=gwannounce>
+   <span id=GWTC-3>
+      <a href=/LIGO-P2000318/public><h2>GWTC-3: Compact Binary Coalescences Observed by LIGO and Virgo During the Second Part of the Third Observing Run</h2></a>
+   <br>
+   <a href=/LIGO-P2000318/public><img src="/GWTC3_BNS_VT.png" alt="GWTC-3: Compact Binary Coalescences Observed by LIGO and Virgo During the Second Part of the Third Observing Run"></a>
+   <p></p>
+   <a href=https://www.ligo.caltech.edu/page/detection-companion-papers><b>Detection Publications</b></a>
+   </span>
+<!--
    <span id=NSBH>
       <a href=/LIGO-P2000357/public><h3>Observation of gravitational waves from two neutron star-black hole coalescences</h3></a>
    <br>
@@ -86,7 +94,6 @@ print '
    <p></p>
    <a href=https://www.ligo.caltech.edu/page/detection-companion-papers><b>Detection Publications</b></a>
    </span>
-<!--
    <span id=GWTC-2>
       <a href=/LIGO-P2000061/public><h3>GWTC-2: Compact Binary Coalescences Observed by LIGO and Virgo During the First Half of the Third Observing Run</h3></a>
    <br>
