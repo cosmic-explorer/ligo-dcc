@@ -7,7 +7,10 @@ requires 'CGI::Log';
 requires 'Config::Tiny';
 requires 'DateTime';
 requires 'DBI';
-requires 'DBD::mysql';     # for DCC 3.3.0, 3.3.1, 3.4.0
+# More recent versions of DBD:mysql break compatibilty with later
+# versions of MariaDB, see:
+#   https://forum.bestpractical.com/t/mysql-dependency-error-with-mariadb-and-debian-12/38748/3
+requires 'DBD::mysql', '== 4.052';     # for DCC 3.3.0, 3.3.1, 3.4.0
 requires 'DBD::SQLite';    # for automated tests / CI/CD ?
 requires 'DBD::MariaDB';   # future ?
 requires 'Digest::SHA1';
