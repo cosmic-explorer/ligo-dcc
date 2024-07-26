@@ -1,4 +1,4 @@
-FROM debian:bookworm-slim as base
+FROM debian:bookworm-slim AS base
 
 ARG PERL_TEST_OPTION="--notest"
 ARG MARIADB_ROOT_PASSWORD=changeme
@@ -7,6 +7,9 @@ ARG MARIADB_USER=docdbrw
 ARG MARIADB_PASSWORD
 ARG MARIADB_USER2=docdbro
 ARG MARIADB_PASSWORD2
+ARG IP
+ARG HOSTNAME
+ARG DOMAIN
 
 ENV DOCDB_BASE=/usr1/www
 ENV DOCDB_CGI_DIR=${DOCDB_BASE}/cgi-bin
@@ -20,6 +23,9 @@ ENV MARIADB_USER=${MARIADB_USER}
 ENV MARIADB_PASSWORD=${MARIADB_PASSWORD}
 ENV MARIADB_USER2=${MARIADB_USER2}
 ENV MARIADB_PASSWORD2=${MARIADB_PASSWORD2}
+ENV IP=${IP}
+ENV HOSTNAME=${HOSTNAME}
+ENV DOMAIN=${DOMAIN}
 
 SHELL ["/bin/bash", "-l", "-c"]
 
@@ -27,7 +33,7 @@ RUN apt update && apt upgrade -y &&\
     apt install -y apache2 apache2-utils supervisor build-essential \
                    libexpat1-dev libapache2-mod-authnz-external libapache2-mod-auth-openidc \
                    default-libmysqlclient-dev libmariadb-dev-compat mariadb-client \
-                   tmux vim curl ksh tcl openssl cmake rsync &&\
+                   tmux vim curl ksh tcl openssl cmake rsync less wget &&\
     mkdir -p ${DOCDB_CGI_DIR} ${DOCDB_HTML_DIR}
 
 
@@ -94,6 +100,35 @@ RUN stat ${DOCDB_HTML_DIR}/public/Static/css/LIGODocDB.css
 COPY docker/www/test.sh ${DOCDB_CGI_DIR}
 COPY docker/www/test.sh ${DOCDB_HTML_DIR}/app/test.sh
 COPY docker/www/index.html ${DOCDB_HTML_DIR}/app/index.html
+
+
+# Set up Shibboleth
+COPY docker/sp_files /tmp/sp_files
+
+RUN cp /tmp/sp_files/${HOSTNAME}.${DOMAIN}.crt /etc/ssl/certs/
+RUN cp /tmp/sp_files/${HOSTNAME}.${DOMAIN}.key /etc/ssl/private/
+
+RUN apt-get install -y ca-certificates
+RUN cp /tmp/sp_files/myCA.pem /usr/local/share/ca-certificates/myCA.crt
+RUN update-ca-certificates
+
+RUN apt install -y libapache2-mod-shib
+RUN mkdir /run/shibboleth
+RUN sed -i 's/ShibCompatValidUser Off/ShibCompatValidUser On/' /etc/apache2/conf-available/shib.conf
+RUN a2enmod shib
+
+RUN sed -e "s/IP/${IP}/g"  -e "s/HOSTNAME/${HOSTNAME}/g" -e "s/DOMAIN/${DOMAIN}/g" \
+	/tmp/sp_files/shibboleth2.xml > /etc/shibboleth/shibboleth2.xml
+
+
+RUN cp /tmp/sp_files/idp-metadata.xml /etc/shibboleth
+RUN chown root:root /etc/shibboleth/idp-metadata.xml 
+
+RUN shib-keygen -h ${HOSTNAME}.${DOMAIN} -e https://${HOSTNAME}.${DOMAIN}/shibboleth -n sp-encrypt
+RUN shib-keygen -h ${HOSTNAME}.${DOMAIN} -e https://${HOSTNAME}.${DOMAIN}/shibboleth -n sp-signing
+
+RUN chown _shibd:_shibd /etc/shibboleth/*pem
+
 
 #FIXME: needs glimpse
 RUN apt install -y glimpse

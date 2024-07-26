@@ -37,6 +37,9 @@ services:
         MARIADB_PASSWORD: ${MARIADB_PASSWORD}
         MARIADB_USER2: ${MARIADB_USER2}
         MARIADB_PASSWORD2: ${MARIADB_PASSWORD2}
+        IP: ${IP}
+        HOSTNAME: ${HOSTNAME}
+        DOMAIN: ${DOMAIN}
     environment:
       MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD}
       MARIADB_DATABASE: ${MARIADB_DATABASE}
@@ -44,39 +47,12 @@ services:
       MARIADB_PASSWORD: ${MARIADB_PASSWORD}
       MARIADB_USER2: ${MARIADB_USER2}
       MARIADB_PASSWORD2: ${MARIADB_PASSWORD2}
+      IP: ${IP}
+      HOSTNAME: ${HOSTNAME}
+      DOMAIN: ${DOMAIN}
     ports:
       - 80:80
       - 443:443
     depends_on:
       - "mariadb"
 
-  mailhog:
-    # fake smtp server to receive all email traffic and test notifications.
-    init: true
-    container_name: mailhog
-    image: mailhog/mailhog
-    command: ["-smtp-bind-addr", "0.0.0.0:25"]
-    user: root
-    expose:
-      - 25
-      - 8025
-    ports:
-      - 8025:8025
-    healthcheck:
-      test: echo | telnet 127.0.0.1 25
-    depends_on:
-      - "mariadb"
-      - "dcc"
-
-  e2e:
-    build:
-      context: .
-      dockerfile: docker/e2e/Dockerfile
-    init: true
-    container_name: e2e
-    working_dir: /e2e
-    #command: [ "/bin/sleep", "1h"]
-    depends_on:
-      - "mariadb"
-      - "dcc"
-      - "mailhog"
