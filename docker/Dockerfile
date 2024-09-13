@@ -7,6 +7,7 @@ ARG MARIADB_USER=docdbrw
 ARG MARIADB_PASSWORD
 ARG MARIADB_USER2=docdbro
 ARG MARIADB_PASSWORD2
+ARG FQDN
 
 ENV DOCDB_BASE=/usr1/www
 ENV DOCDB_CGI_DIR=${DOCDB_BASE}/cgi-bin
@@ -40,10 +41,10 @@ RUN  cd ${DOCDB_BASE} && cpanm --cpanfile cpanfile --installdeps ${PERL_TEST_OPT
 
 RUN apt-get clean
 
-RUN openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-                -subj  "/C=US/ST=CA/O=LIGO@caltech/CN=dcc.local." \
-                -keyout /etc/ssl/private/apache-selfsigned.key \
-                -out /etc/ssl/certs/apache-selfsigned.crt
+#RUN openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+#                -subj  "/C=US/ST=CA/O=LIGO@caltech/CN=dcc.local." \
+#                -keyout /etc/ssl/private/apache-selfsigned.key \
+#                -out /etc/ssl/certs/apache-selfsigned.crt
 
 #FIXME: full apache configuration
 COPY docker/docdb.j2 /tmp/
@@ -53,10 +54,11 @@ RUN chown -R www-data. ${DOCDB_HTML_DIR}/ &&\
     a2ensite docdb.conf && \
     a2enconf short_url.conf &&\
     a2dissite 000-default && \
-    a2enmod cgid proxy proxy_http rewrite ssl authnz_external include ldap authnz_ldap &&\
-    apache2ctl -t
+    a2enmod cgid proxy proxy_http rewrite ssl authnz_external include ldap authnz_ldap 
 
-#    a2enmod ldap authnz_ldap &&\
+# this step would fail because the directory with the certificates hasn't been mounted yet
+#  &&\
+#      apache2ctl -t
 
 # create user base
 COPY docker/DCCTesters /tmp
