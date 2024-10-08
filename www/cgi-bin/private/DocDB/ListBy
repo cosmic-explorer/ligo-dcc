@@ -40,6 +40,13 @@ $query = new CGI;  # Global for subroutines
 
 %params = $query -> Vars;
 
+# Ensure html entities in the query string are encoded
+# this prevents javascript injection attacks on the public site
+use HTML::Entities;
+while (my ($key, $value) = each(%params)) {
+   $params{$key} = HTML::Entities::encode($value);
+}
+
 my $Days         = $params{days}         || 0;
 my $TypeID       = $params{typeid}       || 0;
 my $AuthorID     = $params{authorid}     || 0;
