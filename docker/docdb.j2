@@ -1,3 +1,5 @@
+ServerName {{ FQDN }}
+
 <VirtualHost *:80>
     RewriteEngine On
     RewriteCond %{REQUEST_URI} !^/\.well\-known/acme\-challenge/
@@ -24,8 +26,8 @@
     #   Enable/Disable SSL for this virtual host.
     SSLEngine on
 
-    SSLCertificateFile /etc/ssl/certs/apache-selfsigned.crt
-    SSLCertificateKeyFile  /etc/ssl/private/apache-selfsigned.key
+    SSLCertificateFile /etc/letsencrypt/live/{{ FQDN }}/fullchain.pem
+    SSLCertificateKeyFile /etc/letsencrypt/live/{{ FQDN }}/privkey.pem
 
     <Location />
         DirectoryIndex index.html index.cgi index.php /dcc

@@ -7,6 +7,7 @@ ARG MARIADB_USER=docdbrw
 ARG MARIADB_PASSWORD
 ARG MARIADB_USER2=docdbro
 ARG MARIADB_PASSWORD2
+ARG FQDN
 
 ENV DOCDB_BASE=/usr1/www
 ENV DOCDB_CGI_DIR=${DOCDB_BASE}/cgi-bin
@@ -20,6 +21,7 @@ ENV MARIADB_USER=${MARIADB_USER}
 ENV MARIADB_PASSWORD=${MARIADB_PASSWORD}
 ENV MARIADB_USER2=${MARIADB_USER2}
 ENV MARIADB_PASSWORD2=${MARIADB_PASSWORD2}
+ENV FQDN=${FQDN}
 
 SHELL ["/bin/bash", "-l", "-c"]
 
@@ -53,8 +55,9 @@ RUN chown -R www-data. ${DOCDB_HTML_DIR}/ &&\
     a2ensite docdb.conf && \
     a2enconf short_url.conf &&\
     a2dissite 000-default && \
-    a2enmod cgid proxy proxy_http rewrite ssl authnz_external include ldap authnz_ldap &&\
-    apache2ctl -t
+    a2enmod cgid proxy proxy_http rewrite ssl authnz_external include ldap authnz_ldap 
+# This will fail because the cert lives in a volume that isn't mounted yet
+#    apache2ctl -t
 
 #    a2enmod ldap authnz_ldap &&\
 
