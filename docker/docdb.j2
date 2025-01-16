@@ -29,13 +29,27 @@ ServerName {{ FQDN }}
     SSLCertificateFile /etc/letsencrypt/live/{{ FQDN }}/fullchain.pem
     SSLCertificateKeyFile /etc/letsencrypt/live/{{ FQDN }}/privkey.pem
 
+    OIDCProviderMetadataURL {{ PROVIDER_METADATA_URL }}
+    OIDCClientID {{ CLIENT_ID }}
+    OIDCClientSecret {{ CLIENT_SECRET }}
+
+    # OIDCRedirectURI is a vanity URL that must point to a path protected by this module but must NOT point to any content
+    OIDCRedirectURI {{ REDIRECT_URI }}
+    OIDCCryptoPassphrase {{ CRYPTO_PASSPHRASE }}
+
+    # These will likely vary by provider
+    # https://github.com/netbox-community/netbox/discussions/6705
+    OIDCScope "openid email"
+    OIDCRemoteUserClaim email
+    #RequestHeader unset REMOTE_USER
+    #RequestHeader set REMOTE_USER expr=%{REMOTE_USER}
+
     <Location />
         DirectoryIndex index.html index.cgi index.php /dcc
-        AuthName "openDCC admin/admin or user[123]/password. demo only not for production use"
-        AuthType  Basic
-        AuthBasicProvider  test_file
-        Require    valid-user
-        #XbitHack on
+        AuthType openid-connect
+        <RequireAny>
+            Require user lppekows@gmail.com
+        </RequireAny>
     </Location>
 
     <LocationMatch "^/[A-za-z0-9_\-\.]+\.(gif|jpe?g|png|ico|js|css)$">
@@ -51,34 +65,30 @@ ServerName {{ FQDN }}
         Require all granted
     </LocationMatch>
 
-     # yes ! > 15min some scripts take a LOOOOOONNNNNNGGGGG time
-     #Timeout 1000
-     Timeout 10
+    # yes ! > 15min some scripts take a LOOOOOONNNNNNGGGGG time
+    #Timeout 1000
+    Timeout 10
 
-     DefineExternalGroup dccauth environment {{ DOCDB_CGI_DIR }}/private/DocDB/RemoteUserHasAccess
-     Alias "/DocDB" "/usr1/www/html/DocDB"
+    DefineExternalGroup dccauth environment {{ DOCDB_CGI_DIR }}/private/DocDB/RemoteUserHasAccess
+    Alias "/DocDB" "/usr1/www/html/DocDB"
 
-     <Location "/DocDB/">
-         LogLevel info authnz_external:debug authz_core:debug
-         AuthType Basic
-         AuthBasicProvider file external
-         AuthName "openDCC admin/admin or user[123]/password. demo only not for production use"
-         AuthUserFile /etc/apache2/passwords
-         GroupExternal dccauth
-         <RequireAll>
-             Require external-group foobar
-             Require valid-user
-         </RequireAll>
-     </Location>
+    <Location "/DocDB/">
+        LogLevel info authnz_external:debug authz_core:debug
+        AuthType openid-connect
 
-   #
-   #  where the private version of the dcc code lives
-   #  using the alias and Location should make the move away
-   #  from /usr1 easier.
-   #
-   Alias /cgi-bin/private/DocDB /usr1/www/cgi-bin/private/DocDB
-   ScriptAlias /dcc  {{ DOCDB_CGI_DIR }}/private/DocDB/DocumentDatabase
-   ScriptAlias /pub  {{ DOCDB_CGI_DIR }}/DocDB/DocumentDatabase
+        <RequireAny>
+            Require user lppekows@gmail.com
+        </RequireAny>
+    </Location>
+
+    #
+    #  where the private version of the dcc code lives
+    #  using the alias and Location should make the move away
+    #  from /usr1 easier.
+    #
+    Alias /cgi-bin/private/DocDB /usr1/www/cgi-bin/private/DocDB
+    ScriptAlias /dcc  {{ DOCDB_CGI_DIR }}/private/DocDB/DocumentDatabase
+    ScriptAlias /pub  {{ DOCDB_CGI_DIR }}/DocDB/DocumentDatabase
 
     <Location "/cgi-bin/private/DocDB">
         Options +ExecCGI +Indexes
